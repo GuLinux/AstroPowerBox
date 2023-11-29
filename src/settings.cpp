@@ -12,13 +12,11 @@
 
 
 #define LOG_SCOPE F("APB::Configuration")
+
+using namespace std::placeholders;
+
 namespace {
     Preferences prefs;
-}
-
-
-APB::Settings::WiFiStation::operator bool() const {
-    return !empty();
 }
 
 bool APB::Settings::WiFiStation::empty() const {
@@ -96,5 +94,5 @@ void APB::Settings::setStationConfiguration(uint8_t index, const char *essid, co
 }
 
 bool APB::Settings::hasValidStations() const {
-    return std::any_of(stations.begin(), stations.end(), [](const WiFiStation &station) -> bool { return station; });
+    return std::any_of(stations.begin(), stations.end(), std::bind(&APB::Settings::WiFiStation::valid, _1));
 }

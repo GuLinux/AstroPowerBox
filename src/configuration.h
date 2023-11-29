@@ -18,6 +18,10 @@
 #define APB_MAX_STATIONS 5
 #endif
 
+#ifndef APB_HEATERS
+#define APB_HEATERS 3
+#endif
+
 #ifndef APB_AMBIENT_TEMPERATURE_SENSOR
 #define APB_AMBIENT_TEMPERATURE_SENSOR __APB__SIM
 #endif

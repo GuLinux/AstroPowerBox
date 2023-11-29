@@ -12,7 +12,8 @@ public:
     struct WiFiStation {
         char essid[APB_MAX_ESSID_PSK_SIZE] = {0};
         char psk[APB_MAX_ESSID_PSK_SIZE] = {0};
-        operator bool() const;
+        operator bool() const { return valid(); }
+        bool valid() const { return !empty(); }
         bool empty() const;
         bool open() const;
     };
@@ -26,8 +27,6 @@ public:
     WiFiStation apConfiguration() const { return _apConfiguration; }
     WiFiStation station(uint8_t index) const { return stations[index]; }
     bool hasValidStations() const;
-
-
 private:
     logging::Logger &logger;
     std::array<WiFiStation, APB_MAX_STATIONS> stations;

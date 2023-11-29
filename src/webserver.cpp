@@ -43,8 +43,8 @@ namespace {
     }
 }
 
-APB::WebServer::WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient)
-    : server(80), logger(logger), configuration(configuration), wifiManager(wifiManager), ambient(ambient) {
+APB::WebServer::WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters)
+    : server(80), logger(logger), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters) {
 }
 
 
@@ -70,6 +70,7 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/simulator/ambient", std::bind(&APB::WebServer::onPostAmbientSetSim, this, _1, _2), HTTP_POST);
 #endif
     server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
+    server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
  
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Setup finished");
     server.begin();
@@ -167,6 +168,20 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
     response.document["temperature"] = ambient.temperature();
     response.document["humidity"] = ambient.humidity();
     response.document["dewpoint"] = ambient.dewpoint();
+}
+
+
+void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
+    JsonResponse response(request, heaters.size() * 100);
+    std::for_each(heaters.begin(), heaters.end(), [&response](Heater &heater) {
+        response.document[heater.index()]["mode"] = heater.mode()._to_string();
+        response.document[heater.index()]["pwm"] = heater.pwm();
+        response.document[heater.index()]["has_temperature"] = heater.temperature().has_value();
+        if(heater.temperature().has_value()) {
+            response.document[heater.index()]["temperature"] = heater.temperature().value();
+        }
+        
+    });
 }
 
 

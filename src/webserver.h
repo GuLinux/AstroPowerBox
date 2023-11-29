@@ -9,12 +9,13 @@
 #include "settings.h"
 #include "wifimanager.h"
 #include "ambient.h"
+#include "heater.h"
 
 namespace APB {
 
 class WebServer {
 public:
-    WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient);
+    WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters);
     void setup();
 private:
     AsyncWebServer server;
@@ -22,6 +23,7 @@ private:
     Settings &configuration;
     WiFiManager &wifiManager;
     Ambient &ambient;
+    Heaters &heaters;
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
@@ -31,6 +33,7 @@ private:
     void onPostReconnectWiFi(AsyncWebServerRequest *request);
     void onGetWiFiStatus(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
+    void onGetHeaters(AsyncWebServerRequest *request);
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);

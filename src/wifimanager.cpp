@@ -29,7 +29,6 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
             connect();
             break;
         case(ARDUINO_EVENT_WIFI_AP_STOP):
-        
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "[EVENT] WiFi AP stopped");
             _status = Status::Idle;
             break;
