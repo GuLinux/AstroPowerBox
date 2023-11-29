@@ -1,15 +1,19 @@
 #include <Arduino.h>
 #include <ElegantOTA.h>
+#include <logger.h>
+
 #include "webserver.h"
 #include "wifimanager.h"
 #include "settings.h"
-#include <logger.h>
+#include "ambient.h"
+
 
 logging::Logger logger;
 
 APB::Settings configuration(logger);
 APB::WiFiManager wifiManager(configuration, logger);
-APB::WebServer webServer(logger, configuration, wifiManager);
+APB::Ambient ambient(logger);
+APB::WebServer webServer(logger, configuration, wifiManager, ambient);
 
 #define LOG_SCOPE F("APB::Main")
 void setup() {
@@ -22,6 +26,7 @@ void setup() {
 
   configuration.setup();
   wifiManager.setup();
+  ambient.setup();
   webServer.setup();
 }
 

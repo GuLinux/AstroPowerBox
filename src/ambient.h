@@ -2,6 +2,7 @@
 #define APB_AMBIENT_H
 
 #include <logger.h>
+#include "configuration.h"
 
 namespace APB {
 
@@ -12,6 +13,9 @@ public:
     float temperature() const;
     float humidity() const;
     float dewpoint() const;
+    #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
+    void setSim(float temperature, float humidity);
+    #endif
 private:
     logging::Logger &logger;
 };

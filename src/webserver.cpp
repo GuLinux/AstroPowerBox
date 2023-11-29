@@ -43,8 +43,8 @@ namespace {
     }
 }
 
-APB::WebServer::WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager)
-    : server(80), logger(logger), configuration(configuration), wifiManager(wifiManager) {
+APB::WebServer::WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient)
+    : server(80), logger(logger), configuration(configuration), wifiManager(wifiManager), ambient(ambient) {
 }
 
 
@@ -58,20 +58,18 @@ void APB::WebServer::setup() {
     ElegantOTA.onEnd([this](bool success){ logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "OTA Finished, success=%d", success); });
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "ElegantOTA setup");
    
-    auto onPostConfigAccessPointHandler = new AsyncCallbackJsonWebHandler("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2));
-    onPostConfigAccessPointHandler->setMethod(HTTP_POST | HTTP_DELETE);
-    server.addHandler(onPostConfigAccessPointHandler);
-
-    auto onPostConfigStationHandler = new AsyncCallbackJsonWebHandler("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2));
-    onPostConfigStationHandler->setMethod(HTTP_POST | HTTP_DELETE);
-    server.addHandler(onPostConfigStationHandler);
-
-
+    onJsonRequest("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2), HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
+    
     server.on("/api/status", HTTP_GET, std::bind(&APB::WebServer::onGetStatus, this, _1));
+#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
+    onJsonRequest("/api/simulator/ambient", std::bind(&APB::WebServer::onPostAmbientSetSim, this, _1, _2), HTTP_POST);
+#endif
+    server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
  
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Setup finished");
     server.begin();
@@ -162,5 +160,30 @@ void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
 void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
     wifiManager.connect();
     onGetConfig(request);
+}
+
+void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
+    JsonResponse response(request, 100);
+    response.document["temperature"] = ambient.temperature();
+    response.document["humidity"] = ambient.humidity();
+    response.document["dewpoint"] = ambient.dewpoint();
+}
+
+
+
+#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
+void APB::WebServer::onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json) {
+    if(!checkMandatoryParameter(request, json, "temperature")) return;
+    if(!checkMandatoryParameter(request, json, "humidity")) return;
+    ambient.setSim(json["temperature"], json["humidity"]);
+    onGetAmbient(request);
+}
+#endif
+
+
+void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {
+    auto handler = new AsyncCallbackJsonWebHandler(path, f);
+    handler->setMethod(method);
+    server.addHandler(handler);
 }
 
