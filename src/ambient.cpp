@@ -14,8 +14,6 @@ struct __AmbientPrivate {
 __AmbientPrivate d;
 }
 
-
-
 APB::Ambient::Ambient() {
 }
 

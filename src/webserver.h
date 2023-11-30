@@ -32,6 +32,7 @@ private:
     void onGetWiFiStatus(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);
+    void onGetESPInfo(AsyncWebServerRequest *request);
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);

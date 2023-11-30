@@ -63,6 +63,7 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
+    server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
     
@@ -186,6 +187,21 @@ void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
         }
         
     });
+}
+
+void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
+    JsonResponse response(request, 500);
+    response.document["mem"]["freeHeap"] = ESP.getFreeHeap();
+    response.document["mem"]["freePsRam"] = ESP.getFreePsram();
+    response.document["mem"]["heapSize"] = ESP.getHeapSize();
+    response.document["mem"]["psRamSize"] = ESP.getPsramSize();
+    response.document["mem"]["usedHeap"] = ESP.getHeapSize() - ESP.getFreeHeap();
+    response.document["mem"]["usedPsRam"] = ESP.getPsramSize() - ESP.getFreePsram();
+    response.document["mem"]["maxAllocHeap"] = ESP.getMaxAllocHeap();
+    response.document["mem"]["maxAllocPsRam"] = ESP.getMaxAllocPsram();
+    response.document["sketch"]["MD5"] = ESP.getSketchMD5();
+    response.document["sketch"]["size"] = ESP.getSketchSize();
+    response.document["sketch"]["freeSketchSpace"] = ESP.getFreeSketchSpace();
 }
 
 
