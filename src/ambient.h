@@ -9,8 +9,8 @@ namespace APB {
 
 class Ambient {
 public:
-    Ambient(logging::Logger &logger, Scheduler &scheduler);
-    void setup();
+    Ambient(logging::Logger &logger);
+    void setup(Scheduler &scheduler);
     float temperature() const;
     float humidity() const;
     float dewpoint() const;
@@ -20,7 +20,6 @@ public:
 private:
     logging::Logger &logger;
     void readValues();
-    Scheduler &scheduler;
     Task readValuesTask;
 };
 

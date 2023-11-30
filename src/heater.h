@@ -4,6 +4,7 @@
 #include <logger.h>
 #include <optional>
 #include <enum.h>
+#include <TaskSchedulerDeclarations.h>
 
 #include "configuration.h"
 
@@ -13,7 +14,7 @@ BETTER_ENUM(Heater_Mode, uint8_t, Off, FixedPWM, SetTemperature)
 class Heater {
 public:
     using Mode = Heater_Mode;
-    void setup(logging::Logger &logger, uint8_t index);
+    void setup(logging::Logger &logger, uint8_t index, Scheduler &scheduler);
     float pwm() const;
     void pwm(float duty);
     bool temperature(float temperature, float maxDuty=1);
@@ -26,6 +27,7 @@ private:
     logging::Logger *logger;
     uint8_t _index;
     char log_scope[20];
+    Task readValuesTask;
 
 };
 using Heaters = std::array<APB::Heater, APB_HEATERS>;

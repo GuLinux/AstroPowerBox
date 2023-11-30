@@ -12,7 +12,7 @@ __AmbientPrivate d;
 
 
 
-APB::Ambient::Ambient(logging::Logger &logger, Scheduler &scheduler) : logger{logger}, scheduler{scheduler} {
+APB::Ambient::Ambient(logging::Logger &logger) : logger{logger} {
 }
 
 float APB::Ambient::dewpoint() const {
@@ -51,7 +51,7 @@ void APB::Ambient::readValues() {
   d.humidity = std::min(float(100.), std::max(float(0.), d.humidity));
 }
 
-void APB::Ambient::setup() {
+void APB::Ambient::setup(Scheduler &scheduler) {
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Ambient simulator initialised");
   readValuesTask.set(2000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
   scheduler.addTask(readValuesTask);

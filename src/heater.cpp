@@ -5,11 +5,13 @@ namespace {
 struct Heater_Private {
     APB::Heater::Mode mode{APB::Heater::Mode::Off};
     float pwm = 0;
+    void readValues();
+    void setPWM(float pwm);
 };
     Heater_Private d;
 }
 
-void APB::Heater::setup(logging::Logger &logger, uint8_t index) {
+void APB::Heater::setup(logging::Logger &logger, uint8_t index, Scheduler &scheduler) {
     this->logger = &logger;
     this->_index = index;
     sprintf(log_scope, "Heater[%d]", index);

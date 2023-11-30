@@ -17,7 +17,7 @@ Scheduler scheduler;
 
 APB::Settings configuration(logger);
 APB::WiFiManager wifiManager(configuration, logger);
-APB::Ambient ambient(logger, scheduler);
+APB::Ambient ambient(logger);
 APB::Heaters heaters;
 APB::WebServer webServer(logger, configuration, wifiManager, ambient, heaters);
 
@@ -35,8 +35,8 @@ void setup() {
 
   configuration.setup();
   
-  ambient.setup();
-  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(logger, i++); });
+  ambient.setup(scheduler);
+  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(logger, i++, scheduler); });
   wifiManager.setup();
   webServer.setup();
 }
