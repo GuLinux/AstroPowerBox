@@ -38,6 +38,9 @@ private:
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);
 #endif
+#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
+    void onPostHeaterSetSim(AsyncWebServerRequest *request, JsonVariant &json);
+#endif
     void onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite = HTTP_POST | HTTP_PUT | HTTP_PATCH);
 };
 }
