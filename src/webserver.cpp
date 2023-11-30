@@ -2,8 +2,9 @@
 #include <ElegantOTA.h>
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
+#include <ArduinoLog.h>
 
-#define LOG_SCOPE F("APB::Configuration")
+#define LOG_SCOPE "APB::Configuration"
 #define JSON_CONTENT_TYPE "application/json"
 
 using namespace std::placeholders;
@@ -43,20 +44,20 @@ namespace {
     }
 }
 
-APB::WebServer::WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters)
-    : server(80), logger(logger), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters) {
+APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters)
+    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters) {
 }
 
 
 void APB::WebServer::setup() {
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "Setup");
+    Log.traceln(LOG_SCOPE "Setup");
     ElegantOTA.begin(&server);
-    ElegantOTA.onStart([this](){ logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "OTA Started"); });
+    ElegantOTA.onStart([this](){ Log.infoln(LOG_SCOPE "OTA Started"); });
     ElegantOTA.onProgress([this](size_t current, size_t total){
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "OTA progress: %d%%(%d/%d)", int(current/total), current, total);
+        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(current/total), current, total);
     });
-    ElegantOTA.onEnd([this](bool success){ logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "OTA Finished, success=%d", success); });
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "ElegantOTA setup");
+    ElegantOTA.onEnd([this](bool success){ Log.infoln(LOG_SCOPE "OTA Finished, success=%d", success); });
+    Log.traceln(LOG_SCOPE "ElegantOTA setup");
    
     onJsonRequest("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
@@ -75,7 +76,7 @@ void APB::WebServer::setup() {
     server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
     server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
  
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Setup finished");
+    Log.infoln(LOG_SCOPE "Setup finished");
     server.begin();
 }
 
@@ -99,7 +100,7 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_DELETE) {
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
+        Log.traceln(LOG_SCOPE "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
         configuration.setAPConfiguration("", "");
     }
     if(request->method() == HTTP_POST) {
@@ -108,7 +109,7 @@ void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVar
 
         String essid = json["essid"];
         String psk = json["psk"];
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
+        Log.traceln(LOG_SCOPE "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
             essid.c_str(), psk.c_str(), request->method(), request->methodToString());
         if(essid.isEmpty()) {
             JsonResponse::error(400, "ESSID must not be empty", request);
@@ -131,7 +132,7 @@ void APB::WebServer::onConfigStation(AsyncWebServerRequest *request, JsonVariant
     int stationIndex = json["index"];
     String essid = json["essid"];
     String psk = json["psk"];
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, LOG_SCOPE, "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
+    Log.traceln(LOG_SCOPE "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
         stationIndex, essid.c_str(), psk.c_str(), request->method(), request->methodToString());
     if(stationIndex < 0 || stationIndex >= APB_MAX_STATIONS) {
         JsonResponse::error(400, "Invalid station index", request);

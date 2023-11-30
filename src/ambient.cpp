@@ -1,6 +1,9 @@
 #include "ambient.h"
 
-#define LOG_SCOPE "Ambient"
+#include <ArduinoLog.h>
+
+#define LOG_SCOPE "Ambient - "
+
 
 namespace {
 struct __AmbientPrivate {
@@ -13,7 +16,7 @@ __AmbientPrivate d;
 
 
 
-APB::Ambient::Ambient(logging::Logger &logger) : logger{logger} {
+APB::Ambient::Ambient() {
 }
 
 float APB::Ambient::dewpoint() const {
@@ -32,7 +35,7 @@ float APB::Ambient::humidity() const {
 }
 
 void APB::Ambient::setup(Scheduler &scheduler) {
-  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Ambient simulator initialised");
+  Log.infoln(LOG_SCOPE "Ambient simulator initialised");
   d.readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
   scheduler.addTask(d.readValuesTask);
   d.readValuesTask.enable();
@@ -54,7 +57,7 @@ void APB::Ambient::readValues() {
   };
   auto temp_delta = getRandomDelta();
   auto hum_delta = getRandomDelta();
-  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Ambient simulator: readValues, temp_diff=%f, hum_diff=%f", temp_delta, hum_delta);
+  Log.traceln(LOG_SCOPE "Ambient simulator: readValues, temp_diff=%F, hum_diff=%F", temp_delta, hum_delta);
   
   d.temperature += temp_delta;
   d.humidity += hum_delta;

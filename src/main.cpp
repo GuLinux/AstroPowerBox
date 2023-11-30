@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ElegantOTA.h>
-#include <logger.h>
 #include <TaskScheduler.h>
+#include <ArduinoLog.h>
 
 #include "configuration.h"
 
@@ -12,32 +12,33 @@
 #include "heater.h"
 
 
-logging::Logger logger;
 Scheduler scheduler;
 
-APB::Settings configuration(logger);
-APB::WiFiManager wifiManager(configuration, logger);
-APB::Ambient ambient(logger);
+APB::Settings configuration;
+APB::WiFiManager wifiManager(configuration);
+APB::Ambient ambient;
 APB::Heaters heaters;
 
-APB::WebServer webServer(logger, configuration, wifiManager, ambient, heaters);
+APB::WebServer webServer(configuration, wifiManager, ambient, heaters);
 
 
-#define LOG_SCOPE F("APB::Main")
+#define LOG_SCOPE "APB::Main - "
 
 using namespace std::placeholders;
 
 void setup() {
   Serial.begin(115200);
+  #ifdef WAIT_FOR_SERIAL
   auto started = millis(); while(!Serial && millis() - started < 10000);
-  logger.setDebugLevel(logging::LoggerLevel::LOGGER_LEVEL_DEBUG);
-  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "AstroPowerBox::setup, core: %d", xPortGetCoreID());
+  #endif
+  Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
+  Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
   
 
   configuration.setup();
   
   ambient.setup(scheduler);
-  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(logger, i++, scheduler); });
+  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
   wifiManager.setup();
   webServer.setup();
 }

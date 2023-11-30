@@ -1,3 +1,5 @@
+#include <ArduinoLog.h>
+
 #include "heater.h"
 #include "configuration.h"
 
@@ -7,7 +9,6 @@ struct APB::Heater::Private {
     float pwm = 0;
     std::optional<float> temperature;
     Task loopTask;
-    logging::Logger *logger;
     char log_scope[20];
     uint8_t index;
     
@@ -29,16 +30,15 @@ APB::Heater::Heater() : d{std::make_shared<Private>()} {
 APB::Heater::~Heater() {
 }
 
-void APB::Heater::setup(logging::Logger &logger, uint8_t index, Scheduler &scheduler) {
-    d->logger = &logger;
+void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     d->index = index;
-    sprintf(d->log_scope, "Heater[%d]", index);
+    sprintf(d->log_scope, "Heater[%d] -", index);
 
     d->loopTask.set(APB_HEATER_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Heater::Private::loop, d));
     scheduler.addTask(d->loopTask);
     d->loopTask.enable();
 
-    d->logger->log(logging::LoggerLevel::LOGGER_LEVEL_INFO, d->log_scope, "Heater initialised");
+    Log.infoln("%s Heater initialised", d->log_scope);
 
 }
 
@@ -56,7 +56,7 @@ uint8_t APB::Heater::index() const {
 
 bool APB::Heater::temperature(float temperature, float maxDuty) {
     if(!this->temperature().has_value()) {
-        d->logger->log(logging::LoggerLevel::LOGGER_LEVEL_WARN, d->log_scope, "Cannot set heater temperature without temperature sensor");
+        Log.warningln("%s Cannot set heater temperature without temperature sensor", d->log_scope);
         return false;
     }
     return true;
@@ -81,7 +81,7 @@ void APB::Heater::Private::loop() {
     float delta = static_cast<double>(esp_random())/UINT32_MAX;
     if(temperature.has_value()) {
         *temperature += delta - 0.5;
-        logger->log(logging::LoggerLevel::LOGGER_LEVEL_INFO, log_scope, "Heater simulator: loop, temp_diff=%f, temperature=%f", delta, *temperature);
+        Log.traceln("%s Heater simulator: loop, temp_diff=%F, temperature=%F", log_scope, delta, *temperature);
     }
 }
 

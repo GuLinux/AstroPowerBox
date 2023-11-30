@@ -1,7 +1,6 @@
 #ifndef APB_WIFIMANAGER_H
 #define APB_WIFIMANAGER_H
 
-#include <logger.h>
 #include <WiFiMulti.h>
 #include <enum.h>
 
@@ -12,13 +11,12 @@ BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessP
 class WiFiManager {
 public:
     using Status = WifiManager_WiFi_Status;
-    WiFiManager(Settings &configuration, logging::Logger &logger);
+    WiFiManager(Settings &configuration);
     void setup();
     void connect();
     Status status() const { return _status; }
 private:
     Settings &configuration;
-    logging::Logger &logger;
     WiFiMulti wifiMulti;
     Status _status;
 

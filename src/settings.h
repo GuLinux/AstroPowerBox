@@ -1,6 +1,5 @@
 #ifndef APB_SETTINGS_H
 #define APB_SETTINGS_H
-#include <logger.h>
 #include <array>
 #include "configuration.h"
 
@@ -17,7 +16,7 @@ public:
         bool empty() const;
         bool open() const;
     };
-    Settings(logging::Logger &logger);
+    Settings();
     void setup();
     void load();
     void save();
@@ -28,7 +27,6 @@ public:
     WiFiStation station(uint8_t index) const { return stations[index]; }
     bool hasValidStations() const;
 private:
-    logging::Logger &logger;
     std::array<WiFiStation, APB_MAX_STATIONS> stations;
     WiFiStation _apConfiguration;
 };

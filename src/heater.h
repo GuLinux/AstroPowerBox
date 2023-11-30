@@ -1,7 +1,6 @@
 #ifndef APB_HEATER_H
 #define APB_HEATER_H
 
-#include <logger.h>
 #include <optional>
 #include <enum.h>
 #include <TaskSchedulerDeclarations.h>
@@ -16,7 +15,7 @@ public:
     Heater();
     ~Heater();
     using Mode = Heater_Mode;
-    void setup(logging::Logger &logger, uint8_t index, Scheduler &scheduler);
+    void setup(uint8_t index, Scheduler &scheduler);
     float pwm() const;
     void pwm(float duty);
     bool temperature(float temperature, float maxDuty=1);

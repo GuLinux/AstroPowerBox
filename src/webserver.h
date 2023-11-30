@@ -2,7 +2,6 @@
 #define APB_WEBSERVER_H
 
 #include <ESPAsyncWebServer.h>
-#include <logger.h>
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
 
@@ -15,11 +14,10 @@ namespace APB {
 
 class WebServer {
 public:
-    WebServer(logging::Logger &logger, Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters);
+    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters);
     void setup();
 private:
     AsyncWebServer server;
-    logging::Logger &logger;
     Settings &configuration;
     WiFiManager &wifiManager;
     Ambient &ambient;
