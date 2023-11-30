@@ -6,6 +6,7 @@ namespace {
 struct __AmbientPrivate {
     float temperature = 0;
     float humidity = 0;
+    Task readValuesTask;
 };
 __AmbientPrivate d;
 }
@@ -30,6 +31,15 @@ float APB::Ambient::humidity() const {
     return d.humidity;
 }
 
+void APB::Ambient::setup(Scheduler &scheduler) {
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Ambient simulator initialised");
+  d.readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
+  scheduler.addTask(d.readValuesTask);
+  d.readValuesTask.enable();
+}
+
+
+
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
 #include <esp_random.h>
 void APB::Ambient::setSim(float temperature, float humidity) {
@@ -49,13 +59,6 @@ void APB::Ambient::readValues() {
   d.temperature += temp_delta;
   d.humidity += hum_delta;
   d.humidity = std::min(float(100.), std::max(float(0.), d.humidity));
-}
-
-void APB::Ambient::setup(Scheduler &scheduler) {
-  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, LOG_SCOPE, "Ambient simulator initialised");
-  readValuesTask.set(2000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
-  scheduler.addTask(readValuesTask);
-  readValuesTask.enable();
 }
 
 #endif

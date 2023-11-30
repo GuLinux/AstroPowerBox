@@ -2,8 +2,10 @@
 #define APB_AMBIENT_H
 
 #include <logger.h>
-#include "configuration.h"
 #include <TaskSchedulerDeclarations.h>
+
+#include "configuration.h"
+
 
 namespace APB {
 
@@ -20,7 +22,6 @@ public:
 private:
     logging::Logger &logger;
     void readValues();
-    Task readValuesTask;
 };
 
 }

@@ -22,15 +22,13 @@ public:
 
     Mode mode() const;
     uint8_t index() const { return _index; }
-    void tick();
 private:
     logging::Logger *logger;
     uint8_t _index;
     char log_scope[20];
-    Task readValuesTask;
 
 };
-using Heaters = std::array<APB::Heater, APB_HEATERS>;
+using Heaters = std::array<APB::Heater, APB_HEATERS_SIZE>;
 }
 
 

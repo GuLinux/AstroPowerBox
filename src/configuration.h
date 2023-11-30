@@ -18,9 +18,18 @@
 #define APB_MAX_STATIONS 5
 #endif
 
-#ifndef APB_HEATERS
-#define APB_HEATERS 3
+#ifndef APB_HEATERS_SIZE
+#define APB_HEATERS_SIZE 3
 #endif
+
+#ifndef APB_AMBIENT_UPDATE_INTERVAL_SECONDS
+#define APB_AMBIENT_UPDATE_INTERVAL_SECONDS 5
+#endif
+
+#ifndef APB_HEATER_UPDATE_INTERVAL_SECONDS
+#define APB_HEATER_UPDATE_INTERVAL_SECONDS 5
+#endif
+
 
 #ifndef APB_AMBIENT_TEMPERATURE_SENSOR
 #define APB_AMBIENT_TEMPERATURE_SENSOR __APB__SIM
@@ -33,6 +42,16 @@
 #ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_RESISTOR
 #define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_RESISTOR 10'000
 #endif
+
+
+// replace in configuration_override.h as needed, be sure that pinout values are unique
+#ifndef APB_HEATERS_PWM_PINOUT
+// Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
+// IMPORTANT: there is no compiler check for pinout size, so be careful.
+#define APB_HEATERS_PWM_PINOUT {0,1}, {2,3}, {4,5}
+#endif
+
+// Derivative constants, DO NOT change/redefine
 
 
 #if APB_HEATER_TEMPERATURE_SENSOR == __APB__SIM
@@ -53,7 +72,6 @@
 #define APB_AMBIENT_TEMPERATURE_SENSOR_DHT11
 #else
 #error APB_AMBIENT_TEMPERATURE_SENSOR undefined. Please change configuration_custom.h
-
 #endif
 
 #endif
