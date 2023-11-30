@@ -33,6 +33,7 @@ private:
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);
     void onGetESPInfo(AsyncWebServerRequest *request);
+    void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);

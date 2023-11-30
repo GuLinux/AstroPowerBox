@@ -3,22 +3,24 @@
 
 #include <optional>
 #include <enum.h>
+#include <memory>
 #include <TaskSchedulerDeclarations.h>
 
 #include "configuration.h"
-#include <memory>
+
 namespace APB {
 BETTER_ENUM(Heater_Mode, uint8_t, Off, FixedPWM, SetTemperature)
 
 class Heater {
 public:
+    using GetTargetTemperature = std::function<float()>;
     Heater();
     ~Heater();
     using Mode = Heater_Mode;
     void setup(uint8_t index, Scheduler &scheduler);
     float pwm() const;
-    void pwm(float duty);
-    bool temperature(float temperature, float maxDuty=1);
+    void setPWM(float duty);
+    bool setTemperature(GetTargetTemperature getTemperature, float maxDuty=1);
     std::optional<float> temperature() const;
 
     Mode mode() const;
