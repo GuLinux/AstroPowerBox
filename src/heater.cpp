@@ -9,6 +9,11 @@
 #include <SmoothThermistor.h>
 #endif
 
+#if APB_HEATER_TEMPERATURE_AVERAGE_COUNT > 1
+#define APB_HEATER_TEMPERATURE_USE_AVERAGE
+#include <deque>
+#include <numeric>
+#endif
 
 
 struct APB::Heater::Private {
@@ -19,6 +24,9 @@ struct APB::Heater::Private {
     char log_scope[20];
     uint8_t index;
     Heater::GetTargetTemperature getTargetTemperature;
+    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
+    std::deque<float> temperatureHistory;
+    #endif
     
     void setup();
     void loop();
@@ -101,9 +109,18 @@ APB::Heater::Mode APB::Heater::mode() const {
 void APB::Heater::Private::loop()
 {
     readTemperature();
+    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
+    temperatureHistory.push_back(*temperature);
+    if(temperatureHistory.size() > APB_HEATER_TEMPERATURE_AVERAGE_COUNT) temperatureHistory.pop_front();
+    temperature = std::accumulate(temperatureHistory.begin(), temperatureHistory.end(), 0.0) / temperatureHistory.size();
+    Log.traceln("%s Using temperature history: last entry=%F, average=%F of %d entries", log_scope, temperatureHistory.back(), *temperature, temperatureHistory.size());
+    #endif
     if(temperature.has_value() && temperature.value() < -100) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
+        #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
+        temperatureHistory.clear();
+        #endif
     }
     if(mode._to_integral() == Heater::Mode::SetTemperature) {
         if(!temperature) {
