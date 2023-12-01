@@ -7,7 +7,7 @@
 #define __APB__BME280 2
 #define __APB__DHT11 3
 
-#define __APB__THERMISTOR 1
+#define __APB__THERMISTOR 10
 
 #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
@@ -39,8 +39,20 @@
 #define APB_HEATER_TEMPERATURE_SENSOR __APB__SIM
 #endif
 
-#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_RESISTOR
-#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_RESISTOR 10'000
+#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE 10'000
+#endif
+
+#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL 10'000
+#endif
+
+#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP 25
+#endif
+
+#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE 3950
 #endif
 
 
@@ -48,7 +60,7 @@
 #ifndef APB_HEATERS_PWM_PINOUT
 // Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
 // IMPORTANT: there is no compiler check for pinout size, so be careful.
-#define APB_HEATERS_PWM_PINOUT {0,1}, {2,3}, {4,5}
+#define APB_HEATERS_PWM_PINOUT Pinout{5,35}, Pinout{2,33}, {3,34}
 #endif
 
 // Derivative constants, DO NOT change/redefine
