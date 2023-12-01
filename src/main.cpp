@@ -45,4 +45,5 @@ void setup() {
 
 void loop() {
   scheduler.execute();
+  ElegantOTA.loop();
 }

@@ -1,6 +1,11 @@
 #include "ambient.h"
 
 #include <ArduinoLog.h>
+#include <optional>
+
+#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
+#include <SHT31.h>
+#endif
 
 #define LOG_SCOPE "Ambient - "
 
@@ -10,6 +15,10 @@ struct __AmbientPrivate {
     float temperature = 0;
     float humidity = 0;
     Task readValuesTask;
+    void setup();
+#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
+  SHT31 sht31;
+#endif
 };
 __AmbientPrivate d;
 }
@@ -34,6 +43,7 @@ float APB::Ambient::humidity() const {
 
 void APB::Ambient::setup(Scheduler &scheduler) {
   Log.infoln(LOG_SCOPE "Ambient simulator initialised");
+  d.setup();
   d.readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
   scheduler.addTask(d.readValuesTask);
   d.readValuesTask.enable();
@@ -43,6 +53,8 @@ void APB::Ambient::setup(Scheduler &scheduler) {
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
 #include <esp_random.h>
+void __AmbientPrivate::setup() {
+}
 void APB::Ambient::setSim(float temperature, float humidity) {
     d.temperature = temperature;
     d.humidity = humidity;
@@ -62,4 +74,17 @@ void APB::Ambient::readValues() {
   d.humidity = std::min(float(100.), std::max(float(0.), d.humidity));
 }
 
+#endif
+
+#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
+
+void __AmbientPrivate::setup() {
+  sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
+}
+void APB::Ambient::readValues() {
+  d.sht31.readData();
+  d.temperature = d.sht31.getTemperature();
+  d.humidity = d.sht31.getHumidity();
+  // d.sht31.getError();
+}
 #endif
