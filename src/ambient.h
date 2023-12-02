@@ -1,8 +1,8 @@
 #ifndef APB_AMBIENT_H
 #define APB_AMBIENT_H
 
-
 #include <TaskSchedulerDeclarations.h>
+#include <optional>
 
 #include "configuration.h"
 
@@ -18,11 +18,10 @@ public:
         float humidity;
         float dewpoint() const;
     };
-    Reading reading() const;
+    std::optional<Reading> reading() const;
     #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void setSim(float temperature, float humidity, bool initialised=true);
     #endif
-    bool sensorInitialised() const;
     struct Private;
 };
 

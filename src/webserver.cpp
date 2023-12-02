@@ -5,7 +5,7 @@
 #include <ArduinoLog.h>
 #include <forward_list>
 
-#define LOG_SCOPE "APB::Configuration"
+#define LOG_SCOPE "APB::WebServer "
 #define JSON_CONTENT_TYPE "application/json"
 
 using namespace std::placeholders;
@@ -57,7 +57,17 @@ namespace {
             return *this;
         }
 
+        Validation &number(const char *key) {
+            if(valid() && json.containsKey(key)) {
+                if(!json[key].is<float>()) sprintf(errorMessage, "Value for `%s` is not a number", key);
+            }
+            return *this;
+        }
+
         Validation &range(const char *key, const std::optional<float> &min, const std::optional<float> &max) {
+            if(max) Log.traceln(LOG_SCOPE "min=%F", *min); else Log.traceln(LOG_SCOPE "min missing");
+            if(max) Log.traceln(LOG_SCOPE "max=%F", *max); else Log.traceln(LOG_SCOPE "max missing");
+            number(key);
             if(valid() && json.containsKey(key)) {
                 if(max && json[key] > *max) sprintf(errorMessage, "Value for `%s` greater than allowed max `%f`", key, *max);
                 if(min && json[key] < *min) sprintf(errorMessage, "Value for `%s` lower than allowed max `%f`", key, *min);
@@ -205,10 +215,14 @@ void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
+    if(!ambient.reading()) {
+        JsonResponse::error(500, "Ambient reading not available", request);
+        return;
+    }
     JsonResponse response(request, 100);
-    response.document["temperature"] = ambient.reading().temperature;
-    response.document["humidity"] = ambient.reading().humidity;
-    response.document["dewpoint"] = ambient.reading().dewpoint();
+    response.document["temperature"] = ambient.reading()->temperature;
+    response.document["humidity"] = ambient.reading()->humidity;
+    response.document["dewpoint"] = ambient.reading()->dewpoint();
 }
 
 
@@ -260,9 +274,16 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         float duty = json.containsKey("duty") ? json["duty"] : 1.0;
         bool setTemperatureSuccess = false;
         if(json["target_temperature"] == "dewpoint") {
-            if(validation.required("offset").range("offset", 0, 20).invalid()) return;
+            if(validation.required("offset").range("offset", {0}, {20}).invalid()) return;
+            if(!ambient.reading()) {
+                JsonResponse::error(500, "Ambient reading not available", request);
+                return;
+            }
             float offset = json["offset"];
-            setTemperatureSuccess = heater.setTemperature([this, offset](){ return ambient.reading().dewpoint() + offset; }, duty);
+            setTemperatureSuccess = heater.setTemperature([this, offset](){
+                if(!ambient.reading()) return std::optional<float>{};    
+                return std::optional<float>{ambient.reading()->dewpoint() + offset};
+            }, duty);
         } else {
             if(validation.range("target_temperature", {-100}, {100}).invalid()) return;
             float targetTemperature = json["target_temperature"];

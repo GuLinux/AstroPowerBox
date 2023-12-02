@@ -218,9 +218,12 @@ float APB::Heater::Private::getPWM() const {
 }
 
 void APB::Heater::Private::setPWM(float pwm) {
-    pwmValue = MAX_PWM * pwm;
-    Log.traceln("%s setting PWM=%d for pin %d", log_scope, pwmValue, pinout->pwm);
-    analogWrite(pinout->pwm, pwmValue);
+    int16_t newPWMValue = MAX_PWM * pwm;
+    if(newPWMValue != pwmValue) {
+        pwmValue = newPWMValue;
+        Log.traceln("%s setting PWM=%d for pin %d", log_scope, pwmValue, pinout->pwm);
+        analogWrite(pinout->pwm, pwmValue);
+    }
 }
 
 #endif

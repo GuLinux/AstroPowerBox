@@ -10,14 +10,13 @@
 #define LOG_SCOPE "Ambient - "
 
 struct APB::Ambient::Private {
-    Task readValuesTask;
-    bool initialised = false;
-    bool initialiseSensor();
-    void readSensor();
-    Reading reading;
+  Task readValuesTask;
+  bool initialised = false;
+  bool initialiseSensor();
+  void readSensor();
+  std::optional<Reading> reading;
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
   SHT31 sht31;
-  bool initialised = false;
   void logSHT31Error(const char *phase);
 #endif
 };
@@ -42,12 +41,8 @@ void APB::Ambient::setup(Scheduler &scheduler) {
   }
 }
 
-APB::Ambient::Reading APB::Ambient::reading() const {
+std::optional<APB::Ambient::Reading> APB::Ambient::reading() const {
     return d.reading;
-}
-
-bool APB::Ambient::sensorInitialised() const {
-    return d.initialised;
 }
 
 float APB::Ambient::Reading::dewpoint() const {
@@ -70,24 +65,26 @@ void APB::Ambient::setSim(float temperature, float humidity, bool initialised) {
 }
 
 void APB::Ambient::Private::readSensor() {
+  if(!reading) return;
   auto getRandomDelta = [](){
     float delta = static_cast<double>(esp_random())/UINT32_MAX;
     return delta - 0.5;
   };
-  auto temp_delta = getRandomDelta();
-  auto hum_delta = getRandomDelta();
+  float temp_delta = getRandomDelta();
+  float hum_delta = getRandomDelta();
   Log.traceln(LOG_SCOPE "Ambient simulator: readValues, temp_diff=%F, hum_diff=%F", temp_delta, hum_delta);
   
-  d.reading.temperature += temp_delta;
-  d.reading.humidity += hum_delta;
-  d.reading.humidity = std::min(float(100.), std::max(float(0.), d.reading.humidity));
+  reading = { Reading{
+    reading->temperature + temp_delta,
+    std::min(100.f, std::max(0.f, reading->humidity + hum_delta))
+  }};
 }
 #endif
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
 bool APB::Ambient::Private::initialiseSensor() {
-  if(!sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS));
+  if(!sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS)) {
     d.logSHT31Error("initialiseSensor");
     return false;
   }
@@ -97,8 +94,7 @@ bool APB::Ambient::Private::initialiseSensor() {
 void APB::Ambient::Private::readSensor() {
   if(!d.initialised) return;
   if(d.sht31.readData()) {
-    d.temperature = d.sht31.getTemperature();
-    d.humidity = d.sht31.getHumidity();
+    d.reading = { d.sht31.getTemperature(), d.sht31.getHumidity() };
   } else {
     d.logSHT31Error("reading values");
   }
