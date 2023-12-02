@@ -206,9 +206,9 @@ void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
     JsonResponse response(request, 100);
-    response.document["temperature"] = ambient.temperature();
-    response.document["humidity"] = ambient.humidity();
-    response.document["dewpoint"] = ambient.dewpoint();
+    response.document["temperature"] = ambient.reading().temperature;
+    response.document["humidity"] = ambient.reading().humidity;
+    response.document["dewpoint"] = ambient.reading().dewpoint();
 }
 
 
@@ -260,7 +260,9 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         float duty = json.containsKey("duty") ? json["duty"] : 1.0;
         bool setTemperatureSuccess = false;
         if(json["target_temperature"] == "dewpoint") {
-            setTemperatureSuccess = heater.setTemperature([this](){ return ambient.dewpoint(); }, duty);
+            if(validation.required("offset").range("offset", 0, 20).invalid()) return;
+            float offset = json["offset"];
+            setTemperatureSuccess = heater.setTemperature([this, offset](){ return ambient.reading().dewpoint() + offset; }, duty);
         } else {
             if(validation.range("target_temperature", {-100}, {100}).invalid()) return;
             float targetTemperature = json["target_temperature"];
@@ -279,7 +281,8 @@ void APB::WebServer::onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVar
     if(Validation{request, json}
         .required({"temperature", "humidity"})
         .invalid() ) return;
-    ambient.setSim(json["temperature"], json["humidity"]);
+    bool initialised = json.containsKey("initialised") ? json["initialised"] : true;
+    ambient.setSim(json["temperature"], json["humidity"], initialised);
     onGetAmbient(request);
 }
 #endif

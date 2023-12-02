@@ -13,14 +13,17 @@ class Ambient {
 public:
     Ambient();
     void setup(Scheduler &scheduler);
-    float temperature() const;
-    float humidity() const;
-    float dewpoint() const;
+    struct Reading {
+        float temperature;
+        float humidity;
+        float dewpoint() const;
+    };
+    Reading reading() const;
     #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-    void setSim(float temperature, float humidity);
+    void setSim(float temperature, float humidity, bool initialised=true);
     #endif
-private:
-    void readValues();
+    bool sensorInitialised() const;
+    struct Private;
 };
 
 }

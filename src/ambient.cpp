@@ -9,60 +9,67 @@
 
 #define LOG_SCOPE "Ambient - "
 
-
-namespace {
-struct __AmbientPrivate {
-    float temperature;
-    float humidity;
+struct APB::Ambient::Private {
     Task readValuesTask;
-    void setup();
+    bool initialised = false;
+    bool initialiseSensor();
+    void readSensor();
+    Reading reading;
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
   SHT31 sht31;
-  bool sensorInitialised = false;
+  bool initialised = false;
   void logSHT31Error(const char *phase);
 #endif
 };
-__AmbientPrivate d;
+namespace {
+APB::Ambient::Private d;
 }
 
 APB::Ambient::Ambient() {
 }
 
-float APB::Ambient::dewpoint() const {
-    static const float dewpointA = 17.62;
-    static const float dewpointB = 243.12;
-    const float a_t_rh = log(d.humidity / 100.0) + (dewpointA * d.temperature / (dewpointB + d.temperature));
-    return (dewpointB * a_t_rh) / (dewpointA - a_t_rh);
-}
-
-float APB::Ambient::temperature() const {
-    return d.temperature;
-}
-
-float APB::Ambient::humidity() const {
-    return d.humidity;
-}
 
 void APB::Ambient::setup(Scheduler &scheduler) {
   Log.infoln(LOG_SCOPE "Ambient initialising");
-  d.setup();
-  d.readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::readValues, this));
-  scheduler.addTask(d.readValuesTask);
-  d.readValuesTask.enable();
-  Log.infoln(LOG_SCOPE "Ambient initialised");
+  d.initialised = d.initialiseSensor();
+  if(d.initialised) {
+    d.readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::Private::readSensor, &d));
+    scheduler.addTask(d.readValuesTask);
+    d.readValuesTask.enable();
+    Log.infoln(LOG_SCOPE "Ambient initialised");
+  } else {
+    Log.errorln(LOG_SCOPE "Error initialising ambient sensor");
+  }
+}
+
+APB::Ambient::Reading APB::Ambient::reading() const {
+    return d.reading;
+}
+
+bool APB::Ambient::sensorInitialised() const {
+    return d.initialised;
+}
+
+float APB::Ambient::Reading::dewpoint() const {
+  static const float dewpointA = 17.62;
+  static const float dewpointB = 243.12;
+  const float a_t_rh = log(humidity / 100.0) + (dewpointA * temperature / (dewpointB + temperature));
+  return (dewpointB * a_t_rh) / (dewpointA - a_t_rh);
 }
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
 #include <esp_random.h>
-void __AmbientPrivate::setup() {
+bool APB::Ambient::Private::initialiseSensor() {
   Log.infoln(LOG_SCOPE "Ambient simulator initialised");
-}
-void APB::Ambient::setSim(float temperature, float humidity) {
-    d.temperature = temperature;
-    d.humidity = humidity;
+  return true;
 }
 
-void APB::Ambient::readValues() {
+void APB::Ambient::setSim(float temperature, float humidity, bool initialised) {
+    d.initialised = initialised;
+    d.reading = { temperature, humidity };
+}
+
+void APB::Ambient::Private::readSensor() {
   auto getRandomDelta = [](){
     float delta = static_cast<double>(esp_random())/UINT32_MAX;
     return delta - 0.5;
@@ -71,23 +78,24 @@ void APB::Ambient::readValues() {
   auto hum_delta = getRandomDelta();
   Log.traceln(LOG_SCOPE "Ambient simulator: readValues, temp_diff=%F, hum_diff=%F", temp_delta, hum_delta);
   
-  d.temperature += temp_delta;
-  d.humidity += hum_delta;
-  d.humidity = std::min(float(100.), std::max(float(0.), d.humidity));
+  d.reading.temperature += temp_delta;
+  d.reading.humidity += hum_delta;
+  d.reading.humidity = std::min(float(100.), std::max(float(0.), d.reading.humidity));
 }
-
 #endif
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
-void __AmbientPrivate::setup() {
-  sensorInitialised = sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
-  if(!sensorInitialised) {
-    d.logSHT31Error("setup");
+bool APB::Ambient::Private::initialiseSensor() {
+  if(!sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS));
+    d.logSHT31Error("initialiseSensor");
+    return false;
   }
+  return true;
 }
-void APB::Ambient::readValues() {
-  if(!d.sensorInitialised) return;
+
+void APB::Ambient::Private::readSensor() {
+  if(!d.initialised) return;
   if(d.sht31.readData()) {
     d.temperature = d.sht31.getTemperature();
     d.humidity = d.sht31.getHumidity();
@@ -96,7 +104,7 @@ void APB::Ambient::readValues() {
   }
 }
 
-void __AmbientPrivate::logSHT31Error(const char *phase) {
+void APB::Ambient::Private::logSHT31Error(const char *phase) {
   static const std::map<uint8_t, String> SHT31_ERRORS {
     { SHT31_OK, "no error" },
     { SHT31_ERR_WRITECMD, "I2C write failed" },

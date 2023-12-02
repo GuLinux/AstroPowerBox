@@ -13,7 +13,7 @@ BETTER_ENUM(Heater_Mode, uint8_t, Off, FixedPWM, SetTemperature)
 
 class Heater {
 public:
-    using GetTargetTemperature = std::function<float()>;
+    using GetTargetTemperature = std::function<std::optional<float>()>;
     Heater();
     ~Heater();
     using Mode = Heater_Mode;

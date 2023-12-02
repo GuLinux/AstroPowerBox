@@ -109,12 +109,6 @@ APB::Heater::Mode APB::Heater::mode() const {
 void APB::Heater::Private::loop()
 {
     readTemperature();
-    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
-    temperatureHistory.push_back(*temperature);
-    if(temperatureHistory.size() > APB_HEATER_TEMPERATURE_AVERAGE_COUNT) temperatureHistory.pop_front();
-    temperature = std::accumulate(temperatureHistory.begin(), temperatureHistory.end(), 0.0) / temperatureHistory.size();
-    Log.traceln("%s Using temperature history: last entry=%F, average=%F of %d entries", log_scope, temperatureHistory.back(), *temperature, temperatureHistory.size());
-    #endif
     if(temperature.has_value() && temperature.value() < -100) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
@@ -122,21 +116,36 @@ void APB::Heater::Private::loop()
         temperatureHistory.clear();
         #endif
     }
+
+    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
+    if(temperature.has_value()) {
+        temperatureHistory.push_back(*temperature);
+        if(temperatureHistory.size() > APB_HEATER_TEMPERATURE_AVERAGE_COUNT) temperatureHistory.pop_front();
+        temperature = std::accumulate(temperatureHistory.begin(), temperatureHistory.end(), 0.0) / temperatureHistory.size();
+        Log.traceln("%s Using temperature history: last entry=%F, average=%F of %d entries", log_scope, temperatureHistory.back(), *temperature, temperatureHistory.size());
+    }
+    #endif
+
     if(mode._to_integral() == Heater::Mode::SetTemperature) {
         if(!temperature) {
             Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
             setPWM(0);
             return;
         }
-        float targetTemperature = getTargetTemperature();
+        std::optional<float> targetTemperature = getTargetTemperature();
+        if(!targetTemperature) {
+            Log.warningln("%s Unable to retrieve target temperature", log_scope);
+            setPWM(0);
+            return;
+        }
         float currentTemperature = temperature.value();
-        Log.traceln("%s Got target temperature=`%F`", log_scope, targetTemperature);
+        Log.traceln("%s Got target temperature=`%F`", log_scope, *targetTemperature);
         Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
-        if(currentTemperature < targetTemperature) {
-            Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, targetTemperature, pwm);
+        if(currentTemperature < *targetTemperature) {
+            Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, *targetTemperature, pwm);
             setPWM(pwm);
         } else {
-            Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, targetTemperature);
+            Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, *targetTemperature);
             setPWM(0);
         }
     }
