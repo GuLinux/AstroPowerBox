@@ -6,13 +6,14 @@
 #include <forward_list>
 #include "validation.h"
 #include "jsonresponse.h"
+#include <esp_system.h>
 
 #define LOG_SCOPE "APB::WebServer "
 
 using namespace std::placeholders;
 
-APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters)
-    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters) {
+APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, Scheduler &scheduler)
+    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters), scheduler(scheduler) {
 }
 
 
@@ -33,6 +34,7 @@ void APB::WebServer::setup() {
     server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
+    server.on("/api/restart", HTTP_POST, std::bind(&APB::WebServer::onRestart, this, _1));
     
     server.on("/api/status", HTTP_GET, std::bind(&APB::WebServer::onGetStatus, this, _1));
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
@@ -49,6 +51,12 @@ void APB::WebServer::setup() {
     server.begin();
 }
 
+
+void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
+    JsonResponse response(request, 100);
+    response.document["status"] = "restarting";
+    new Task(1000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
+}
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request, 100);

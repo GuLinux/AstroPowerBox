@@ -38,6 +38,7 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
 
 void APB::WiFiManager::setup() {
     Log.traceln(LOG_SCOPE "setup");
+    WiFi.setHostname(configuration.apConfiguration().essid);
     _status = Status::Connecting;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
         auto station = configuration.station(i);

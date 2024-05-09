@@ -19,7 +19,7 @@ APB::WiFiManager wifiManager(configuration);
 APB::Ambient ambient;
 APB::Heaters heaters;
 
-APB::WebServer webServer(configuration, wifiManager, ambient, heaters);
+APB::WebServer webServer(configuration, wifiManager, ambient, heaters, scheduler);
 
 
 #define LOG_SCOPE "APB::Main - "

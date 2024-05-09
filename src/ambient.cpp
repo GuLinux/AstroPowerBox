@@ -16,7 +16,7 @@ struct APB::Ambient::Private {
   void readSensor();
   std::optional<Reading> reading;
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
-  SHT31 sht31;
+  SHT31 sht31 = SHT31{APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS};
   void logSHT31Error(const char *phase);
 #endif
 };
@@ -84,7 +84,8 @@ void APB::Ambient::Private::readSensor() {
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
 bool APB::Ambient::Private::initialiseSensor() {
-  if(!sht31.begin(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS)) {
+  Log.infoln(LOG_SCOPE "Ambient sensor: SHT3x at address 0x%x", APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
+  if(!sht31.begin()) {
     d.logSHT31Error("initialiseSensor");
     return false;
   }

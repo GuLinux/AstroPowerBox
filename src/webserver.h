@@ -9,12 +9,13 @@
 #include "wifimanager.h"
 #include "ambient.h"
 #include "heater.h"
+#include <TaskSchedulerDeclarations.h>
 
 namespace APB {
 
 class WebServer {
 public:
-    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters);
+    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, Scheduler &scheduler);
     void setup();
 private:
     AsyncWebServer server;
@@ -22,6 +23,7 @@ private:
     WiFiManager &wifiManager;
     Ambient &ambient;
     Heaters &heaters;
+    Scheduler &scheduler;
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
@@ -33,6 +35,7 @@ private:
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);
     void onGetESPInfo(AsyncWebServerRequest *request);
+    void onRestart(AsyncWebServerRequest *request);
     void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
