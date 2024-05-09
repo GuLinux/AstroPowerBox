@@ -10,6 +10,7 @@
 #include "settings.h"
 #include "ambient.h"
 #include "heater.h"
+#include <Wire.h>
 
 
 Scheduler scheduler;
@@ -36,7 +37,8 @@ void setup() {
   
 
   configuration.setup();
-  
+  Wire.begin(21, 13); // TODO: extract as constants
+  Wire.setClock(100000);
   ambient.setup(scheduler);
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
   wifiManager.setup();

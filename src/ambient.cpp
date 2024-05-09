@@ -3,7 +3,7 @@
 #include <ArduinoLog.h>
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
-#include <SHT31.h>
+#include <SHT85.h>
 #include <map>
 #endif
 
@@ -16,8 +16,8 @@ struct APB::Ambient::Private {
   void readSensor();
   std::optional<Reading> reading;
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
-  SHT31 sht31 = SHT31{APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS};
-  void logSHT31Error(const char *phase);
+  SHT30 sht = SHT30{APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS};
+  void logSHT30Error(const char *phase);
 #endif
 };
 namespace {
@@ -84,9 +84,9 @@ void APB::Ambient::Private::readSensor() {
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
 bool APB::Ambient::Private::initialiseSensor() {
-  Log.infoln(LOG_SCOPE "Ambient sensor: SHT3x at address 0x%x", APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
-  if(!sht31.begin()) {
-    d.logSHT31Error("initialiseSensor");
+  Log.infoln(LOG_SCOPE "Ambient sensor: SHT type %d at address 0x%x", sht.getType(), APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
+  if(!sht.begin()) {
+    d.logSHT30Error("initialiseSensor");
     return false;
   }
   return true;
@@ -94,30 +94,30 @@ bool APB::Ambient::Private::initialiseSensor() {
 
 void APB::Ambient::Private::readSensor() {
   if(!d.initialised) return;
-  if(d.sht31.readData()) {
-    d.reading = { d.sht31.getTemperature(), d.sht31.getHumidity() };
+  if(d.sht.read()) {
+    d.reading = { d.sht.getTemperature(), d.sht.getHumidity() };
   } else {
-    d.logSHT31Error("reading values");
+    d.logSHT30Error("reading values");
   }
 }
 
-void APB::Ambient::Private::logSHT31Error(const char *phase) {
-  static const std::map<uint8_t, String> SHT31_ERRORS {
-    { SHT31_OK, "no error" },
-    { SHT31_ERR_WRITECMD, "I2C write failed" },
-    { SHT31_ERR_READBYTES, "I2C read failed" },
-    { SHT31_ERR_HEATER_OFF, "Could not switch off heater" },
-    { SHT31_ERR_NOT_CONNECT, "Could not connect" },
-    { SHT31_ERR_CRC_TEMP, "CRC error in temperature" },
-    { SHT31_ERR_CRC_HUM, "CRC error in humidity" },
-    { SHT31_ERR_CRC_STATUS, "CRC error in status field" },
-    { SHT31_ERR_HEATER_COOLDOWN, "Heater need to cool down" },
-    { SHT31_ERR_HEATER_ON, "Could not switch on heater" },
+void APB::Ambient::Private::logSHT30Error(const char *phase) {
+  static const std::map<uint8_t, String> SHT_ERRORS {
+    { SHT_OK, "no error" },
+    { SHT_ERR_WRITECMD, "I2C write failed" },
+    { SHT_ERR_READBYTES, "I2C read failed" },
+    { SHT_ERR_HEATER_OFF, "Could not switch off heater" },
+    { SHT_ERR_NOT_CONNECT, "Could not connect" },
+    { SHT_ERR_CRC_TEMP, "CRC error in temperature" },
+    { SHT_ERR_CRC_HUM, "CRC error in humidity" },
+    { SHT_ERR_CRC_STATUS, "CRC error in status field" },
+    { SHT_ERR_HEATER_COOLDOWN, "Heater need to cool down" },
+    { SHT_ERR_HEATER_ON, "Could not switch on heater" },
   };
-  int errorCode = d.sht31.getError();
+  int errorCode = d.sht.getError();
   String errorMessage = "Unknown error";
-  if(SHT31_ERRORS.count(errorCode)>0) {
-    errorMessage = SHT31_ERRORS.at(errorCode);
+  if(SHT_ERRORS.count(errorCode)>0) {
+    errorMessage = SHT_ERRORS.at(errorCode);
   }
   Log.errorln(LOG_SCOPE "SHT3x error (%s): %s [%d]", phase, errorMessage.c_str(), errorCode);
 }

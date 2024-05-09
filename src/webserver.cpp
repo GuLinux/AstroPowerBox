@@ -22,7 +22,7 @@ void APB::WebServer::setup() {
     ElegantOTA.begin(&server);
     ElegantOTA.onStart([this](){ Log.infoln(LOG_SCOPE "OTA Started"); });
     ElegantOTA.onProgress([this](size_t current, size_t total){
-        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(current/total), current, total);
+        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(float(current)/float(total)), current, total);
     });
     ElegantOTA.onEnd([this](bool success){ Log.infoln(LOG_SCOPE "OTA Finished, success=%d", success); });
     Log.traceln(LOG_SCOPE "ElegantOTA setup");
