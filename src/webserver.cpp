@@ -7,13 +7,14 @@
 #include "validation.h"
 #include "jsonresponse.h"
 #include <esp_system.h>
+#include <LittleFS.h>
 
 #define LOG_SCOPE "APB::WebServer "
 
 using namespace std::placeholders;
 
-APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, Scheduler &scheduler)
-    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters), scheduler(scheduler) {
+APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, PowerMonitor &powerMonitor, Scheduler &scheduler)
+    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters), powerMonitor(powerMonitor), scheduler(scheduler) {
 }
 
 
@@ -22,7 +23,7 @@ void APB::WebServer::setup() {
     ElegantOTA.begin(&server);
     ElegantOTA.onStart([this](){ Log.infoln(LOG_SCOPE "OTA Started"); });
     ElegantOTA.onProgress([this](size_t current, size_t total){
-        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(float(current)/float(total)), current, total);
+        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(current * 100.0 /total), current, total);
     });
     ElegantOTA.onEnd([this](bool success){ Log.infoln(LOG_SCOPE "OTA Finished, success=%d", success); });
     Log.traceln(LOG_SCOPE "ElegantOTA setup");
@@ -32,6 +33,7 @@ void APB::WebServer::setup() {
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
     server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
+    server.on("/api/power", HTTP_GET, std::bind(&APB::WebServer::onGetPower, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
     server.on("/api/restart", HTTP_POST, std::bind(&APB::WebServer::onRestart, this, _1));
@@ -45,6 +47,8 @@ void APB::WebServer::setup() {
 #endif
     server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
     server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
+    server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
+    server.serveStatic("/static", LittleFS, "/web/static");
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
@@ -155,6 +159,20 @@ void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
         
     });
 }
+
+
+void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
+    if(!powerMonitor.status().initialised) {
+        JsonResponse::error(500, "Power reading not available", request);
+        return;
+    }
+    JsonResponse response(request, 200);
+    response.document["busVoltage"] = powerMonitor.status().busVoltage;
+    response.document["current"] = powerMonitor.status().current;
+    response.document["power"] = powerMonitor.status().power;
+    response.document["shuntVoltage"] = powerMonitor.status().shuntVoltage;
+}
+
 
 void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
     JsonResponse response(request, 500);

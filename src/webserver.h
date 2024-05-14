@@ -9,13 +9,14 @@
 #include "wifimanager.h"
 #include "ambient.h"
 #include "heater.h"
+#include "powermonitor.h"
 #include <TaskSchedulerDeclarations.h>
 
 namespace APB {
 
 class WebServer {
 public:
-    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, Scheduler &scheduler);
+    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, PowerMonitor &powerMonitor, Scheduler &scheduler);
     void setup();
 private:
     AsyncWebServer server;
@@ -23,6 +24,7 @@ private:
     WiFiManager &wifiManager;
     Ambient &ambient;
     Heaters &heaters;
+    PowerMonitor &powerMonitor;
     Scheduler &scheduler;
 
     void onGetStatus(AsyncWebServerRequest *request);
@@ -33,6 +35,7 @@ private:
     void onPostReconnectWiFi(AsyncWebServerRequest *request);
     void onGetWiFiStatus(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
+    void onGetPower(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);
     void onGetESPInfo(AsyncWebServerRequest *request);
     void onRestart(AsyncWebServerRequest *request);

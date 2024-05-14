@@ -45,7 +45,7 @@
 
 
 #ifndef APB_HEATER_TEMPERATURE_AVERAGE_COUNT
-#define APB_HEATER_TEMPERATURE_AVERAGE_COUNT 1
+#define APB_HEATER_TEMPERATURE_AVERAGE_COUNT 10
 #endif
 
 #ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE
@@ -70,7 +70,7 @@
 #ifndef APB_HEATERS_PWM_PINOUT
 // Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
 // IMPORTANT: there is no compiler check for pinout size, so be careful.
-#define APB_HEATERS_PWM_PINOUT Pinout{5,35}, Pinout{2,33}, {3,34}
+#define APB_HEATERS_PWM_PINOUT Pinout{5,1}, Pinout{2,4}, {3,7}
 #endif
 
 // Derivative constants, DO NOT change/redefine

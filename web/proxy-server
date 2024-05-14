@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+proxy_address="${1:-AstroPowerBox-EBD264.lan}"
+
+http-server -P http://$proxy_address

@@ -9,12 +9,6 @@
 #include <SmoothThermistor.h>
 #endif
 
-#if APB_HEATER_TEMPERATURE_AVERAGE_COUNT > 1
-#define APB_HEATER_TEMPERATURE_USE_AVERAGE
-#include <deque>
-#include <numeric>
-#endif
-
 
 struct APB::Heater::Private {
     APB::Heater::Mode mode{APB::Heater::Mode::Off};
@@ -24,9 +18,6 @@ struct APB::Heater::Private {
     char log_scope[20];
     uint8_t index;
     Heater::GetTargetTemperature getTargetTemperature;
-    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
-    std::deque<float> temperatureHistory;
-    #endif
     
     void setup();
     void loop();
@@ -112,19 +103,8 @@ void APB::Heater::Private::loop()
     if(temperature.has_value() && temperature.value() < -100) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
-        #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
-        temperatureHistory.clear();
-        #endif
     }
 
-    #ifdef APB_HEATER_TEMPERATURE_USE_AVERAGE
-    if(temperature.has_value()) {
-        temperatureHistory.push_back(*temperature);
-        if(temperatureHistory.size() > APB_HEATER_TEMPERATURE_AVERAGE_COUNT) temperatureHistory.pop_front();
-        temperature = std::accumulate(temperatureHistory.begin(), temperatureHistory.end(), 0.0) / temperatureHistory.size();
-        Log.traceln("%s Using temperature history: last entry=%F, average=%F of %d entries", log_scope, temperatureHistory.back(), *temperature, temperatureHistory.size());
-    }
-    #endif
 
     if(mode._to_integral() == Heater::Mode::SetTemperature) {
         if(!temperature) {
@@ -194,20 +174,22 @@ void APB::Heater::Private::setup() {
     Log.traceln("%s Configuring PWM thermistor heater: Thermistor pin=%d, PWM pin=%d, analogReadMax=%F", log_scope, pinout->thermistor, pinout->pwm, analogReadMax);
     analogReadResolution(ANALOG_READ_RES);
     setPWM(0);
-    ntcThermistor = new NTC_Thermistor(
+    smoothThermistor = std::make_unique<SmoothThermistor>(
         pinout->thermistor,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE,
+        ANALOG_READ_RES,
         APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP,
+        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE,
         APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE,
-        std::pow(2, ANALOG_READ_RES)-1);
-    Log.traceln("%s Created NTCThermistor instance, initial readout=%F", log_scope, ntcThermistor->readCelsius());
-    smoothThermistor = std::make_unique<SmoothThermistor>(ntcThermistor);
-    Log.traceln("%s Created SmoothThermistor instance, initial readout=%F", log_scope, smoothThermistor->readCelsius());
+        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP,
+        APB_HEATER_TEMPERATURE_AVERAGE_COUNT
+    );
+    Log.traceln("%s Created SmoothThermistor instance, initial readout=%F", log_scope, smoothThermistor->temperature());
 }
 
 void APB::Heater::Private::readTemperature() {
-    temperature = smoothThermistor->readCelsius();
+    auto rawValue = analogRead(pinout->thermistor);
+    Log.infoln("Thermistor %d raw value for pin %d: %d", index, pinout->thermistor, rawValue);
+    temperature = smoothThermistor->temperature();
     Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
 }
 float APB::Heater::Private::getPWM() const {
