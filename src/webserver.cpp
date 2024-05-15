@@ -195,20 +195,23 @@ void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json) {
     Validation validation{request, json};
+    std::forward_list<String> valid_modes;
+    std::transform(Heater::Mode::_values().begin(), Heater::Mode::_values().end(), std::front_inserter(valid_modes), std::bind(&Heater::Mode::_to_string, _1));
     if(validation.required({"index", "mode"})
         .range("index", {0}, {heaters.size()-1})
         .range("duty", {0}, {1})
-        .choice("mode", {"off", "fixed", "set_temperature"}).invalid()) return;
+        .choice("mode", valid_modes).invalid()) return;
     Heater &heater = heaters[json["index"]];
-    if(json["mode"] == "off") {
+    Heater::Mode mode = Heater::Mode::_from_string(json["mode"]);
+    if(mode == +Heater::Mode::off) {
         heater.setPWM(0);
     }
     if(validation.range("duty", {0}, {1}).invalid()) return;
-    if(json["mode"] == "fixed") {
+    if(mode == +Heater::Mode::fixed) {
         if(validation.required("duty").invalid()) return;
         heater.setPWM(json["duty"]);
     }
-    if(json["mode"] == "set_temperature") {
+    if(mode == +Heater::Mode::set_temperature) {
         if(validation.required("target_temperature").invalid()) return;
         float duty = json.containsKey("duty") ? json["duty"] : 1.0;
         bool setTemperatureSuccess = false;
