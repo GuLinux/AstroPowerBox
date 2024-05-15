@@ -7,9 +7,10 @@
 #include <TaskSchedulerDeclarations.h>
 
 #include "configuration.h"
+#include "ambient.h"
 
 namespace APB {
-BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, set_temperature)
+BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, target_temperature, dewpoint)
 
 class Heater {
 public:
@@ -17,12 +18,14 @@ public:
     Heater();
     ~Heater();
     using Mode = Heater_Mode;
-    void setup(uint8_t index, Scheduler &scheduler);
+    void setup(uint8_t index, Scheduler &scheduler, Ambient *ambient);
     float pwm() const;
     void setPWM(float duty);
-    bool setTemperature(GetTargetTemperature getTemperature, float maxDuty=1);
+    bool setTemperature(float targetTemperature, float maxDuty=1);
+    bool setDewpoint(float offset, float maxDuty=1);
     std::optional<float> temperature() const;
     std::optional<float> targetTemperature() const;
+    std::optional<float> dewpointOffset() const;
 
     Mode mode() const;
     uint8_t index() const;

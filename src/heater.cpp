@@ -10,14 +10,22 @@
 #endif
 
 
+static const char *TEMPERATURE_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without temperature sensor";
+static const char *AMBIENT_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without ambient sensor";
+
 struct APB::Heater::Private {
-    APB::Heater::Mode mode{APB::Heater::Mode::off};
+    APB::Heater *q;
+    Heater::Mode mode{Heater::Mode::off};
     float pwm;
     std::optional<float> temperature;
+    float targetTemperature;
+    float dewpointOffset;
+
     Task loopTask;
     char log_scope[20];
     uint8_t index;
     Heater::GetTargetTemperature getTargetTemperature;
+    Ambient *ambient;
     
     void setup();
     void loop();
@@ -39,12 +47,13 @@ struct APB::Heater::Private {
 };
 
 APB::Heater::Heater() : d{std::make_shared<Private>()} {
+    d->q = this;
 }
 
 APB::Heater::~Heater() {
 }
 
-void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
+void APB::Heater::setup(uint8_t index, Scheduler &scheduler, Ambient *ambient) {
     d->index = index;
     sprintf(d->log_scope, "Heater[%d] -", index);
 
@@ -54,7 +63,7 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     scheduler.addTask(d->loopTask);
     d->loopTask.enable();
     
-
+    d->ambient = ambient;
     Log.infoln("%s Heater initialised", d->log_scope);
 
 }
@@ -66,9 +75,9 @@ float APB::Heater::pwm() const {
 void APB::Heater::setPWM(float duty) {
     if(duty > 0) {
         d->pwm = duty;
-        d->mode = APB::Heater::Mode::fixed;
+        d->mode = Heater::Mode::fixed;
     } else {
-        d->mode = APB::Heater::Mode::off;
+        d->mode = Heater::Mode::off;
     }
     d->loop();
 }
@@ -77,24 +86,49 @@ uint8_t APB::Heater::index() const {
     return d->index;
 }
 
-bool APB::Heater::setTemperature(GetTargetTemperature getTargetTemperature, float maxDuty) {
+
+bool APB::Heater::setTemperature(float targetTemperature, float maxDuty) {
     if(!this->temperature().has_value()) {
-        Log.warningln("%s Cannot set heater temperature without temperature sensor", d->log_scope);
+        Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
     }
-    d->getTargetTemperature = getTargetTemperature;
+    d->targetTemperature = targetTemperature;
     d->pwm = maxDuty;
-    d->mode = APB::Heater::Mode::set_temperature;
+    d->mode = Heater::Mode::target_temperature;
+    d->loop();
+    return true;
+}
+
+bool APB::Heater::setDewpoint(float offset, float maxDuty) {
+    if(!this->temperature().has_value()) {
+        Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
+        return false;
+    }
+    if(!d->ambient->reading().has_value()) {
+        Log.warningln(AMBIENT_NOT_FOUND_WARNING_LOG, d->log_scope);
+        return false;
+    }
+    d->dewpointOffset = offset;
+    d->pwm = maxDuty;
+    d->mode = Heater::Mode::dewpoint;
     d->loop();
     return true;
 }
 
 std::optional<float> APB::Heater::targetTemperature() const {
-    if(d->mode._to_integral() != APB::Heater::Mode::set_temperature) {
+    if(d->mode != +Heater::Mode::target_temperature) {
         return {};
     }
-    return d->getTargetTemperature();
+    return {d->targetTemperature};
 }
+
+std::optional<float> APB::Heater::dewpointOffset() const {
+    if(d->mode != +Heater::Mode::dewpoint) {
+        return {};
+    }
+    return {d->dewpointOffset};
+}
+
 std::optional<float> APB::Heater::temperature() const {
     return d->temperature;
 }
@@ -111,34 +145,42 @@ void APB::Heater::Private::loop()
         temperature = {};
     }
 
-
-    if(mode._to_integral() == Heater::Mode::set_temperature) {
-        if(!temperature) {
-            Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
-            setPWM(0);
-            return;
-        }
-        std::optional<float> targetTemperature = getTargetTemperature();
-        if(!targetTemperature) {
-            Log.warningln("%s Unable to retrieve target temperature", log_scope);
-            setPWM(0);
-            return;
-        }
-        float currentTemperature = temperature.value();
-        Log.traceln("%s Got target temperature=`%F`", log_scope, *targetTemperature);
-        Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
-        if(currentTemperature < *targetTemperature) {
-            Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, *targetTemperature, pwm);
-            setPWM(pwm);
-        } else {
-            Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, *targetTemperature);
-            setPWM(0);
-        }
-    }
-    if(mode._to_integral() == Heater::Mode::fixed) {
+    if(mode == +Heater::Mode::fixed) {
         setPWM(pwm);
+        return;
     }
-    if(mode._to_integral() == Heater::Mode::off) {
+    if(mode == +Heater::Mode::off) {
+        setPWM(0);
+        return;
+    }
+    // From nmow on we require a temperature sensor on the heater
+    if(!temperature) {
+        Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
+        q->setPWM(0);
+        return;
+    }
+
+    float targetTemperature;
+    if(mode == +Heater::Mode::target_temperature) {
+        targetTemperature = this->targetTemperature;
+    }
+    if(mode == +Heater::Mode::dewpoint) {
+        if(!ambient->reading()) {
+            Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
+            q->setPWM(0);
+            return;
+        }
+        targetTemperature = dewpointOffset + ambient->reading()->dewpoint();
+    }
+
+    float currentTemperature = temperature.value();
+    Log.traceln("%s Got target temperature=`%F`", log_scope, targetTemperature);
+    Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
+    if(currentTemperature < targetTemperature) {
+        Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, targetTemperature, pwm);
+        setPWM(pwm);
+    } else {
+        Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, targetTemperature);
         setPWM(0);
     }
 }

@@ -43,7 +43,7 @@ void setup() {
   Wire.setClock(100000);
   ambient.setup(scheduler);
   powerMonitor.setup(scheduler);
-  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
+  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
   wifiManager.setup();
   webServer.setup();
 }

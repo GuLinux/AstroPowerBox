@@ -8,6 +8,7 @@
 #include "jsonresponse.h"
 #include <esp_system.h>
 #include <LittleFS.h>
+#include "utils.h"
 
 #define LOG_SCOPE "APB::WebServer "
 
@@ -147,20 +148,16 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
 }
 
 
+
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request, heaters.size() * 100);
     std::for_each(heaters.begin(), heaters.end(), [&response](Heater &heater) {
         response.document[heater.index()]["mode"] = heater.mode()._to_string();
         response.document[heater.index()]["pwm"] = heater.pwm();
         response.document[heater.index()]["has_temperature"] = heater.temperature().has_value();
-        if(heater.temperature().has_value()) {
-            response.document[heater.index()]["temperature"] = heater.temperature().value();
-        }
-        std::optional<float> targetTemperature = heater.targetTemperature();
-        if(targetTemperature.has_value()) {
-            response.document[heater.index()]["target_temperature"] = targetTemperature.value();
-        }
-        
+        optional::if_present(heater.temperature(), [&](float v){ response.document[heater.index()]["temperature"] = v; });
+        optional::if_present(heater.targetTemperature(), [&](float v){ response.document[heater.index()]["target_temperature"] = v; });
+        optional::if_present(heater.dewpointOffset(), [&](float v){ response.document[heater.index()]["dewpoint_offset"] = v; });
     });
 }
 
@@ -206,33 +203,28 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     if(mode == +Heater::Mode::off) {
         heater.setPWM(0);
     }
-    if(validation.range("duty", {0}, {1}).invalid()) return;
+    
+    if(validation.range("duty", {0}, {1}).required("duty").invalid()) return;
+    float duty = json["duty"];
+    static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
+    static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
+
     if(mode == +Heater::Mode::fixed) {
-        if(validation.required("duty").invalid()) return;
         heater.setPWM(json["duty"]);
     }
-    if(mode == +Heater::Mode::set_temperature) {
-        if(validation.required("target_temperature").invalid()) return;
-        float duty = json.containsKey("duty") ? json["duty"] : 1.0;
-        bool setTemperatureSuccess = false;
-        if(json["target_temperature"] == "dewpoint") {
-            if(validation.required("offset").range("offset", {0}, {20}).invalid()) return;
-            if(!ambient.reading()) {
-                JsonResponse::error(500, "Ambient reading not available", request);
-                return;
-            }
-            float offset = json["offset"];
-            setTemperatureSuccess = heater.setTemperature([this, offset](){
-                if(!ambient.reading()) return std::optional<float>{};    
-                return std::optional<float>{ambient.reading()->dewpoint() + offset};
-            }, duty);
-        } else {
-            if(validation.range("target_temperature", {-100}, {100}).invalid()) return;
-            float targetTemperature = json["target_temperature"];
-            setTemperatureSuccess = heater.setTemperature([targetTemperature](){ return targetTemperature; }, duty);
+    if(mode == +Heater::Mode::dewpoint) {
+        if(validation.range("dewpoint_offset", {-30}, {30}).required("dewpoint_offset").invalid()) return;
+        float dewpointOffset = json["dewpoint_offset"];
+        if(!heater.setDewpoint(dewpointOffset, duty)) {
+            JsonResponse::error(500, dewpointTemperatureErrorMessage, request);
+            return;
         }
-        if(!setTemperatureSuccess) {
-            JsonResponse::error(400, "Unable to set target temperature. Heater probably doesn't have a temperature sensor.", request);
+    }
+    if(mode == +Heater::Mode::target_temperature) {
+        if(validation.range("target_temperature", {-50}, {50}).required("target_temperature").invalid()) return;
+        float targetTemperature = json["target_temperature"];
+        if(!heater.setTemperature(targetTemperature, duty)) {
+            JsonResponse::error(500, temperatureErrorMessage, request);
             return;
         }
     }
