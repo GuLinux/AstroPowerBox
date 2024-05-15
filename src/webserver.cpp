@@ -48,7 +48,7 @@ void APB::WebServer::setup() {
     server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
     server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
-    server.serveStatic("/static", LittleFS, "/web/static");
+    server.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
@@ -155,6 +155,10 @@ void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
         response.document[heater.index()]["has_temperature"] = heater.temperature().has_value();
         if(heater.temperature().has_value()) {
             response.document[heater.index()]["temperature"] = heater.temperature().value();
+        }
+        std::optional<float> targetTemperature = heater.targetTemperature();
+        if(targetTemperature.has_value()) {
+            response.document[heater.index()]["target_temperature"] = targetTemperature.value();
         }
         
     });

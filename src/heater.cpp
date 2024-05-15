@@ -11,7 +11,7 @@
 
 
 struct APB::Heater::Private {
-    APB::Heater::Mode mode{APB::Heater::Mode::Off};
+    APB::Heater::Mode mode{APB::Heater::Mode::off};
     float pwm;
     std::optional<float> temperature;
     Task loopTask;
@@ -66,9 +66,9 @@ float APB::Heater::pwm() const {
 void APB::Heater::setPWM(float duty) {
     if(duty > 0) {
         d->pwm = duty;
-        d->mode = APB::Heater::Mode::FixedPWM;
+        d->mode = APB::Heater::Mode::fixed;
     } else {
-        d->mode = APB::Heater::Mode::Off;
+        d->mode = APB::Heater::Mode::off;
     }
     d->loop();
 }
@@ -84,11 +84,17 @@ bool APB::Heater::setTemperature(GetTargetTemperature getTargetTemperature, floa
     }
     d->getTargetTemperature = getTargetTemperature;
     d->pwm = maxDuty;
-    d->mode = APB::Heater::Mode::SetTemperature;
+    d->mode = APB::Heater::Mode::set_temperature;
     d->loop();
     return true;
 }
 
+std::optional<float> APB::Heater::targetTemperature() const {
+    if(d->mode._to_integral() != APB::Heater::Mode::set_temperature) {
+        return {};
+    }
+    return d->getTargetTemperature();
+}
 std::optional<float> APB::Heater::temperature() const {
     return d->temperature;
 }
@@ -106,7 +112,7 @@ void APB::Heater::Private::loop()
     }
 
 
-    if(mode._to_integral() == Heater::Mode::SetTemperature) {
+    if(mode._to_integral() == Heater::Mode::set_temperature) {
         if(!temperature) {
             Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
             setPWM(0);
@@ -129,10 +135,10 @@ void APB::Heater::Private::loop()
             setPWM(0);
         }
     }
-    if(mode._to_integral() == Heater::Mode::FixedPWM) {
+    if(mode._to_integral() == Heater::Mode::fixed) {
         setPWM(pwm);
     }
-    if(mode._to_integral() == Heater::Mode::Off) {
+    if(mode._to_integral() == Heater::Mode::off) {
         setPWM(0);
     }
 }
@@ -195,7 +201,7 @@ void APB::Heater::Private::readTemperature() {
 float APB::Heater::Private::getPWM() const {
     int8_t pwmChannel = analogGetChannel(pinout->thermistor);
     float pwmValue = ledcRead(pwmChannel);
-    Log.traceln("%s PWM value from ADC channel %d: %F; stored PWM value: %d", log_scope, pwmChannel, pwmValue, this->pwmValue);
+    // Log.traceln("%s PWM value from ADC channel %d: %F; stored PWM value: %d", log_scope, pwmChannel, pwmValue, this->pwmValue);
     return this->pwmValue/MAX_PWM;
 }
 

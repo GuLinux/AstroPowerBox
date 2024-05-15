@@ -9,7 +9,7 @@
 #include "configuration.h"
 
 namespace APB {
-BETTER_ENUM(Heater_Mode, uint8_t, Off, FixedPWM, SetTemperature)
+BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, set_temperature)
 
 class Heater {
 public:
@@ -22,6 +22,7 @@ public:
     void setPWM(float duty);
     bool setTemperature(GetTargetTemperature getTemperature, float maxDuty=1);
     std::optional<float> temperature() const;
+    std::optional<float> targetTemperature() const;
 
     Mode mode() const;
     uint8_t index() const;

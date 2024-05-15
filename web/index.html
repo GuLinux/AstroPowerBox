@@ -33,19 +33,99 @@
   <div class="tab-content" id="main-content">
     <div class="tab-pane fade show active" id="main-pane" tabindex="0">
       <div class="container">
-        <div class="row">
-          <div class="col">Ambient temperature</div>
-          <div class="col" id="ambient_temperature">N/A</div>
+        <h2>Environment</h2>
+        <table class="table">
+          <tbody>
+            <tr>
+              <th scope="row">Temperature</th>
+              <td id="ambient_temperature">N/A</td>
+            </tr>
+            <tr>
+              <th scope="row">Humidity</th>
+              <td id="ambient_humidity">N/A</td>
+            </tr>
+            <tr>
+              <th scope="row">Dewpoint</th>
+              <td id="ambient_dewpoint">N/A</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr />
+        <H2>Heaters</H2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">mode</th>
+              <th scope="col">target</th>
+              <th scope="col">duty</th>
+              <th scope="col">temperature</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="heaters_tbody">
+            <tr>
+              <th scope="row">1</th>
+              <td id="heaters_1_mode">N/A</td>
+              <td id="heaters_1_target">N/A</td>
+              <td id="heaters_1_duty">N/A</td>
+              <td id="heaters_1_temperature">N/A</td>
+              <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="0">set</button></td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td id="heaters_2_mode">N/A</td>
+              <td id="heaters_2_target">N/A</td>
+              <td id="heaters_2_duty">N/A</td>
+              <td id="heaters_2_temperature">N/A</td>
+              <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="1">set</button></td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td id="heaters_3_mode">N/A</td>
+              <td id="heaters_3_target">N/A</td>
+              <td id="heaters_3_duty">N/A</td>
+              <td id="heaters_3_temperature">N/A</td>
+              <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="2">set</button></td>
+            </tr>
+
+          </tbody>
+        </table>
+
+        <div class="modal fade" id="setHeaterModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5" id="setHeaterModalTitle">Set Heater</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form>
+                  <input type="hidden" id="setHeaterModal_index">
+                  <div class="mb-3">
+                    <label for="setHeaterModal_mode" class="form-label">Mode</label>
+                    <select class="form-select" id="setHeaterModal_mode">
+                      <option value="off">Off</option>
+                      <option value="fixed">Fixed</option>
+                      <option value="set_temperature">Set to Temperature</option>
+                    </select>
+                  </div>
+
+                  <div class="mb-3" id="setHeaterModal_pwm_container" class="collapse">
+                    <label for="setHeaterModal_pwm" class="form-label">Duty</label>
+                    <span class="badge text-bg-secondary float-end" id="setHeaterModal_pwm_valueLabel"></span>
+                    <input type="range" class="form-range" id="setHeaterModal_pwm" min="0" max="100" steps="0.5">
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="setHeaterModal_apply">Apply</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="row">
-          <div class="col">Humidity</div>
-          <div class="col" id="ambient_humidity">N/A</div>
-        </div>
-        <div class="row">
-          <div class="col">Dewpoint</div>
-          <div class="col" id="ambient_dewpoint">N/A</div>
-        </div>
-      </div>
+
     </div>
     <div class="tab-pane fade" id="power-pane" tabindex="0">Power</div>
 
