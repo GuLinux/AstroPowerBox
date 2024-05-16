@@ -60,6 +60,15 @@ const queryAmbient = async () => {
     document.getElementById('ambient_dewpoint').textContent = `${ambient.dewpoint.toFixed(2)}°C`;
 }
 
+const queryPower = async () => {
+    const power = await fetchJson('/api/power')
+    window.power = power
+    document.getElementById('power_voltage').textContent = `${power.busVoltage.toFixed(2)}V`;
+    document.getElementById('power_current').textContent = `${power.current.toFixed(2)}A`;
+    document.getElementById('power_watts').textContent = `${power.power.toFixed(2)}°W`;
+}
+
+
 
 const syncRangeLabel = (rangeElement, labelElement, formatFunction = v => `${v}`) => {
     const value = parseFloat(document.getElementById(rangeElement).value)
@@ -148,6 +157,7 @@ const addHeaterModalListener = () => {
 window.addEventListener('load', () => {
     window.setInterval(queryHeaters, 1000)
     window.setInterval(queryAmbient, 1000)
+    window.setInterval(queryPower, 1000)
 
     addHeaterModalListener();
 })
