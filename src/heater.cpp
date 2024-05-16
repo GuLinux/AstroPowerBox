@@ -30,8 +30,8 @@ struct APB::Heater::Private {
     void setup();
     void loop();
     void readTemperature();
-    void setPWM(float pwm);
-    float getPWM() const;
+    void setDuty(float pwm);
+    float getDuty() const;
 
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
     struct Pinout {
@@ -68,11 +68,15 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler, Ambient *ambient) {
 
 }
 
-float APB::Heater::pwm() const {
-    return d->getPWM();
+float APB::Heater::duty() const {
+    return d->pwm;
 }
 
-void APB::Heater::setPWM(float duty) {
+bool APB::Heater::active() const {
+    return d->getDuty() > 0;
+}
+
+void APB::Heater::setDuty(float duty) {
     if(duty > 0) {
         d->pwm = duty;
         d->mode = Heater::Mode::fixed;
@@ -146,17 +150,17 @@ void APB::Heater::Private::loop()
     }
 
     if(mode == +Heater::Mode::fixed) {
-        setPWM(pwm);
+        setDuty(pwm);
         return;
     }
     if(mode == +Heater::Mode::off) {
-        setPWM(0);
+        setDuty(0);
         return;
     }
     // From nmow on we require a temperature sensor on the heater
     if(!temperature) {
         Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
-        q->setPWM(0);
+        q->setDuty(0);
         return;
     }
 
@@ -167,7 +171,7 @@ void APB::Heater::Private::loop()
     if(mode == +Heater::Mode::dewpoint) {
         if(!ambient->reading()) {
             Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
-            q->setPWM(0);
+            q->setDuty(0);
             return;
         }
         targetTemperature = dewpointOffset + ambient->reading()->dewpoint();
@@ -178,10 +182,10 @@ void APB::Heater::Private::loop()
     Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
     if(currentTemperature < targetTemperature) {
         Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, targetTemperature, pwm);
-        setPWM(pwm);
+        setDuty(pwm);
     } else {
         Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, targetTemperature);
-        setPWM(0);
+        setDuty(0);
     }
 }
 
@@ -221,7 +225,7 @@ void APB::Heater::Private::setup() {
     pinout = &heaters_pinout[index];
     Log.traceln("%s Configuring PWM thermistor heater: Thermistor pin=%d, PWM pin=%d, analogReadMax=%F", log_scope, pinout->thermistor, pinout->pwm, analogReadMax);
     analogReadResolution(ANALOG_READ_RES);
-    setPWM(0);
+    setDuty(0);
     smoothThermistor = std::make_unique<SmoothThermistor>(
         pinout->thermistor,
         ANALOG_READ_RES,
@@ -240,14 +244,14 @@ void APB::Heater::Private::readTemperature() {
     temperature = smoothThermistor->temperature();
     Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
 }
-float APB::Heater::Private::getPWM() const {
+float APB::Heater::Private::getDuty() const {
     int8_t pwmChannel = analogGetChannel(pinout->thermistor);
     float pwmValue = ledcRead(pwmChannel);
     // Log.traceln("%s PWM value from ADC channel %d: %F; stored PWM value: %d", log_scope, pwmChannel, pwmValue, this->pwmValue);
     return this->pwmValue/MAX_PWM;
 }
 
-void APB::Heater::Private::setPWM(float pwm) {
+void APB::Heater::Private::setDuty(float pwm) {
     int16_t newPWMValue = MAX_PWM * pwm;
     if(newPWMValue != pwmValue) {
         pwmValue = newPWMValue;

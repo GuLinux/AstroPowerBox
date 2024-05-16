@@ -68,7 +68,10 @@
               <th scope="row">1</th>
               <td id="heaters_1_mode">N/A</td>
               <td id="heaters_1_target">N/A</td>
-              <td id="heaters_1_duty">N/A</td>
+              <td>
+                <span id="heaters_1_duty">N/A </span>
+                <span id="heaters_1_active" class="float-end badge text-bg-warning">❌</span>
+              </td>
               <td id="heaters_1_temperature">N/A</td>
               <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="0">set</button></td>
             </tr>
@@ -76,7 +79,10 @@
               <th scope="row">2</th>
               <td id="heaters_2_mode">N/A</td>
               <td id="heaters_2_target">N/A</td>
-              <td id="heaters_2_duty">N/A</td>
+              <td>
+                <span id="heaters_2_duty">N/A </span>
+                <span id="heaters_2_active" class="badge text-bg-warning float-end">❌</span>
+              </td>
               <td id="heaters_2_temperature">N/A</td>
               <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="1">set</button></td>
             </tr>
@@ -84,7 +90,10 @@
               <th scope="row">3</th>
               <td id="heaters_3_mode">N/A</td>
               <td id="heaters_3_target">N/A</td>
-              <td id="heaters_3_duty">N/A</td>
+              <td>
+                <span id="heaters_3_duty">N/A </span>
+                <span id="heaters_3_active" class="badge text-bg-warning float-end">❌</span>
+              </td>
               <td id="heaters_3_temperature">N/A</td>
               <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal" data-bs-index="2">set</button></td>
             </tr>
@@ -101,20 +110,32 @@
               </div>
               <div class="modal-body">
                 <form>
-                  <input type="hidden" id="setHeaterModal_index">
                   <div class="mb-3">
                     <label for="setHeaterModal_mode" class="form-label">Mode</label>
                     <select class="form-select" id="setHeaterModal_mode">
                       <option value="off">Off</option>
                       <option value="fixed">Fixed</option>
-                      <option value="set_temperature">Set to Temperature</option>
+                      <option value="target_temperature">Set to Target Temperature</option>
+                      <option value="dewpoint">Set to Dewpoint</option>
                     </select>
                   </div>
 
-                  <div class="mb-3" id="setHeaterModal_pwm_container" class="collapse">
-                    <label for="setHeaterModal_pwm" class="form-label">Duty</label>
-                    <span class="badge text-bg-secondary float-end" id="setHeaterModal_pwm_valueLabel"></span>
-                    <input type="range" class="form-range" id="setHeaterModal_pwm" min="0" max="100" steps="0.5">
+                  <div class="mb-3" id="setHeaterModal_duty_container" class="collapse">
+                    <label for="setHeaterModal_duty" class="form-label">Duty</label>
+                    <span class="badge text-bg-secondary float-end" id="setHeaterModal_duty_valueLabel"></span>
+                    <input type="range" class="form-range" id="setHeaterModal_duty" min="0" max="100" steps="0.5">
+                  </div>
+
+                  <div class="mb-3" id="setHeaterModal_target_temperature_container" class="collapse">
+                    <label for="setHeaterModal_target_temperature" class="form-label">Target Temperature</label>
+                    <span class="badge text-bg-secondary float-end" id="setHeaterModal_target_temperature_valueLabel"></span>
+                    <input type="range" class="form-range" id="setHeaterModal_target_temperature" min="0" max="50" steps="0.5">
+                  </div>
+
+                  <div class="mb-3" id="setHeaterModal_dewpoint_container" class="collapse">
+                    <label for="setHeaterModal_dewpoint_offset" class="form-label">Dewpoint offset</label>
+                    <span class="badge text-bg-secondary float-end" id="setHeaterModal_dewpoint_offset_valueLabel"></span>
+                    <input type="range" class="form-range" id="setHeaterModal_dewpoint_offset" min="-20" max="20" steps="0.5">
                   </div>
                 </form>
               </div>

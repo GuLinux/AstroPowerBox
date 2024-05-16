@@ -153,7 +153,8 @@ void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request, heaters.size() * 100);
     std::for_each(heaters.begin(), heaters.end(), [&response](Heater &heater) {
         response.document[heater.index()]["mode"] = heater.mode()._to_string();
-        response.document[heater.index()]["pwm"] = heater.pwm();
+        response.document[heater.index()]["duty"] = heater.duty();
+        response.document[heater.index()]["active"] = heater.active();
         response.document[heater.index()]["has_temperature"] = heater.temperature().has_value();
         optional::if_present(heater.temperature(), [&](float v){ response.document[heater.index()]["temperature"] = v; });
         optional::if_present(heater.targetTemperature(), [&](float v){ response.document[heater.index()]["target_temperature"] = v; });
@@ -201,7 +202,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     Heater &heater = heaters[json["index"]];
     Heater::Mode mode = Heater::Mode::_from_string(json["mode"]);
     if(mode == +Heater::Mode::off) {
-        heater.setPWM(0);
+        heater.setDuty(0);
     }
     
     if(validation.range("duty", {0}, {1}).required("duty").invalid()) return;
@@ -210,7 +211,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
 
     if(mode == +Heater::Mode::fixed) {
-        heater.setPWM(json["duty"]);
+        heater.setDuty(json["duty"]);
     }
     if(mode == +Heater::Mode::dewpoint) {
         if(validation.range("dewpoint_offset", {-30}, {30}).required("dewpoint_offset").invalid()) return;
