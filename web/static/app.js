@@ -39,9 +39,9 @@ const onHeatersResponse = heaters => {
         document.getElementById(`heaters_${index+1}_target`).textContent = formatTargetTemperature(heater)
         document.getElementById(`heaters_${index+1}_duty`).textContent = `${(heater.duty * 100).toFixed(2)}%`
         const heaterActiveElement = document.getElementById(`heaters_${index+1}_active`);
-        heaterActiveElement.classList.remove('text-bg-warning')
+        heaterActiveElement.classList.remove('text-bg-secondary')
         heaterActiveElement.classList.remove('text-bg-success')
-        heaterActiveElement.classList.add(heater.active ? 'text-bg-success' : 'text-bg-warning')
+        heaterActiveElement.classList.add(heater.active ? 'text-bg-success' : 'text-bg-secondary')
         heaterActiveElement.textContent = heater.active ? '✓' : '❌';
     });
     window.heaters = heaters
@@ -135,6 +135,11 @@ const addHeaterModalListener = () => {
         }
         window.heater.mode = value;
         syncHeaterModal();
+    });
+
+    [...document.getElementsByClassName('toggle-password-button')].forEach(btn => {
+        target = document.getElementById(btn.getAttribute('data-bs-target'));
+        btn.addEventListener('click', event => target.type = target.type === 'password' ? 'text' : 'password');
     });
 
     document.getElementById('setHeaterModal_duty').addEventListener('change', event =>  syncDutyValue());

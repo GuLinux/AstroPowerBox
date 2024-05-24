@@ -25,6 +25,9 @@
             <a class="nav-link active" href="#" data-bs-toggle="tab" data-bs-target="#main-pane">Home</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#wifi-pane">Wifi</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" href="/update">Update</a>
           </li>
       </div>
@@ -70,7 +73,7 @@
               <td id="heaters_1_mode">N/A</td>
               <td id="heaters_1_target">N/A</td>
               <td>
-                <span id="heaters_1_active" class="badge text-bg-warning">❌</span>
+                <span id="heaters_1_active" class="badge text-bg-secondary">❌</span>
                 <span id="heaters_1_duty">N/A </span>
               </td>
               <td id="heaters_1_temperature">N/A</td>
@@ -82,7 +85,7 @@
               <td id="heaters_2_mode">N/A</td>
               <td id="heaters_2_target">N/A</td>
               <td>
-                <span id="heaters_2_active" class="badge text-bg-warning">❌</span>
+                <span id="heaters_2_active" class="badge text-bg-secondary">❌</span>
                 <span id="heaters_2_duty">N/A </span>
               </td>
               <td id="heaters_2_temperature">N/A</td>
@@ -94,7 +97,7 @@
               <td id="heaters_3_mode">N/A</td>
               <td id="heaters_3_target">N/A</td>
               <td>
-                <span id="heaters_3_active" class="badge text-bg-warning">❌</span>
+                <span id="heaters_3_active" class="badge text-bg-secondary">❌</span>
                 <span id="heaters_3_duty">N/A </span>
               </td>
               <td id="heaters_3_temperature">N/A</td>
@@ -175,6 +178,37 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+    <div class="tab-pane fade show" id="wifi-pane" tabindex="0">
+      <div class="container">
+        <form>
+            <label for="wifi_host_essid" class="form-label">WiFi Host ESSID</label>
+            <input type="text" class="form-control" id="wifi_host_essid">
+            <label for="wifi_host_psk" class="form-label">PSK</label>
+            <div class="input-group mb-3">
+              <input type="password" class="form-control" id="wifi_host_psk">
+              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_host_psk" type="button">👁</button>
+            </div>
+
+            <hr />
+            <label for="wifi_station_1_essid" class="form-label">WiFi Station 1 ESSID</label>
+            <input type="text" class="form-control" id="wifi_station_1_essid">
+            <label for="wifi_host_psk" class="form-label">PSK</label>
+            <div class="input-group mb-3">
+              <input type="password" class="form-control" id="wifi_station_1_psk">
+              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_station_1_psk" type="button">👁</button>
+            </div>
+ 
+            <label for="wifi_station_2_essid" class="form-label">WiFi Station 2 ESSID</label>
+            <input type="text" class="form-control" id="wifi_station_2_essid">
+            <label for="wifi_host_psk" class="form-label">PSK</label>
+            <div class="input-group mb-3">
+              <input type="password" class="form-control" id="wifi_station_2_psk">
+              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_station_2_psk" type="button">👁</button>
+            </div>
+ 
+        </form>
       </div>
     </div>
   </div>
