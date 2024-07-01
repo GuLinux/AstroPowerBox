@@ -48,19 +48,17 @@ void runOnFormatKey(const char *format, uint16_t index, std::function<void(const
 void APB::Settings::load() {
     Log.traceln(LOG_SCOPE "Loading APB Settings");
     uint16_t storedVersion = prefs.getUShort(APB_KEY_VERSION);
+    if(storedVersion != APB_PREFS_VERSION) {
+        loadDefaults();
+        return;
+    }
     size_t apSSIDChars = prefs.getString(APB_KEY_AP_ESSID, _apConfiguration.essid, APB_MAX_ESSID_PSK_SIZE);
     Log.traceln(LOG_SCOPE "%s characters: %d", APB_KEY_AP_ESSID, apSSIDChars);
     if(apSSIDChars > 0 && _apConfiguration ) {
         prefs.getString(APB_KEY_AP_PSK, _apConfiguration.psk, APB_MAX_ESSID_PSK_SIZE);
         Log.traceln(LOG_SCOPE "Loaded AP Settings: essid=`%s`, psk=`%s`", _apConfiguration.essid, _apConfiguration.psk);
     } else {
-        String mac = WiFi.macAddress();
-        Log.traceln(LOG_SCOPE "Found mac address: `%s`", mac.c_str());
-        mac.replace(F(":"), F(""));
-        mac = mac.substring(6);
-        sprintf(_apConfiguration.essid, "AstroPowerBox-%s", mac.c_str());
-        memset(_apConfiguration.psk, 0, APB_MAX_ESSID_PSK_SIZE);
-        Log.traceln(LOG_SCOPE "Using default ESSID: `%s`", _apConfiguration.essid);
+        loadDefaults();
     }
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
         runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.getString(key, stations[i].essid, APB_MAX_ESSID_PSK_SIZE); });
@@ -68,6 +66,16 @@ void APB::Settings::load() {
         Log.traceln(LOG_SCOPE "Station %d: essid=`%s`, psk=`%s`", i, stations[i].essid, stations[i].psk);
     }
     Log.infoln(LOG_SCOPE "Preferences loaded");
+}
+
+void APB::Settings::loadDefaults() {
+    String mac = WiFi.macAddress();
+    Log.traceln(LOG_SCOPE "Found mac address: `%s`", mac.c_str());
+    mac.replace(F(":"), F(""));
+    mac = mac.substring(6);
+    sprintf(_apConfiguration.essid, "AstroPowerBox-%s", mac.c_str());
+    memset(_apConfiguration.psk, 0, APB_MAX_ESSID_PSK_SIZE);
+    Log.traceln(LOG_SCOPE "Using default ESSID: `%s`", _apConfiguration.essid);
 }
 
 void APB::Settings::save() {

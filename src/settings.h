@@ -29,6 +29,7 @@ public:
 private:
     std::array<WiFiStation, APB_MAX_STATIONS> stations;
     WiFiStation _apConfiguration;
+    void loadDefaults();
 };
 }
 #endif

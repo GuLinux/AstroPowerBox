@@ -26,7 +26,6 @@ APB::WebServer webServer(configuration, wifiManager, ambient, heaters, powerMoni
 
 
 #define LOG_SCOPE "APB::Main - "
-#define STATUS_LED GPIO_NUM_14
 
 using namespace std::placeholders;
 
@@ -50,10 +49,10 @@ void setup() {
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
   wifiManager.setup();
   webServer.setup();
-  pinMode(STATUS_LED, OUTPUT);
+  pinMode(APB_STATUS_LED_PIN, OUTPUT);
   blinkLed.set(1000, TASK_FOREVER, [](){
     ledOn = !ledOn;
-    digitalWrite(STATUS_LED, ledOn ? HIGH : LOW);
+    digitalWrite(APB_STATUS_LED_PIN, ledOn ? HIGH : LOW);
   });
   scheduler.addTask(blinkLed);
   blinkLed.enable();
