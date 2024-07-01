@@ -14,6 +14,16 @@
 #endif
 
 // Defaults if configuration_custom.h is not found
+#ifndef I2C_SDA_PIN
+#define I2C_SDA_PIN 12
+#endif
+
+#ifndef I2C_SCL_PIN
+#define I2C_SCL_PIN 13
+#endif
+
+
+
 #ifndef APB_MAX_STATIONS
 #define APB_MAX_STATIONS 5
 #endif

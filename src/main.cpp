@@ -26,9 +26,13 @@ APB::WebServer webServer(configuration, wifiManager, ambient, heaters, powerMoni
 
 
 #define LOG_SCOPE "APB::Main - "
+#define STATUS_LED GPIO_NUM_14
 
 using namespace std::placeholders;
 
+static boolean ledOn = false;
+
+Task blinkLed;
 void setup() {
   Serial.begin(115200);
   #ifdef WAIT_FOR_SERIAL
@@ -39,16 +43,24 @@ void setup() {
   LittleFS.begin();
 
   configuration.setup();
-  Wire.begin(21, 13); // TODO: extract as constants
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   ambient.setup(scheduler);
   powerMonitor.setup(scheduler);
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
   wifiManager.setup();
   webServer.setup();
+  pinMode(STATUS_LED, OUTPUT);
+  blinkLed.set(1000, TASK_FOREVER, [](){
+    ledOn = !ledOn;
+    digitalWrite(STATUS_LED, ledOn ? HIGH : LOW);
+  });
+  scheduler.addTask(blinkLed);
+  blinkLed.enable();
 }
 
 void loop() {
+  
   scheduler.execute();
   ElegantOTA.loop();
 }
