@@ -18,7 +18,7 @@ def gzip_all():
 def before_build_filesystem(source, target, env):
     print('Removing old filesystem image...')
     env.Execute('rm -rf data')
-    env.Execute('mkdir -p data/web/static')
+    env.Execute('mkdir -p data/web/static/app')
     print('[OK]\n')
 
 
@@ -26,8 +26,9 @@ def before_build_filesystem(source, target, env):
     env.Execute('htmlmin web/index.html data/web/index.html')
     print('[OK]\n')
 
-    print('Minifying app.js...')
-    env.Execute('uglifyjs web/static/app.js -o data/web/static/app.js')
+    print('Minifying app javascripts...')
+    for file in os.listdir('web/static/app'):
+        env.Execute(f'uglifyjs web/static/app/{file} -o data/web/static/app/{file}')
     print('[OK]\n')
 
     print('Copying bootstrap files...')

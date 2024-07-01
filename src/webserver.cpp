@@ -129,6 +129,9 @@ void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
 void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request, 100);
     response.document["wifi"]["status"] = wifiManager.status()._to_string();
+    response.document["wifi"]["essid"] = wifiManager.essid();
+    response.document["wifi"]["ip"] = wifiManager.ipAddress();
+    response.document["wifi"]["gateway"] = wifiManager.gateway();
 }
 
 void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {

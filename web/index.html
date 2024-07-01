@@ -7,9 +7,10 @@
   <title>AstroPowerBox</title>
   <link href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/utils.js"></script>
-  <script src="/static/heaters.js"></script>
-  <script src="/static/app.js"></script>
+  <script src="/static/app/utils.js"></script>
+  <script src="/static/app/heaters.js"></script>
+  <script src="/static/app/wifi.js"></script>
+  <script src="/static/app/app.js"></script>
 
 </head>
 
@@ -95,33 +96,20 @@
     </div>
     <div class="tab-pane fade show" id="wifi-pane" tabindex="0">
       <div class="container">
-        <form>
-            <label for="wifi_host_essid" class="form-label">WiFi Host ESSID</label>
-            <input type="text" class="form-control" id="wifi_host_essid">
-            <label for="wifi_host_psk" class="form-label">PSK</label>
-            <div class="input-group mb-3">
-              <input type="password" class="form-control" id="wifi_host_psk">
-              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_host_psk" type="button">👁</button>
-            </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">ESSID</th>
+              <th scope="col">Connected</th>
+              <th scope="col"></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="wifi_tbody">
+          </tbody>
+        </table>
 
-            <hr />
-            <label for="wifi_station_1_essid" class="form-label">WiFi Station 1 ESSID</label>
-            <input type="text" class="form-control" id="wifi_station_1_essid">
-            <label for="wifi_host_psk" class="form-label">PSK</label>
-            <div class="input-group mb-3">
-              <input type="password" class="form-control" id="wifi_station_1_psk">
-              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_station_1_psk" type="button">👁</button>
-            </div>
- 
-            <label for="wifi_station_2_essid" class="form-label">WiFi Station 2 ESSID</label>
-            <input type="text" class="form-control" id="wifi_station_2_essid">
-            <label for="wifi_host_psk" class="form-label">PSK</label>
-            <div class="input-group mb-3">
-              <input type="password" class="form-control" id="wifi_station_2_psk">
-              <button class="btn btn-outline-secondary toggle-password-button" data-bs-target="wifi_station_2_psk" type="button">👁</button>
-            </div>
- 
-        </form>
       </div>
     </div>
   </div>
@@ -141,8 +129,22 @@
           <button type="button" class="modal_button btn btn-primary" data-bs-toggle="modal" data-bs-target="#setHeaterModal">set</button>
         </td>
       </tr>
+
     </table>
+
     <!-- End Heater row template -->
+    <!-- Wifi row template -->
+    <table>
+      <tr class="wifi_row">
+        <th scope="row" class="wifi_number">#</th>
+        <td class="wifi_essid">N/A</td>
+        <td><span class="wifi_connected badge text-bg-secondary"></span></td>
+        <td class="wifi_set_button">
+          <button type="button" class="modal_button btn btn-primary" data-bs-toggle="modal" data-bs-target="#setWifiModal">set</button>
+        </td>
+      </tr>
+    </table>
+    <!-- End Wifi row template -->
   </div>
 
     <!-- Modal begin -->

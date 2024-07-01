@@ -15,6 +15,9 @@ public:
     void setup();
     void connect();
     Status status() const { return _status; }
+    String essid() const;
+    String ipAddress() const;
+    String gateway() const;
 private:
     Settings &configuration;
     WiFiMulti wifiMulti;

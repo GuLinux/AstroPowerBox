@@ -64,3 +64,28 @@ void APB::WiFiManager::connect() {
         Log.infoln(LOG_SCOPE "Connected to WiFi `%s`, ip address: %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
     }
 }
+
+String APB::WiFiManager::essid() const {
+    if(_status == +Status::Station) {
+        return WiFi.SSID();
+    }
+    if(_status == +Status::AccessPoint) {
+        return configuration.apConfiguration().essid;
+    }
+    return "N/A";
+}
+
+String APB::WiFiManager::ipAddress() const {
+    if(_status == +Status::AccessPoint || _status == +Status::Station) {
+        return WiFi.localIP().toString();
+    }
+    return "N/A"; 
+}
+
+String APB::WiFiManager::gateway() const {
+    if(_status == +Status::Station) {
+        return WiFi.gatewayIP().toString();
+    }
+    return "N/A"; 
+}
+

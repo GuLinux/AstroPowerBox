@@ -18,6 +18,7 @@ const queryPower = async () => {
 
 window.addEventListener('load', () => {
     setupHeaters();
+    setupWiFi();
     window.setInterval(queryAmbient, 1000)
     window.setInterval(queryPower, 1000)
 })
