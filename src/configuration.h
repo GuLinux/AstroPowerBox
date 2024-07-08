@@ -9,83 +9,40 @@
 
 #define __APB__THERMISTOR 10
 
+#ifdef ARDUINO_LOLIN_S2_MINI
+#include "configuration_lolin_s2_mini.h"
+#endif
+
+#ifdef ARDUINO_LOLIN_C3_MINI
+#include "configuration_lolin_c3_mini.h"
+#endif
+
+
+#define APB_MAX_STATIONS 5
+#define APB_HEATERS_SIZE 2
+#define APB_AMBIENT_UPDATE_INTERVAL_SECONDS 5
+#define APB_HEATER_UPDATE_INTERVAL_SECONDS 5
+#define APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS 0x44
+#define APB_HEATER_TEMPERATURE_AVERAGE_COUNT 10
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE 10'000
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL 10'000
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP 25
+#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE 3950
+#define APB_POWER_MAX_CURRENT_AMPS 15
+#define APB_POWER_SHUNT_OHMS 0.04
+#define APB_AMBIENT_TEMPERATURE_SENSOR __APB_SHT30
+#define APB_HEATER_TEMPERATURE_SENSOR __APB_THERMISTOR
+#define APB_INA1219_ADDRESS 0x40
+
+// Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
+// IMPORTANT: there is no compiler check for pinout size, so be careful.
+#define APB_HEATERS_PWM_PINOUT Pinout{5,0}, Pinout{6,1}
+
 #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
 #endif
 
-// Defaults if configuration_custom.h is not found
-#ifndef I2C_SDA_PIN
-#define I2C_SDA_PIN 7
-#endif
 
-#ifndef I2C_SCL_PIN
-#define I2C_SCL_PIN 9
-#endif
-
-#ifndef APB_STATUS_LED_PIN
-#define APB_STATUS_LED_PIN 8
-#endif
-
-
-
-#ifndef APB_MAX_STATIONS
-#define APB_MAX_STATIONS 5
-#endif
-
-#ifndef APB_HEATERS_SIZE
-#define APB_HEATERS_SIZE 2
-#endif
-
-#ifndef APB_AMBIENT_UPDATE_INTERVAL_SECONDS
-#define APB_AMBIENT_UPDATE_INTERVAL_SECONDS 5
-#endif
-
-#ifndef APB_HEATER_UPDATE_INTERVAL_SECONDS
-#define APB_HEATER_UPDATE_INTERVAL_SECONDS 5
-#endif
-
-
-#ifndef APB_AMBIENT_TEMPERATURE_SENSOR
-#define APB_AMBIENT_TEMPERATURE_SENSOR __APB__SIM
-#endif
-
-#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS
-#define APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS 0x44
-#endif
-
-#ifndef APB_HEATER_TEMPERATURE_SENSOR
-#define APB_HEATER_TEMPERATURE_SENSOR __APB__SIM
-#endif
-
-
-#ifndef APB_HEATER_TEMPERATURE_AVERAGE_COUNT
-#define APB_HEATER_TEMPERATURE_AVERAGE_COUNT 10
-#endif
-
-#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE
-#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE 10'000
-#endif
-
-#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL
-#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL 10'000
-#endif
-
-#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP
-#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP 25
-#endif
-
-#ifndef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE
-#define APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE 3950
-#endif
-
-
-
-// replace in configuration_override.h as needed, be sure that pinout values are unique
-#ifndef APB_HEATERS_PWM_PINOUT
-// Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
-// IMPORTANT: there is no compiler check for pinout size, so be careful.
-#define APB_HEATERS_PWM_PINOUT Pinout{5,0}, Pinout{6,1}
-#endif
 
 // Derivative constants, DO NOT change/redefine
 
