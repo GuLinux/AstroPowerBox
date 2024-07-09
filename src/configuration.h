@@ -34,13 +34,9 @@
 #define APB_HEATER_TEMPERATURE_SENSOR __APB_THERMISTOR
 #define APB_INA1219_ADDRESS 0x40
 
-// Thermistor PWM pinout. First number in a pair is the PWM pin (output), second thermistor PIN (analog input)
-// IMPORTANT: there is no compiler check for pinout size, so be careful.
-#define APB_HEATERS_PWM_PINOUT Pinout{5,0}, Pinout{6,1}
-
-#if __has_include ("configuration_custom.h")
+// #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
-#endif
+// #endif
 
 
 
