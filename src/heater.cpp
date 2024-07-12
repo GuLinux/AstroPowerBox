@@ -36,7 +36,7 @@ struct APB::Heater::Private {
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
     struct Pinout {
         uint8_t pwm;
-        uint8_t thermistor;
+        int8_t thermistor;
     };
     static constexpr std::array<Pinout, APB_HEATERS_SIZE> heaters_pinout{ APB_HEATERS_PWM_PINOUT };
     int16_t pwmValue = -1;
@@ -143,7 +143,10 @@ APB::Heater::Mode APB::Heater::mode() const {
 
 void APB::Heater::Private::loop()
 {
-    readTemperature();
+    if(smoothThermistor) {
+        readTemperature();
+    }
+    
     if(temperature.has_value() && temperature.value() < -100) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
@@ -226,16 +229,18 @@ void APB::Heater::Private::setup() {
     Log.traceln("%s Configuring PWM thermistor heater: Thermistor pin=%d, PWM pin=%d, analogReadMax=%F", log_scope, pinout->thermistor, pinout->pwm, analogReadMax);
     analogReadResolution(ANALOG_READ_RES);
     setDuty(0);
-    smoothThermistor = std::make_unique<SmoothThermistor>(
-        pinout->thermistor,
-        ANALOG_READ_RES,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE,
-        APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP,
-        APB_HEATER_TEMPERATURE_AVERAGE_COUNT
-    );
-    Log.traceln("%s Created SmoothThermistor instance, initial readout=%F", log_scope, smoothThermistor->temperature());
+    if(pinout->thermistor != -1) {
+        smoothThermistor = std::make_unique<SmoothThermistor>(
+            pinout->thermistor,
+            ANALOG_READ_RES,
+            APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL,
+            APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_REFERENCE,
+            APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_B_VALUE,
+            APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR_NOMINAL_TEMP,
+            APB_HEATER_TEMPERATURE_AVERAGE_COUNT
+        );
+        Log.traceln("%s Created SmoothThermistor instance, initial readout=%F", log_scope, smoothThermistor->temperature());
+    }
 }
 
 void APB::Heater::Private::readTemperature() {
@@ -244,6 +249,7 @@ void APB::Heater::Private::readTemperature() {
     temperature = smoothThermistor->temperature();
     Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
 }
+
 float APB::Heater::Private::getDuty() const {
     int8_t pwmChannel = analogGetChannel(pinout->thermistor);
     float pwmValue = ledcRead(pwmChannel);

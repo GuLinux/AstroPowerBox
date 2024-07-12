@@ -64,8 +64,12 @@ void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 100);
+    JsonResponse response(request, 500);
     response.document["status"] = "ok";
+    response.document["uptime"] = esp_timer_get_time() / 1000'000.0;
+    response.document["has_power_monitor"] = powerMonitor.status().initialised;
+    response.document["has_ambient_sensor"] = ambient.isInitialised();
+    response.document["has_serial"] = static_cast<bool>(Serial);
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
@@ -206,6 +210,8 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     Heater::Mode mode = Heater::Mode::_from_string(json["mode"]);
     if(mode == +Heater::Mode::off) {
         heater.setDuty(0);
+        onGetHeaters(request);
+        return;
     }
     
     if(validation.range("duty", {0}, {1}).required("duty").invalid()) return;

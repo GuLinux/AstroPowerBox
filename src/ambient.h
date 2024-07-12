@@ -19,6 +19,7 @@ public:
         float dewpoint() const;
     };
     std::optional<Reading> reading() const;
+    bool isInitialised() const;
     #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void setSim(float temperature, float humidity, bool initialised=true);
     #endif

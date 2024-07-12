@@ -41,6 +41,10 @@ void APB::Ambient::setup(Scheduler &scheduler) {
   }
 }
 
+bool APB::Ambient::isInitialised() const {
+  return d.initialised;
+}
+
 std::optional<APB::Ambient::Reading> APB::Ambient::reading() const {
     return d.reading;
 }
