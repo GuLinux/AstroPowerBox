@@ -139,7 +139,7 @@ void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
-    wifiManager.connect();
+    wifiManager.reconnect();
     onGetConfig(request);
 }
 

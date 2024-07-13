@@ -60,7 +60,7 @@ void setup() {
 }
 
 void loop() {
-  
+  wifiManager.loop(); 
   scheduler.execute();
   ElegantOTA.loop();
 }

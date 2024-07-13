@@ -65,6 +65,13 @@ void APB::WiFiManager::connect() {
     }
 }
 
+void APB::WiFiManager::loop() {
+    if(scheduleReconnect) {
+        scheduleReconnect = false;
+        connect();
+    }
+}
+
 String APB::WiFiManager::essid() const {
     if(_status == +Status::Station) {
         return WiFi.SSID();
