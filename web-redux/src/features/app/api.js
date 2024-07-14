@@ -16,3 +16,9 @@ const payloadJson = async (path, method, payload) => {
 export const fetchHeaters = async () => {
     return await fetchJson('/api/heaters')
 }
+
+export const setHeater = async (index, heater) => {
+    const payload = {index, ...heater}
+    console.log(payload)
+    return await payloadJson('/api/heater', 'POST', payload)
+}

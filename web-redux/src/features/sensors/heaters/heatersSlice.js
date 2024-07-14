@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { fetchHeaters } from '../../app/api';
+import { fetchHeaters, setHeater } from '../../app/api';
 
 const initialState = { heaters: [] };
 
@@ -8,6 +8,10 @@ export const getHeatersAsync = createAsyncThunk(
   async () => await fetchHeaters()
 );
 
+export const setHeaterAsync = createAsyncThunk(
+  'heaters/setHeater',
+  async ({index, heater}) => await setHeater(index, heater)
+)
 export const selectHeaters = state => state.heaters;
 
 export const heatersSlice = createSlice({
@@ -25,9 +29,12 @@ export const heatersSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(getHeatersAsync.fulfilled, (state, action) => {
-        console.log(action.payload, state)
         state.heaters = action.payload
-      });
+      })
+      .addCase(setHeaterAsync.fulfilled, (state, action) => {
+        console.log(action)
+        state.heaters = action.payload
+      })
   },
 });
  
