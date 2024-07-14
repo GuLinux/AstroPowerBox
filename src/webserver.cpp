@@ -15,7 +15,15 @@
 using namespace std::placeholders;
 
 APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, PowerMonitor &powerMonitor, Scheduler &scheduler)
-    : server(80), configuration(configuration), wifiManager(wifiManager), ambient(ambient), heaters(heaters), powerMonitor(powerMonitor), scheduler(scheduler) {
+    : server(80),
+    events("/api/events"),
+    configuration(configuration),
+    wifiManager(wifiManager),
+    ambient(ambient),
+    heaters(heaters),
+    powerMonitor(powerMonitor),
+    scheduler(scheduler)
+{
 }
 
 
@@ -50,10 +58,21 @@ void APB::WebServer::setup() {
     server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
     server.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
+    server.addHandler(&events);
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
     server.begin();
+
+    new Task(1000, TASK_FOREVER, [this](){
+        eventsDocument.clear();
+        populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
+        populatePowerStatus(eventsDocument.createNestedObject("power"));
+        populateHeatersStatus(eventsDocument.createNestedArray("heaters"));
+        eventsDocument["uptime"] = esp_timer_get_time() / 1000'000.0;
+        serializeJson(eventsDocument, eventsString.data(), eventsString.size());
+        this->events.send(eventsString.data(), "status", millis(), 5000);
+    }, &scheduler, true);
 }
 
 
@@ -149,25 +168,42 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request, 100);
-    response.document["temperature"] = ambient.reading()->temperature;
-    response.document["humidity"] = ambient.reading()->humidity;
-    response.document["dewpoint"] = ambient.reading()->dewpoint();
+    populateAmbientStatus(response.document.to<JsonObject>());
 }
 
 
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request, heaters.size() * 100);
-    std::for_each(heaters.begin(), heaters.end(), [&response](Heater &heater) {
-        response.document[heater.index()]["mode"] = heater.mode()._to_string();
-        response.document[heater.index()]["duty"] = heater.duty();
-        response.document[heater.index()]["active"] = heater.active();
-        response.document[heater.index()]["has_temperature"] = heater.temperature().has_value();
-        optional::if_present(heater.temperature(), [&](float v){ response.document[heater.index()]["temperature"] = v; });
-        optional::if_present(heater.targetTemperature(), [&](float v){ response.document[heater.index()]["target_temperature"] = v; });
-        optional::if_present(heater.dewpointOffset(), [&](float v){ response.document[heater.index()]["dewpoint_offset"] = v; });
+    populateHeatersStatus(response.document.to<JsonArray>());
+}
+
+void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
+    std::for_each(heaters.begin(), heaters.end(), [heatersStatus](Heater &heater) {
+        heatersStatus[heater.index()]["mode"] = heater.mode()._to_string();
+        heatersStatus[heater.index()]["duty"] = heater.duty();
+        heatersStatus[heater.index()]["active"] = heater.active();
+        heatersStatus[heater.index()]["has_temperature"] = heater.temperature().has_value();
+        optional::if_present(heater.temperature(), [&](float v){ heatersStatus[heater.index()]["temperature"] = v; });
+        optional::if_present(heater.targetTemperature(), [&](float v){ heatersStatus[heater.index()]["target_temperature"] = v; });
+        optional::if_present(heater.dewpointOffset(), [&](float v){ heatersStatus[heater.index()]["dewpoint_offset"] = v; });
     });
 }
+
+void APB::WebServer::populateAmbientStatus(JsonObject ambientStatus) {
+    ambientStatus["temperature"] = ambient.reading()->temperature;
+    ambientStatus["humidity"] = ambient.reading()->humidity;
+    ambientStatus["dewpoint"] = ambient.reading()->dewpoint();
+}
+
+
+void APB::WebServer::populatePowerStatus(JsonObject powerStatus) {
+    powerStatus["busVoltage"] = powerMonitor.status().busVoltage;
+    powerStatus["current"] = powerMonitor.status().current;
+    powerStatus["power"] = powerMonitor.status().power;
+    powerStatus["shuntVoltage"] = powerMonitor.status().shuntVoltage;
+}
+
 
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
@@ -176,10 +212,7 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request, 200);
-    response.document["busVoltage"] = powerMonitor.status().busVoltage;
-    response.document["current"] = powerMonitor.status().current;
-    response.document["power"] = powerMonitor.status().power;
-    response.document["shuntVoltage"] = powerMonitor.status().shuntVoltage;
+    populatePowerStatus(response.document.to<JsonObject>());
 }
 
 

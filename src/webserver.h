@@ -20,12 +20,15 @@ public:
     void setup();
 private:
     AsyncWebServer server;
+    AsyncEventSource events;
     Settings &configuration;
     WiFiManager &wifiManager;
     Ambient &ambient;
     Heaters &heaters;
     PowerMonitor &powerMonitor;
     Scheduler &scheduler;
+    StaticJsonDocument<600> eventsDocument;
+    std::array<char, 600> eventsString;
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
@@ -40,6 +43,10 @@ private:
     void onGetESPInfo(AsyncWebServerRequest *request);
     void onRestart(AsyncWebServerRequest *request);
     void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
+
+    void populateHeatersStatus(JsonArray heatersStatus);
+    void populateAmbientStatus(JsonObject ambientStatus);
+    void populatePowerStatus(JsonObject powerStatus);
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
     void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);
