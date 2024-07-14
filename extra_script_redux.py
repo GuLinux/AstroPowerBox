@@ -19,7 +19,10 @@ def copy_strip(rootdir, path):
     shutil.copy(source_path, dest_path)
 
 def copy_matching(rootdir, directory, filter):
-    for file in os.listdir(os.path.join(rootdir, directory)):
+    source_directory = os.path.join(rootdir, directory)
+    if not os.path.isdir(source_directory):
+        return
+    for file in os.listdir(source_directory):
         if filter(file):
             copy_strip(rootdir, os.path.join(directory, file))
 
@@ -36,6 +39,7 @@ def before_build_filesystem(source, target, env):
     env.Execute('cd web-redux; npm run build')
     copy_matching('web-redux/build', 'static/js', lambda f: 'main' in f and f.endswith('js'))
     copy_matching('web-redux/build', 'static/css', lambda f: 'main' in f and f.endswith('css'))
+    copy_matching('web-redux/public', '', lambda f: f.endswith('.min.css'))
     copy_matching('web-redux/build', '', lambda f: f in ['index.html'])
 
 

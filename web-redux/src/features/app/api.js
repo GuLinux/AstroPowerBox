@@ -17,6 +17,10 @@ export const fetchHeaters = async () => {
     return await fetchJson('/api/heaters')
 }
 
+export const fetchWifiStatus = async () => {
+    return await fetchJson('/api/config')
+}
+
 export const setHeater = async (index, heater) => {
     const payload = {index, ...heater}
     console.log(payload)

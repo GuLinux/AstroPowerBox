@@ -9,6 +9,8 @@ import { darkModeSelector, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
+import { WiFi } from './features/app/WiFi';
+import { getWiFiConfigAsync } from './features/app/wifiSlice';
 
 const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
@@ -27,8 +29,9 @@ const LightMode = () => <link rel="stylesheet" type="text/css" href='flatly.min.
 function App() {
   const dispatch = useDispatch();
   const darkMode = useSelector(darkModeSelector)
-  useEffect(() => { dispatch(getHeatersAsync()) })
-  useEffect(() => registerEventSource(dispatch), [dispatch]);
+  useEffect(() => { dispatch(getHeatersAsync()) }, [])
+  useEffect(() => registerEventSource(dispatch), []);
+  useEffect(() => { dispatch(getWiFiConfigAsync()) }, []);
   const activeTab = useSelector(tabSelector);
   return (
     <>
@@ -39,7 +42,7 @@ function App() {
         <Tab.Container activeKey={activeTab}>
           <Tab.Content>
             <Tab.Pane eventKey='home'><Home /></Tab.Pane>
-            <Tab.Pane eventKey='wifi'>wifi</Tab.Pane>
+            <Tab.Pane eventKey='wifi'><WiFi /></Tab.Pane>
           </Tab.Content>
         </Tab.Container>
       </Container>
