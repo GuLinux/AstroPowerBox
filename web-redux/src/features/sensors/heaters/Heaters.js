@@ -7,7 +7,7 @@ import { FaPowerOff, FaLightbulb } from "react-icons/fa6";
 
 const Heater = ({heater, index}) => {
     return <tr>
-        <th scope="row" class="heater_number">{index}</th>
+        <th scope="row">{index}</th>
         <td>{heater.mode}</td>
         <td><Number value={heater.target_temperature} unit='°C'/></td>
         <td className='align-middle d-flex justify-content-start align-items-center'>

@@ -19,6 +19,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "prepare": "cp node_modules/bootswatch/dist/flatly/bootstrap.min.css public/flatly.min.css && cp node_modules/bootswatch/dist/darkly/bootstrap.min.css public/darkly.min.css",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
