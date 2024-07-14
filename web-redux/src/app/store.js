@@ -1,7 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
-import ambientReducer from '../features/ambientSlice';
-import heatersReducer from '../features/heatersSlice';
-import powerReducer from '../features/powerSlice';
+import ambientReducer from '../features/sensors/ambient/ambientSlice';
+import heatersReducer from '../features/sensors/heaters/heatersSlice';
+import powerReducer from '../features/sensors/power/powerSlice';
+import appReducer from '../features/app/appSlice';
 import { createLogger } from 'redux-logger'
 
 const logger = createLogger({});
@@ -11,7 +12,8 @@ export const store = configureStore({
     ambient: ambientReducer,
     heaters: heatersReducer,
     power: powerReducer,
+    app: appReducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(logger),
+  // middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(logger),
   devTools: true,
 });
