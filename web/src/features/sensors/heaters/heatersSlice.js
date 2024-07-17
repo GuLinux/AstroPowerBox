@@ -23,7 +23,6 @@ export const heatersSlice = createSlice({
         state.heaters.map((_, index) => {
             state.heaters[index] = heaters[index]
         })
-
     }
   },
   extraReducers: (builder) => {

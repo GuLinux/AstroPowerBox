@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-proxy_address="${1:-astropowerbox-fc177c}"
-cd "$( dirname "$0" )"
-http-server -P http://$proxy_address

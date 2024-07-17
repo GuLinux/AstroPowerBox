@@ -21,6 +21,19 @@ export const fetchWifiStatus = async () => {
     return await fetchJson('/api/config')
 }
 
+export const fetchAppInfo = async () => {
+    return await fetchJson('/api/info')
+}
+
+export const fetchRestart = async () => {
+    return await fetchJson('/api/restart', { method: 'POST' })
+}
+
+export const fetchReconnectWiFi = async () => {
+    return await fetchJson('/api/wifi/connect', { method: 'POST' })
+}
+
+
 export const setHeater = async (index, heater) => {
     const payload = {index, ...heater}
     console.log(payload)

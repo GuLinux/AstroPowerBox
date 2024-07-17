@@ -48,7 +48,7 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                 <Collapse in={heater.mode !== 'off'}>
                     <Form.Group className='mb-3'>
                         <Form.Label>Duty</Form.Label>
-                        <Badge className='float-end'><Number value={heater.duty} unit='%' formatFunction={formatPercentage} decimals={1} /></Badge>
+                        <Badge className='float-end'><Number value={heater.duty} formatFunction={formatPercentage} decimals={1} /></Badge>
                         <Form.Range min={0} max={1} step={0.001} value={heater.duty} onChange={updateHeater('duty', parseFloat)} />
                     </Form.Group>
                 </Collapse>
@@ -109,7 +109,7 @@ const Heater = ({heater, index}) => {
             <span className='align-middle d-flex justify-content-start align-items-center'>
                 { heater.active ? <FaLightbulb color='green'/> : <FaPowerOff color='grey' /> }
                 <span className='px-2'>
-                    <Number value={heater.duty} formatFunction={formatPercentage} decimals={1} unit='%'/>
+                    <Number value={heater.duty} formatFunction={formatPercentage} decimals={1} />
                 </span>
             </span>
             </td>

@@ -69,7 +69,7 @@ void APB::WebServer::setup() {
         populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
         populatePowerStatus(eventsDocument.createNestedObject("power"));
         populateHeatersStatus(eventsDocument.createNestedArray("heaters"));
-        eventsDocument["uptime"] = esp_timer_get_time() / 1000'000.0;
+        eventsDocument["app"]["uptime"] = esp_timer_get_time() / 1000'000.0;
         serializeJson(eventsDocument, eventsString.data(), eventsString.size());
         this->events.send(eventsString.data(), "status", millis(), 5000);
     }, &scheduler, true);
@@ -228,7 +228,11 @@ void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
     response.document["mem"]["maxAllocPsRam"] = ESP.getMaxAllocPsram();
     response.document["sketch"]["MD5"] = ESP.getSketchMD5();
     response.document["sketch"]["size"] = ESP.getSketchSize();
-    response.document["sketch"]["freeSketchSpace"] = ESP.getFreeSketchSpace();
+    response.document["sketch"]["totalSpace"] = ESP.getFreeSketchSpace();
+    response.document["sketch"]["sdkVersion"] = ESP.getSdkVersion();
+    response.document["esp"]["chipModel"] = ESP.getChipModel();
+    response.document["esp"]["chipCores"] = ESP.getChipCores();
+    response.document["esp"]["cpuFreqMHz"] = ESP.getCpuFreqMHz();
 }
 
 void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json) {

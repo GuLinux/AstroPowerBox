@@ -1,24 +1,25 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-// import './App.css';
+import React, { useEffect } from 'react';
 import { AppNavbar } from './AppNavbar';
 import { setAmbient } from './features/sensors/ambient/ambientSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { getHeatersAsync, setHeaters, updateHeaters } from './features/sensors/heaters/heatersSlice';
+import { getHeatersAsync, updateHeaters } from './features/sensors/heaters/heatersSlice';
 import { setPower } from './features/sensors/power/powerSlice';
-import { darkModeSelector, tabSelector } from './features/app/appSlice';
+import { darkModeSelector, setUptime, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
 import { WiFi } from './features/app/WiFi';
 import { getWiFiConfigAsync } from './features/app/wifiSlice';
+import { System } from './features/app/System';
 
 const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
   es.addEventListener('status', m => {
     const data = JSON.parse(m.data);
-    dispatch(setAmbient(data.ambient))
-    dispatch(updateHeaters(data.heaters))
-    dispatch(setPower(data.power))
+    dispatch(setAmbient(data.ambient));
+    dispatch(updateHeaters(data.heaters));
+    dispatch(setPower(data.power));
+    dispatch(setUptime(data.app.uptime));
   })
   return () => es.close()
 }
@@ -29,9 +30,9 @@ const LightMode = () => <link rel="stylesheet" type="text/css" href='flatly.min.
 function App() {
   const dispatch = useDispatch();
   const darkMode = useSelector(darkModeSelector)
-  useEffect(() => { dispatch(getHeatersAsync()) }, [])
-  useEffect(() => registerEventSource(dispatch), []);
-  useEffect(() => { dispatch(getWiFiConfigAsync()) }, []);
+  useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
+  useEffect(() => registerEventSource(dispatch), [dispatch]);
+  useEffect(() => { dispatch(getWiFiConfigAsync()) }, [dispatch]);
   const activeTab = useSelector(tabSelector);
   return (
     <>
@@ -43,6 +44,7 @@ function App() {
           <Tab.Content>
             <Tab.Pane eventKey='home'><Home /></Tab.Pane>
             <Tab.Pane eventKey='wifi'><WiFi /></Tab.Pane>
+            <Tab.Pane eventKey='system'><System /></Tab.Pane>
           </Tab.Content>
         </Tab.Container>
       </Container>

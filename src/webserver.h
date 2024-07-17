@@ -27,8 +27,8 @@ private:
     Heaters &heaters;
     PowerMonitor &powerMonitor;
     Scheduler &scheduler;
-    StaticJsonDocument<600> eventsDocument;
-    std::array<char, 600> eventsString;
+    StaticJsonDocument<800> eventsDocument;
+    std::array<char, 800> eventsString;
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);

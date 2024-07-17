@@ -1,5 +1,6 @@
 Import('env')
 import os 
+import subprocess
 import shutil
 
 def copy_full_path(source):
@@ -10,30 +11,39 @@ def copy_full_path(source):
     print(f'Copying `{source}` to `{dest_full_path}`')
     shutil.copy(source, dest_full_path)
 
+def copy_strip(rootdir, path):
+    source_path = os.path.join(rootdir, path)
+    dest_path = os.path.join('data', 'web', path)
+    dest_dir = os.path.dirname(dest_path)
+    os.makedirs(dest_dir, exist_ok=True)
+    shutil.copy(source_path, dest_path)
+
+def copy_matching(rootdir, directory, filter):
+    source_directory = os.path.join(rootdir, directory)
+    if not os.path.isdir(source_directory):
+        return
+    for file in os.listdir(source_directory):
+        if filter(file):
+            copy_strip(rootdir, os.path.join(directory, file))
+
 def gzip_all():
     env.Execute('find data -type f -exec gzip -9 {} \\;')
-    pass
-
 
 def before_build_filesystem(source, target, env):
     print('Removing old filesystem image...')
     env.Execute('rm -rf data')
-    env.Execute('mkdir -p data/web/static/app')
+    env.Execute('mkdir -p data/web')
     print('[OK]\n')
+    print('Building react app')
+    # subprocess.run('npm run build', shell=True, cwd='web').check_returncode()
+    env.Execute('cd web; npm run build')
+    copy_matching('web/build', 'static/js', lambda f: 'main' in f and f.endswith('js'))
+    copy_matching('web/build', 'static/css', lambda f: 'main' in f and f.endswith('css'))
+    copy_matching('web/public', '', lambda f: f.endswith('.min.css'))
+    copy_matching('web/build', '', lambda f: f in ['index.html'])
 
 
-    print('Minifying index.html...')
-    env.Execute('htmlmin web/index.html data/web/index.html')
-    print('[OK]\n')
 
-    print('Minifying app javascripts...')
-    for file in os.listdir('web/static/app'):
-        env.Execute(f'uglifyjs web/static/app/{file} -o data/web/static/app/{file}')
-    print('[OK]\n')
-
-    print('Copying bootstrap files...')
-    copy_full_path('web/static/bootstrap-5.3.3-dist/css/bootstrap.min.css')
-    copy_full_path('web/static/bootstrap-5.3.3-dist/js/bootstrap.bundle.min.js')
     print('[OK]\n')
     print('Compressing all files in /data')
     gzip_all()
