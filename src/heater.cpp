@@ -147,9 +147,13 @@ void APB::Heater::Private::loop()
         readTemperature();
     }
     
-    if(temperature.has_value() && temperature.value() < -100) {
+    if(temperature.has_value() && temperature.value() < -50) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
+        if(mode == +Heater::Mode::dewpoint || mode == +Heater::Mode::target_temperature) {
+            Log.warningln("%s Lost temperature sensor, switching off.", log_scope);
+            mode = Heater::Mode::off;
+        }
     }
 
     if(mode == +Heater::Mode::fixed) {
