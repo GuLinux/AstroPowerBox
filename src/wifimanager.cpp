@@ -51,18 +51,27 @@ void APB::WiFiManager::setup() {
     Log.infoln(LOG_SCOPE "setup finished");
 }
 
+void APB::WiFiManager::setApMode() {
+    Log.infoln(LOG_SCOPE "Starting softAP with essid=`%s`, ip address=`%s`",
+            configuration.apConfiguration().essid, WiFi.softAPIP().toString().c_str());
+    WiFi.softAP(configuration.apConfiguration().essid, 
+        configuration.apConfiguration().open() ? nullptr : configuration.apConfiguration().psk);
+}
+
 void APB::WiFiManager::connect() {
     bool hasValidStations = configuration.hasValidStations();
-    if( ! hasValidStations || wifiMulti.run() != WL_CONNECTED) {
-        if(!hasValidStations) {
-            Log.warningln(LOG_SCOPE "No valid stations found");
-        }
-        Log.warningln(LOG_SCOPE "Unable to connect to WiFi stations, starting softAP with essid=`%s`, ip address=`%s`",
-            configuration.apConfiguration().essid, WiFi.softAPIP().toString().c_str());
-        WiFi.softAP(configuration.apConfiguration().essid, configuration.apConfiguration().open() ? nullptr : configuration.apConfiguration().psk);
-    } else {
-        Log.infoln(LOG_SCOPE "Connected to WiFi `%s`, ip address: %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+    if(!hasValidStations) {
+        Log.warningln(LOG_SCOPE "No valid stations found");
+        setApMode();
+        return;
     }
+    WiFi.mode(WIFI_MODE_STA);
+    if( wifiMulti.run() != WL_CONNECTED) {
+        Log.warningln(LOG_SCOPE "Unable to connect to WiFi stations");
+        setApMode();
+        return;
+    }
+    Log.infoln(LOG_SCOPE "Connected to WiFi `%s`, ip address: %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 }
 
 void APB::WiFiManager::loop() {

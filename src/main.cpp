@@ -34,6 +34,8 @@ static boolean ledOn = false;
 
 Task blinkLed;
 void setup() {
+  pinMode(APB_STATUS_LED_PIN, OUTPUT);
+  digitalWrite(APB_STATUS_LED_PIN, LOW);
   Serial.begin(115200);
   #ifdef WAIT_FOR_SERIAL
   auto started = millis(); while(!Serial && millis() - started < 10000);
@@ -50,7 +52,7 @@ void setup() {
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
   wifiManager.setup();
   webServer.setup();
-  pinMode(APB_STATUS_LED_PIN, OUTPUT);
+  
   blinkLed.set(1000, TASK_FOREVER, [](){
     ledOn = !ledOn;
     digitalWrite(APB_STATUS_LED_PIN, ledOn ? HIGH : LOW);

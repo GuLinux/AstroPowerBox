@@ -27,6 +27,7 @@ private:
     bool scheduleReconnect = false;
 
     void connect();
+    void setApMode();
     void onEvent(arduino_event_id_t event, arduino_event_info_t info);
 };
 }
