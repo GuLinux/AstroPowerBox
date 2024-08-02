@@ -10,7 +10,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Badge from 'react-bootstrap/Badge';
 import Collapse from 'react-bootstrap/Collapse';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { selectAmbient } from '../ambient/ambientSlice';
 
 const HeaterModes = {
@@ -41,8 +41,8 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                     <Form.Select value={heater.mode} onChange={updateHeater('mode')}>
                         <HeaterMode mode='off' />
                         <HeaterMode mode='fixed' />
-                        { heater.has_temperature && <HeaterMode mode='target_temperature' /> }
-                        { heater.has_temperature && <HeaterMode mode='dewpoint' /> }
+                        { originalHeater.has_temperature && <HeaterMode mode='target_temperature' /> }
+                        { originalHeater.has_temperature && <HeaterMode mode='dewpoint' /> }
                     </Form.Select>
                 </Form.Group>
                 <Collapse in={heater.mode !== 'off'}>
@@ -52,14 +52,14 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                         <Form.Range min={0} max={1} step={0.001} value={heater.duty} onChange={updateHeater('duty', parseFloat)} />
                     </Form.Group>
                 </Collapse>
-                <Collapse in={heater.mode === 'target_temperature'}>
+                <Collapse in={heater.mode === 'target_temperature' && originalHeater.has_temperature}>
                     <Form.Group className='mb-3'>
                         <Form.Label>Target Temperature</Form.Label>
                         <Badge className='float-end'><Number value={heater.target_temperature} unit='°C'/></Badge>
                         <Form.Range min={-20} max={50} value={heater.target_temperature} onChange={updateHeater('target_temperature', parseFloat)}/>
                     </Form.Group>
                 </Collapse>
-                <Collapse in={heater.mode === 'dewpoint'}>
+                <Collapse in={heater.mode === 'dewpoint' && originalHeater.has_temperature}>
                     <Form.Group className='mb-3'>
                         <Form.Label>Dewpoint Offset</Form.Label>
                         <Badge className='float-end'><Number value={heater.dewpoint_offset} unit='°C' /></Badge>

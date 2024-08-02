@@ -1,7 +1,7 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
-  const target = 'http://astropowerbox-fc177c'
+  const target = 'http://astropowerbox-fc063c'
   console.log(`****** proxy setup: "/api" => ${target}`)
   app.use(
     '/api',
