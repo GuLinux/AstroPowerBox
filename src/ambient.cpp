@@ -2,7 +2,7 @@
 
 #include <ArduinoLog.h>
 
-#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
+#if defined(APB_AMBIENT_TEMPERATURE_SENSOR_SHT30) 
 #include <SHT85.h>
 #include <map>
 #endif
@@ -16,9 +16,10 @@ struct APB::Ambient::Private {
   void readSensor();
   std::optional<Reading> reading;
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
-  SHT30 sht = SHT30{APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS};
+  SHT30 sht = SHT30{APB_AMBIENT_TEMPERATURE_SENSOR_I2C_ADDRESS};
   void logSHT30Error(const char *phase);
 #endif
+
 };
 namespace {
 APB::Ambient::Private d;
@@ -56,39 +57,11 @@ float APB::Ambient::Reading::dewpoint() const {
   return (dewpointB * a_t_rh) / (dewpointA - a_t_rh);
 }
 
-#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-#include <esp_random.h>
-bool APB::Ambient::Private::initialiseSensor() {
-  Log.infoln(LOG_SCOPE "Ambient simulator initialised");
-  return true;
-}
-
-void APB::Ambient::setSim(float temperature, float humidity, bool initialised) {
-    d.initialised = initialised;
-    d.reading = { temperature, humidity };
-}
-
-void APB::Ambient::Private::readSensor() {
-  if(!reading) return;
-  auto getRandomDelta = [](){
-    float delta = static_cast<double>(esp_random())/UINT32_MAX;
-    return delta - 0.5;
-  };
-  float temp_delta = getRandomDelta();
-  float hum_delta = getRandomDelta();
-  Log.traceln(LOG_SCOPE "Ambient simulator: readValues, temp_diff=%F, hum_diff=%F", temp_delta, hum_delta);
-  
-  reading = { Reading{
-    reading->temperature + temp_delta,
-    std::min(100.f, std::max(0.f, reading->humidity + hum_delta))
-  }};
-}
-#endif
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
 bool APB::Ambient::Private::initialiseSensor() {
-  Log.infoln(LOG_SCOPE "Ambient sensor: SHT type %d at address 0x%x", sht.getType(), APB_AMBIENT_TEMPERATURE_SENSOR_SHT30_ADDRESS);
+  Log.infoln(LOG_SCOPE "Ambient sensor: SHT type %d at address 0x%x", sht.getType(), APB_AMBIENT_TEMPERATURE_SENSOR_I2C_ADDRESS);
   if(!sht.begin()) {
     d.logSHT30Error("initialiseSensor");
     return false;

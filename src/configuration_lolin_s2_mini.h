@@ -1,4 +1,4 @@
-#warning Using config for ESP32 S2 Mini
+#pragma message "Using config for ESP32 S2 Mini"
 
 #define I2C_SDA_PIN 12
 #define I2C_SCL_PIN 13

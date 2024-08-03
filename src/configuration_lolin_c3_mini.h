@@ -1,4 +1,4 @@
-#warning Using config for ESP32 C3 Supermini
+#pragma message "Using config for ESP32 C3 Supermini"
 #define I2C_SDA_PIN 10
 #define I2C_SCL_PIN 9
 #define APB_STATUS_LED_PIN 8

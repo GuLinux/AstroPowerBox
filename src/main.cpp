@@ -13,7 +13,6 @@
 #include "powermonitor.h"
 #include <Wire.h>
 #include <LittleFS.h>
-#include "bufferedlogger.h"
 #include "async_led.h"
 
 Scheduler scheduler;

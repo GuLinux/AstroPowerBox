@@ -196,34 +196,6 @@ void APB::Heater::Private::loop()
     }
 }
 
-#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
-#include <esp_random.h>
-
-void APB::Heater::Private::setup() {
-}
-
-void APB::Heater::setSimulation(const std::optional<float> &temperature) {
-    d->temperature = temperature;
-}
-
-void APB::Heater::Private::readTemperature() {
-    float delta = static_cast<double>(esp_random())/UINT32_MAX;
-    if(temperature.has_value()) {
-        *temperature += delta - 0.5;
-        Log.traceln("%s Heater simulator: loop, temp_diff=%F, temperature=%F", log_scope, delta, *temperature);
-    }
-}
-
-void APB::Heater::Private::setPWM(float pwm) {
-    Log.traceln("%s SIM: Setting PWM to %F", log_scope, pwm);
-}
-
-float APB::Heater::Private::getPWM() const {
-    return pwm;
-}
-#endif
-
-
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
 #define ANALOG_READ_RES 12
 #define MAX_PWM 255.0
