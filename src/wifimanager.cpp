@@ -7,8 +7,8 @@
 
 using namespace std::placeholders;
 
-APB::WiFiManager::WiFiManager(APB::Settings &configuration)
-    : configuration(configuration), _status{Status::Idle} {
+APB::WiFiManager::WiFiManager(APB::Settings &configuration, AsyncLed &led)
+    : configuration(configuration), _status{Status::Idle}, led{led} {
     WiFi.onEvent(std::bind(&APB::WiFiManager::onEvent, this, _1, _2));
 }
 
@@ -63,14 +63,17 @@ void APB::WiFiManager::connect() {
     if(!hasValidStations) {
         Log.warningln(LOG_SCOPE "No valid stations found");
         setApMode();
+        led.setPattern(2, 2, 3, 10);
         return;
     }
     WiFi.mode(WIFI_MODE_STA);
     if( wifiMulti.run() != WL_CONNECTED) {
         Log.warningln(LOG_SCOPE "Unable to connect to WiFi stations");
+        led.setPattern(2, 2, 5, 10);
         setApMode();
         return;
     }
+    led.setPattern(100, 1);
     Log.infoln(LOG_SCOPE "Connected to WiFi `%s`, ip address: %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 }
 

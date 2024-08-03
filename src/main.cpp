@@ -14,14 +14,17 @@
 #include <Wire.h>
 #include <LittleFS.h>
 #include "bufferedlogger.h"
+#include "async_led.h"
 
 Scheduler scheduler;
 
+AsyncLed led(APB_STATUS_LED_PIN, false);
 APB::Settings configuration;
-APB::WiFiManager wifiManager(configuration);
+APB::WiFiManager wifiManager(configuration, led);
 APB::Ambient ambient;
 APB::Heaters heaters;
 APB::PowerMonitor powerMonitor;
+
 
 APB::WebServer webServer(configuration, wifiManager, ambient, heaters, powerMonitor, scheduler);
 
@@ -30,18 +33,20 @@ APB::WebServer webServer(configuration, wifiManager, ambient, heaters, powerMoni
 
 using namespace std::placeholders;
 
-static boolean ledOn = false;
 
-Task blinkLed;
 void setup() {
-  pinMode(APB_STATUS_LED_PIN, OUTPUT);
-  digitalWrite(APB_STATUS_LED_PIN, LOW);
+  AsyncLed::SetupLeds({&led});
+  led.setDuty(0.3);
+  led.setPattern(2, 2);
   Serial.begin(115200);
   #ifdef WAIT_FOR_SERIAL
   auto started = millis(); while(!Serial && millis() - started < 10000);
   #endif
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
+  
+  
+
   LittleFS.begin();
 
   configuration.setup();
@@ -50,15 +55,9 @@ void setup() {
   ambient.setup(scheduler);
   powerMonitor.setup(scheduler);
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
+  led.setPattern(15, 5);
   wifiManager.setup();
   webServer.setup();
-  
-  blinkLed.set(1000, TASK_FOREVER, [](){
-    ledOn = !ledOn;
-    digitalWrite(APB_STATUS_LED_PIN, ledOn ? HIGH : LOW);
-  });
-  scheduler.addTask(blinkLed);
-  blinkLed.enable();
 }
 
 void loop() {
