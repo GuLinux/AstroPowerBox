@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { appInfoSelector, appUptimeSelector, getAppInfoAsync, reconnectWiFiAsync, restartAsync } from './appSlice';
 import { Number, formatPercentage, formatSize, formatTime } from '../Number';
 import { useEffect, useState } from 'react';
+import { saveConfigAsync } from './wifiSlice';
 
 const ConfirmModal = ({
         RenderButton,
@@ -139,6 +140,13 @@ export const System = () => {
         </Table>
         <h5 className='mt-5'>Actions</h5>
         <Button onClick={() => dispatch(getAppInfoAsync())}>Reload info</Button>
+        <ConfirmModal 
+            confirmButton='Save configuration' 
+            text='Are you sure you want to save the configuration? The new configuration will be applied when restarting'
+            onConfirm={() => dispatch(saveConfigAsync())}
+            RenderButton={(props) => <Button {...props} className='ms-2' variant='success'>Save Configuration</Button>}
+        />
+
         <ConfirmModal 
             confirmButton='Reconnect' 
             text='Reconnecting WiFi might cause connectivity loss. Do you want to continue?'

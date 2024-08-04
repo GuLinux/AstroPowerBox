@@ -9,7 +9,6 @@ import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
 import { WiFi } from './features/app/WiFi';
-import { getWiFiConfigAsync } from './features/app/wifiSlice';
 import { System } from './features/app/System';
 
 const registerEventSource = dispatch => {
@@ -32,7 +31,6 @@ function App() {
   const darkMode = useSelector(darkModeSelector)
   useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
   useEffect(() => registerEventSource(dispatch), [dispatch]);
-  useEffect(() => { dispatch(getWiFiConfigAsync()) }, [dispatch]);
   const activeTab = useSelector(tabSelector);
   return (
     <>

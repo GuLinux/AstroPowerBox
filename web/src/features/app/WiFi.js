@@ -1,19 +1,20 @@
 import { Fragment, useEffect, useState } from 'react';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { useDispatch, useSelector } from 'react-redux';
-import { getWiFiConfigAsync, selectWiFiAccessPointConfig, selectWiFiConfigReady, selectWiFiStationsConfig } from './wifiSlice';
+import { getConfigAsync, removeStationConfigAsync, saveAccessPointConfigAsync, saveStationConfigAsync, selectWiFiAccessPointConfig, selectWiFiConfig, selectWiFiStationsConfig } from './wifiSlice';
 import Spinner from 'react-bootstrap/Spinner';
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import { MdRowing } from 'react-icons/md';
 
-const WiFiPasswordControl = (props) => {
+const WiFiPasswordControl = ({label, ...props}) => {
     const [show, setShow] = useState(false);
     return <InputGroup>
+        { label && <InputGroup.Text>{label}</InputGroup.Text>}
         <Form.Control type={show ? 'text' : 'password'} {...props} autoComplete='new-password' />
         <Button variant='outline-secondary' onClick={() => setShow(!show) }>
             { show ? <FaRegEyeSlash /> : <FaRegEye />}
@@ -22,9 +23,15 @@ const WiFiPasswordControl = (props) => {
 }
 
 const WiFiAccessPoint = () => {
+    const dispatch = useDispatch();
     const accessPoint = useSelector(selectWiFiAccessPointConfig);
     const [essid, setEssid] = useState(accessPoint.essid);
     const [psk, setPsk] = useState(accessPoint.psk)
+    const isChanged = () => psk !== accessPoint.psk || essid !== accessPoint.essid
+    const resetState = () => {
+        setEssid(accessPoint.essid);
+        setPsk(accessPoint.psk);
+    }
     return <Form>
         <Form.Group as={Row}>
             <Form.Label column sm={4}>Hostname/AccessPoint ESSID</Form.Label>
@@ -41,33 +48,57 @@ const WiFiAccessPoint = () => {
                 <Form.Text muted>The password that will be used to access AstroPowerBox if it can't connect to any WiFi station. If left blank, WiFi accesspoint will be open.</Form.Text>
             </Col>
         </Form.Group>
-
+        <ButtonGroup className='float-end'>
+            <Button disabled={!isChanged()} variant="secondary" onClick={resetState}>Reset</Button>
+            <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveAccessPointConfigAsync({essid, psk}))}>Update</Button>
+        </ButtonGroup>
     </Form>
+}
+
+const WifiStation = ({station, index}) => {
+    const [essid, setEssid] = useState(station.essid)
+    const [psk, setPsk] = useState(station.psk)
+    const dispatch = useDispatch();
+    const isChanged = () => station.essid !== essid || station.psk !== psk
+    const resetState = () => {
+        setEssid(station.essid)
+        setPsk(station.psk)
+    }
+    useEffect(resetState, [station]);
+        return <Form.Group as={Row} className='mt-2'>
+                <Form.Label column lg={1}>Station {index}</Form.Label>
+                <Col lg={4}>
+                    <InputGroup>
+                        <InputGroup.Text>ESSID</InputGroup.Text>
+                        <Form.Control type='text' value={essid} onChange={e => setEssid(e.target.value)} />
+                    </InputGroup>
+                </Col>
+                <Col lg={4}>
+                    <WiFiPasswordControl label='Password' value={psk} onChange={e => setPsk(e.target.value)} />
+                </Col>
+                <Col lg={3}>
+                    <ButtonGroup className='float-end' size='sm'>
+                        <Button disabled={!isChanged()} variant="secondary" onClick={resetState}>Reset</Button>
+                        <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveStationConfigAsync({index, essid, psk}))}>Update</Button>
+                        <Button disabled={!station.essid && !station.psk} variant="warning" onClick={() => dispatch(removeStationConfigAsync({index}))}>Remove</Button>
+                    </ButtonGroup>
+                </Col>
+            </Form.Group>
 }
 
 const WiFiStations = () => {
     const stations = useSelector(selectWiFiStationsConfig);
     return <Form>
-        { stations.map((station, index) => <Fragment key={index}>
-            <h4 className='pt-4'>Station {index}</h4>
-            <Form.Group as={Row}>
-                <Form.Label column sm={2}>ESSID</Form.Label>
-                <Col sm={4}>
-                    <Form.Control type='text' />
-                </Col>
-                <Form.Label column sm={2}>Password</Form.Label>
-                <Col sm={4}>
-                    <WiFiPasswordControl />
-                </Col>
-            </Form.Group>
-        </Fragment>
-        )}
+        { stations.map((station, index) => <WifiStation station={station} index={index} key={index} /> )}
     </Form>
-}
+}   
 
 export const WiFi = () => {
-    const wifiConfigReady = useSelector(selectWiFiConfigReady)
-    if(!wifiConfigReady) {
+    const dispatch = useDispatch();
+    useEffect(() => { dispatch(getConfigAsync()) }, [dispatch])
+    const wifiConfig = useSelector(selectWiFiConfig)
+
+    if(!wifiConfig.ready) {
         return <Spinner /> 
     }
     return <Container>
@@ -76,10 +107,8 @@ export const WiFi = () => {
                 <WiFiAccessPoint />
             </Col>
         </Row>
-         <Row>
-            <Col md={{ span:10, offset:1 }}>
-                <WiFiStations />
-            </Col>
+         <Row className='mt-5'>
+            <WiFiStations />
         </Row>
         
     </Container>
