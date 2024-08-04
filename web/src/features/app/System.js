@@ -1,48 +1,13 @@
 import Table from 'react-bootstrap/Table';
 import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { appInfoSelector, appUptimeSelector, getAppInfoAsync, reconnectWiFiAsync, restartAsync } from './appSlice';
 import { Number, formatPercentage, formatSize, formatTime } from '../Number';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { saveConfigAsync } from './wifiSlice';
-
-const ConfirmModal = ({
-        RenderButton,
-        onCancel=() => {},
-        onConfirm,
-        title="Confirm?",
-        text="Do you want to confirm?",
-        cancelButton="Cancel",
-        confirmButton="Confirm",
-    }) => {
-    const [show, setShow] = useState(false);
-    const closeModal = () => setShow(false);
-    const cancelModal = () => {
-        onCancel();
-        closeModal();
-    }
-    const confirmModal = () => {
-        onConfirm();
-        closeModal();
-    }
-    return <>
-        <RenderButton onClick={() => setShow(true)} />
-        <Modal show={show} onHide={onCancel}>
-            <Modal.Header closeButton>
-                <Modal.Title>{title}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                {text}
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={cancelModal}>{cancelButton}</Button>
-                <Button variant="primary" onClick={confirmModal}>{confirmButton}</Button>
-            </Modal.Footer>
-        </Modal>
-    </>
-}
+import { ConfirmModal } from '../../ConfirmModal';
+import { RestartModalButton } from './RestartModalButton';
 
 
 export const System = () => {
@@ -140,24 +105,6 @@ export const System = () => {
         </Table>
         <h5 className='mt-5'>Actions</h5>
         <Button onClick={() => dispatch(getAppInfoAsync())}>Reload info</Button>
-        <ConfirmModal 
-            confirmButton='Save configuration' 
-            text='Are you sure you want to save the configuration? The new configuration will be applied when restarting'
-            onConfirm={() => dispatch(saveConfigAsync())}
-            RenderButton={(props) => <Button {...props} className='ms-2' variant='success'>Save Configuration</Button>}
-        />
-
-        <ConfirmModal 
-            confirmButton='Reconnect' 
-            text='Reconnecting WiFi might cause connectivity loss. Do you want to continue?'
-            onConfirm={() => dispatch(reconnectWiFiAsync())}
-            RenderButton={(props) => <Button className='ms-2' {...props} variant='warning'>Reconnect WiFi</Button>}
-        />
-        <ConfirmModal 
-            confirmButton='Restart' 
-            text='Are you sure you want to restart AstroPowerBox?'
-            onConfirm={() => dispatch(restartAsync())}
-            RenderButton={(props) => <Button {...props} className='ms-2' variant='danger'>Restart</Button>}
-        />
+        <RestartModalButton className='ms-2' />
     </>
 }

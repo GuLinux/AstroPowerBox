@@ -4,12 +4,16 @@ import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { useDispatch, useSelector } from 'react-redux';
-import { getConfigAsync, removeStationConfigAsync, saveAccessPointConfigAsync, saveStationConfigAsync, selectWiFiAccessPointConfig, selectWiFiConfig, selectWiFiStationsConfig } from './wifiSlice';
+import { getConfigAsync, removeStationConfigAsync, saveAccessPointConfigAsync, saveConfigAsync, saveStationConfigAsync, selectWiFiAccessPointConfig, selectWiFiConfig, selectWiFiStationsConfig } from './wifiSlice';
 import Spinner from 'react-bootstrap/Spinner';
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { ConfirmModal } from '../../ConfirmModal';
+import { reconnectWiFiAsync, restartAsync } from './appSlice';
+import { RestartModalButton } from './RestartModalButton';
+import { SaveConfigModalButton } from './SaveConfigModalButton';
 
 const WiFiPasswordControl = ({label, ...props}) => {
     const [show, setShow] = useState(false);
@@ -73,10 +77,10 @@ const WifiStation = ({station, index}) => {
                         <Form.Control type='text' value={essid} onChange={e => setEssid(e.target.value)} />
                     </InputGroup>
                 </Col>
-                <Col lg={4}>
+                <Col lg={5}>
                     <WiFiPasswordControl label='Password' value={psk} onChange={e => setPsk(e.target.value)} />
                 </Col>
-                <Col lg={3}>
+                <Col lg={2} className='d-grid'>
                     <ButtonGroup className='float-end' size='sm'>
                         <Button disabled={!isChanged()} variant="secondary" onClick={resetState}>Reset</Button>
                         <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveStationConfigAsync({index, essid, psk}))}>Update</Button>
@@ -110,7 +114,25 @@ export const WiFi = () => {
          <Row className='mt-5'>
             <WiFiStations />
         </Row>
-        
+        <Row className='mt-5'>
+            <Col sm={10}>Unsaved changes will be lost after restart. Save configuration to flash storage to persist them.</Col>
+            <Col sm={2} className='d-grid'><SaveConfigModalButton /></Col>
+        </Row>
+        <Row className='mt-2'>
+            <Col sm={10}>Reconnecting wifi will allow to apply some changes without restarting.</Col>
+            <Col sm={2} className='d-grid'>
+                <ConfirmModal 
+                    confirmButton='Reconnect' 
+                    text='Reconnecting WiFi might cause connectivity loss. Do you want to continue?'
+                    onConfirm={() => dispatch(reconnectWiFiAsync())}
+                    RenderButton={(props) => <Button {...props} variant='warning'>Reconnect WiFi</Button>}
+                />
+            </Col>
+        </Row>
+        <Row className='mt-2'>
+            <Col sm={10}>Restart AstroPowerBox to apply saved changes. Unsaved changes will be lost.</Col>
+            <Col sm={2} className='d-grid'><RestartModalButton /></Col>
+        </Row>
     </Container>
     
         
