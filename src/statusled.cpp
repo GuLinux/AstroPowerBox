@@ -35,5 +35,5 @@ void APB::StatusLed::wifiConnectionFailedPattern() {
 }
 
 void APB::StatusLed::okPattern() {
-    led.setPattern(100, 1);
+    led.setPattern(1, 1, 2, 100, true);
 }
