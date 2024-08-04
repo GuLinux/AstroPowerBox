@@ -14,7 +14,14 @@
 
 using namespace std::placeholders;
 
-APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, PowerMonitor &powerMonitor, Scheduler &scheduler)
+APB::WebServer::WebServer(
+        Settings &configuration,
+        WiFiManager &wifiManager,
+        Ambient &ambient,
+        Heaters &heaters,
+        PowerMonitor &powerMonitor,
+        Scheduler &scheduler,
+        StatusLed &statusLed)
     : server(80),
     events("/api/events"),
     configuration(configuration),
@@ -22,7 +29,8 @@ APB::WebServer::WebServer(Settings &configuration, WiFiManager &wifiManager, Amb
     ambient(ambient),
     heaters(heaters),
     powerMonitor(powerMonitor),
-    scheduler(scheduler)
+    scheduler(scheduler),
+    statusLed{statusLed}
 {
 }
 
@@ -39,6 +47,7 @@ void APB::WebServer::setup() {
    
     onJsonRequest("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/statusLedDuty", std::bind(&APB::WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
     server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
@@ -92,7 +101,7 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
+    JsonResponse response(request, 600);
     response.document["accessPoint"]["essid"] = configuration.apConfiguration().essid;
     response.document["accessPoint"]["psk"] = configuration.apConfiguration().psk;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
@@ -100,6 +109,7 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
         response.document["stations"][i]["essid"] = station.essid;
         response.document["stations"][i]["psk"] = station.psk;
     }
+    response.document["ledDuty"] = configuration.statusLedDuty();
 }
 
 
@@ -276,6 +286,16 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         }
     }
     onGetHeaters(request);
+}
+
+void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json) {
+    Validation validation{request, json};
+    if(validation.required({"duty"})
+        .range("duty", {0}, {1})
+        .invalid()) return;
+    statusLed.setDuty(json["duty"]);
+    JsonResponse response(request, 100);
+    response.document["duty"] = statusLed.duty();
 }
 
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM

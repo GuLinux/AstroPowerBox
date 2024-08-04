@@ -11,12 +11,20 @@
 #include "heater.h"
 #include "powermonitor.h"
 #include <TaskSchedulerDeclarations.h>
+#include "statusled.h"
 
 namespace APB {
 
 class WebServer {
 public:
-    WebServer(Settings &configuration, WiFiManager &wifiManager, Ambient &ambient, Heaters &heaters, PowerMonitor &powerMonitor, Scheduler &scheduler);
+    WebServer(
+        Settings &configuration,
+        WiFiManager &wifiManager,
+        Ambient &ambient,
+        Heaters &heaters,
+        PowerMonitor &powerMonitor,
+        Scheduler &scheduler,
+        StatusLed &statusLed);
     void setup();
 private:
     AsyncWebServer server;
@@ -27,6 +35,7 @@ private:
     Heaters &heaters;
     PowerMonitor &powerMonitor;
     Scheduler &scheduler;
+    StatusLed &statusLed;
     StaticJsonDocument<800> eventsDocument;
     std::array<char, 800> eventsString;
 
@@ -43,6 +52,8 @@ private:
     void onGetESPInfo(AsyncWebServerRequest *request);
     void onRestart(AsyncWebServerRequest *request);
     void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
+    void onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json);
+    
 
     void populateHeatersStatus(JsonArray heatersStatus);
     void populateAmbientStatus(JsonObject ambientStatus);

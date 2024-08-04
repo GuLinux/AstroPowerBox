@@ -3,7 +3,7 @@
 
 #include <WiFiMulti.h>
 #include <enum.h>
-#include <async_led.h>
+#include <statusled.h>
 #include "settings.h"
 
 namespace APB {
@@ -11,7 +11,7 @@ BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessP
 class WiFiManager {
 public:
     using Status = WifiManager_WiFi_Status;
-    WiFiManager(Settings &configuration, AsyncLed &led);
+    WiFiManager(Settings &configuration, StatusLed &led);
     void setup();
     
     void reconnect() { scheduleReconnect = true; }
@@ -22,7 +22,7 @@ public:
     void loop();
 private:
     Settings &configuration;
-    AsyncLed &led;
+    StatusLed &led;
     WiFiMulti wifiMulti;
     Status _status;
     bool scheduleReconnect = false;

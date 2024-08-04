@@ -11,6 +11,8 @@
 #define APB_KEY_STATION_X_ESSID "station_%d_essid"
 #define APB_KEY_STATION_X_PSK "station_%d_psk"
 
+#define APB_KEY_STATUS_LED_DUTY "ap_status_led_duty"
+
 
 #define LOG_SCOPE "APB::Configuration - "
 
@@ -65,6 +67,7 @@ void APB::Settings::load() {
         runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.getString(key, stations[i].psk, APB_MAX_ESSID_PSK_SIZE); });
         Log.traceln(LOG_SCOPE "Station %d: essid=`%s`, psk=`%s`", i, stations[i].essid, stations[i].psk);
     }
+    _statusLedDuty = prefs.getFloat(APB_KEY_STATUS_LED_DUTY, 1);
     Log.infoln(LOG_SCOPE "Preferences loaded");
 }
 
@@ -88,6 +91,7 @@ void APB::Settings::save() {
         runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.putString(key, stations[i].essid); });
         runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.putString(key, stations[i].psk); });
     }
+    prefs.putFloat(APB_KEY_STATUS_LED_DUTY, _statusLedDuty);
     Log.infoln(LOG_SCOPE "Preferences saved");
 }
 

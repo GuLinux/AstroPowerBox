@@ -26,9 +26,12 @@ public:
     WiFiStation apConfiguration() const { return _apConfiguration; }
     WiFiStation station(uint8_t index) const { return stations[index]; }
     bool hasValidStations() const;
+    float statusLedDuty() const { return _statusLedDuty; };
+    void setStatusLedDuty(float duty) { _statusLedDuty = duty; }
 private:
     std::array<WiFiStation, APB_MAX_STATIONS> stations;
     WiFiStation _apConfiguration;
+    float _statusLedDuty;
     void loadDefaults();
 };
 }
