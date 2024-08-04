@@ -29,7 +29,7 @@ void logSHT30Error(const char *phase) {
 }
 
 bool APB::Ambient::initialiseSensor() {
-  Log.infoln(LOG_SCOPE "Ambient sensor: SHT type %d at address 0x%x", sht.getType(), APB_AMBIENT_TEMPERATURE_SENSOR_I2C_ADDRESS);
+  Log.infoln(LOG_SCOPE "Ambient sensor: SHT%d at address 0x%x", sht.getType(), APB_AMBIENT_TEMPERATURE_SENSOR_I2C_ADDRESS);
   if(!sht.begin()) {
     logSHT30Error("initialiseSensor");
     return false;
@@ -38,7 +38,6 @@ bool APB::Ambient::initialiseSensor() {
 }
 
 void APB::Ambient::readSensor() {
-  if(!initialised) return;
   if(sht.read()) {
     _reading = { sht.getTemperature(), sht.getHumidity() };
     // Log.traceln("reading values: %d degrees, %d humidity", _reading->temperature, _reading->humidity);
