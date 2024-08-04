@@ -7,7 +7,7 @@
 
 #include "settings.h"
 #include "wifimanager.h"
-#include "ambient.h"
+#include "ambient/ambient.h"
 #include "heater.h"
 #include "powermonitor.h"
 #include <TaskSchedulerDeclarations.h>
@@ -59,12 +59,6 @@ private:
     void populateAmbientStatus(JsonObject ambientStatus);
     void populatePowerStatus(JsonObject powerStatus);
 
-#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-    void onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json);
-#endif
-#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
-    void onPostHeaterSetSim(AsyncWebServerRequest *request, JsonVariant &json);
-#endif
     void onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite = HTTP_POST | HTTP_PUT | HTTP_PATCH);
 };
 }

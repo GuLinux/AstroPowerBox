@@ -8,7 +8,7 @@
 #include "webserver.h"
 #include "wifimanager.h"
 #include "settings.h"
-#include "ambient.h"
+#include "ambient/ambient.h"
 #include "heater.h"
 #include "powermonitor.h"
 #include <Wire.h>

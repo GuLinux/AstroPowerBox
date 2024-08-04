@@ -7,7 +7,7 @@
 #include <TaskSchedulerDeclarations.h>
 
 #include "configuration.h"
-#include "ambient.h"
+#include "ambient/ambient.h"
 
 namespace APB {
 BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, target_temperature, dewpoint)
@@ -30,9 +30,6 @@ public:
 
     Mode mode() const;
     uint8_t index() const;
-#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
-    void setSimulation(const std::optional<float> &temperature);
-#endif
 private:
     struct Private;
     friend struct Private;

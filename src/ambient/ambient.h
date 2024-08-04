@@ -18,12 +18,14 @@ public:
         float humidity;
         float dewpoint() const;
     };
-    std::optional<Reading> reading() const;
+    std::optional<Reading> reading() const { return _reading; };
     bool isInitialised() const;
-    #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-    void setSim(float temperature, float humidity, bool initialised=true);
-    #endif
-    struct Private;
+
+    Task readValuesTask;
+    bool initialised = false;
+    bool initialiseSensor();
+    void readSensor();
+    std::optional<Reading> _reading;
 };
 
 }

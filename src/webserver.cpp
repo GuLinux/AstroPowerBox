@@ -57,12 +57,6 @@ void APB::WebServer::setup() {
     server.on("/api/restart", HTTP_POST, std::bind(&APB::WebServer::onRestart, this, _1));
     
     server.on("/api/status", HTTP_GET, std::bind(&APB::WebServer::onGetStatus, this, _1));
-#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-    onJsonRequest("/api/simulator/ambient", std::bind(&APB::WebServer::onPostAmbientSetSim, this, _1, _2), HTTP_POST);
-#endif
-#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
-    onJsonRequest("/api/simulator/heaters", std::bind(&APB::WebServer::onPostHeaterSetSim, this, _1, _2), HTTP_POST);
-#endif
     server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
     server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
@@ -297,28 +291,6 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
     JsonResponse response(request, 100);
     response.document["duty"] = statusLed.duty();
 }
-
-#ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SIM
-void APB::WebServer::onPostAmbientSetSim(AsyncWebServerRequest *request, JsonVariant &json) {
-    if(Validation{request, json}
-        .required({"temperature", "humidity"})
-        .invalid() ) return;
-    bool initialised = json.containsKey("initialised") ? json["initialised"] : true;
-    ambient.setSim(json["temperature"], json["humidity"], initialised);
-    onGetAmbient(request);
-}
-#endif
-
-#ifdef APB_HEATER_TEMPERATURE_SENSOR_SIM
-void APB::WebServer::onPostHeaterSetSim(AsyncWebServerRequest *request, JsonVariant &json) {
-    if(Validation{request, json}.required("index").range("index", {0}, {heaters.size()-1}).invalid() ) return;
-    auto temperature = json.containsKey("temperature") ? std::optional<float>{ json["temperature"]} : std::optional<float>{};
-    heaters[json["index"]].setSimulation(temperature);
-    onGetHeaters(request);
-}
-#endif
-
-
 
 void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {
     auto handler = new AsyncCallbackJsonWebHandler(path, f);

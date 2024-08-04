@@ -1,4 +1,5 @@
 #include "statusled.h"
+#include "configuration.h"
 
 APB::StatusLed::StatusLed(Settings &settings) : settings{settings}, led{APB_STATUS_LED_PIN, APB_STATUS_LED_INVERT_LOGIC} {
 }
@@ -35,5 +36,5 @@ void APB::StatusLed::wifiConnectionFailedPattern() {
 }
 
 void APB::StatusLed::okPattern() {
-    led.setPattern(1, 1, 2, 100, true);
+    led.setPattern(1, 1, 2, 50, true);
 }
