@@ -8,3 +8,5 @@
 // IMPORTANT: there is no compiler check for pinout size, so be careful.
 #define APB_HEATERS_PWM_PINOUT Pinout{3,1},{4,0},{20,-1}
 #define APB_HEATERS_SIZE 3
+#define APB_HEATERS_TEMP_SENSORS 2
+#define ONEBUTTON_USER_BUTTON_1 21

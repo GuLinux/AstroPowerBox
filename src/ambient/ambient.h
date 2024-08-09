@@ -26,6 +26,7 @@ public:
     bool initialiseSensor();
     void readSensor();
     std::optional<Reading> _reading;
+    static float calculateDewpoint(float temperature, float humidity);
 };
 
 }

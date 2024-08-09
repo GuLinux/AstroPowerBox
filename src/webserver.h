@@ -12,6 +12,7 @@
 #include "powermonitor.h"
 #include <TaskSchedulerDeclarations.h>
 #include "statusled.h"
+#include "history.h"
 
 namespace APB {
 
@@ -41,6 +42,7 @@ private:
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
+    void onGetHistory(AsyncWebServerRequest *request);
     void onConfigStation(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json);
     void onPostWriteConfig(AsyncWebServerRequest *request);

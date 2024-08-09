@@ -24,9 +24,15 @@ bool APB::Ambient::isInitialised() const {
 
 
 float APB::Ambient::Reading::dewpoint() const {
+  return calculateDewpoint(temperature, humidity);
+}
+
+
+
+float APB::Ambient::calculateDewpoint(float temperature, float humidity) {
   static const float dewpointA = 17.62;
   static const float dewpointB = 243.12;
   const float a_t_rh = log(humidity / 100.0) + (dewpointA * temperature / (dewpointB + temperature));
   return (dewpointB * a_t_rh) / (dewpointA - a_t_rh);
-}
 
+}

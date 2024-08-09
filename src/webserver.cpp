@@ -51,6 +51,7 @@ void APB::WebServer::setup() {
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
     server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
+    server.on("/api/history", HTTP_GET, std::bind(&APB::WebServer::onGetHistory, this, _1));
     server.on("/api/power", HTTP_GET, std::bind(&APB::WebServer::onGetPower, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
@@ -106,6 +107,18 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     response.document["ledDuty"] = configuration.statusLedDuty();
 }
 
+void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse(false, 32 + (192*HistoryInstance.entries().size()));
+    JsonObject root = response->getRoot().to<JsonObject>();
+    root["now"] = esp_timer_get_time() / 1000'000;
+    JsonArray entries = root["entries"].to<JsonArray>();
+    uint16_t index=0;
+    for(History::Entry &entry: HistoryInstance.entries()) {
+        entry.populate(entries[index++].to<JsonObject>());
+    }
+    response->setLength();
+    request->send(response);
+}
 
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_DELETE) {

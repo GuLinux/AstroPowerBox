@@ -1,5 +1,4 @@
-#ifndef APB_UTILS_H
-#define APB_UTILS_H
+#pragma once
 #include <optional>
 #include <functional>
 
@@ -11,5 +10,10 @@ namespace APB {
             }
         }
     }
+
+    static String float2s(float f, uint8_t decimals=2) {
+        int64_t intPart = static_cast<int64_t>(f);
+        int64_t decimalPart = static_cast<int64_t>(pow(10, decimals) * (f - intPart));
+        return String(intPart) + "." + String(decimalPart);
+    }
 }
-#endif
