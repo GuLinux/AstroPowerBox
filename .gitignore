@@ -5,3 +5,4 @@ data
 .vscode/launch.json
 .vscode/ipch
 src/configuration_custom.h
+logs

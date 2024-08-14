@@ -63,9 +63,9 @@ void APB::Settings::load() {
         loadDefaults();
     }
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.getString(key, stations[i].essid, APB_MAX_ESSID_PSK_SIZE); });
-        runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.getString(key, stations[i].psk, APB_MAX_ESSID_PSK_SIZE); });
-        Log.traceln(LOG_SCOPE "Station %d: essid=`%s`, psk=`%s`", i, stations[i].essid, stations[i].psk);
+        runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.getString(key, _stations[i].essid, APB_MAX_ESSID_PSK_SIZE); });
+        runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.getString(key, _stations[i].psk, APB_MAX_ESSID_PSK_SIZE); });
+        Log.traceln(LOG_SCOPE "Station %d: essid=`%s`, psk=`%s`", i, _stations[i].essid, _stations[i].psk);
     }
     _statusLedDuty = prefs.getFloat(APB_KEY_STATUS_LED_DUTY, 1);
     Log.infoln(LOG_SCOPE "Preferences loaded");
@@ -88,8 +88,8 @@ void APB::Settings::save() {
     prefs.putString(APB_KEY_AP_PSK, _apConfiguration.psk);
 
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.putString(key, stations[i].essid); });
-        runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.putString(key, stations[i].psk); });
+        runOnFormatKey(APB_KEY_STATION_X_ESSID, i, [this, i](const char *key) { prefs.putString(key, _stations[i].essid); });
+        runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.putString(key, _stations[i].psk); });
     }
     prefs.putFloat(APB_KEY_STATUS_LED_DUTY, _statusLedDuty);
     Log.infoln(LOG_SCOPE "Preferences saved");
@@ -101,10 +101,20 @@ void APB::Settings::setAPConfiguration(const char *essid, const char *psk) {
 }
 
 void APB::Settings::setStationConfiguration(uint8_t index, const char *essid, const char *psk) {
-    strcpy(stations[index].essid, essid);
-    strcpy(stations[index].psk, psk);
+    strcpy(_stations[index].essid, essid);
+    strcpy(_stations[index].psk, psk);
+}
+
+bool APB::Settings::hasStation(const String &essid) const {
+    return std::any_of(
+        std::begin(_stations),
+        std::end(_stations),
+        [&essid](const WiFiStation &station){
+            return essid == station.essid;
+        }
+    );
 }
 
 bool APB::Settings::hasValidStations() const {
-    return std::any_of(stations.begin(), stations.end(), std::bind(&APB::Settings::WiFiStation::valid, _1));
+    return std::any_of(_stations.begin(), _stations.end(), std::bind(&APB::Settings::WiFiStation::valid, _1));
 }

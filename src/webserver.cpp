@@ -54,6 +54,13 @@ void APB::WebServer::setup() {
     server.on("/api/history", HTTP_GET, std::bind(&APB::WebServer::onGetHistory, this, _1));
     server.on("/api/power", HTTP_GET, std::bind(&APB::WebServer::onGetPower, this, _1));
     server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
+    #ifdef CONFIGURATION_FOR_PROTOTYPE
+    server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
+        new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
+        JsonResponse response(request, 100);
+        response.document["status"] = "Dropping WiFi";
+    });
+    #endif
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
     server.on("/api/restart", HTTP_POST, std::bind(&APB::WebServer::onRestart, this, _1));
     

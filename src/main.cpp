@@ -20,7 +20,7 @@
 Scheduler scheduler;
 APB::Settings settings;
 APB::StatusLed led{settings};
-APB::WiFiManager wifiManager{settings, led};
+APB::WiFiManager wifiManager{settings, led, scheduler};
 APB::Ambient ambient;
 APB::Heaters heaters;
 APB::PowerMonitor powerMonitor;
