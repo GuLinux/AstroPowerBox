@@ -70,6 +70,7 @@ void APB::WebServer::setup() {
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
     server.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
     server.addHandler(&events);
+    server.onNotFound(std::bind(&APB::WebServer::onNotFound, this, _1));
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
@@ -125,6 +126,12 @@ void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
     }
     response->setLength();
     request->send(response);
+}
+
+void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
+    JsonResponse response(request, 500, 404);
+    response.document["error"] = "NotFound";
+    response.document["url"] = request->url();
 }
 
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
