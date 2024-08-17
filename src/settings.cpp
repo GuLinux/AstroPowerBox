@@ -2,6 +2,8 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ArduinoLog.h>
+#include <ArduinoJson.h>
+#include <LittleFS.h>
 
 #define APB_PREFS_VERSION 1
 #define APB_KEY_VERSION "version"
@@ -11,7 +13,7 @@
 #define APB_KEY_STATION_X_ESSID "station_%d_essid"
 #define APB_KEY_STATION_X_PSK "station_%d_psk"
 
-#define APB_KEY_STATUS_LED_DUTY "ap_status_led_duty"
+#define APB_KEY_STATUS_LED_DUTY "status_led_duty"
 
 
 #define LOG_SCOPE "APB::Configuration - "
@@ -38,6 +40,7 @@ void APB::Settings::setup() {
     Log.traceln(LOG_SCOPE "Setup");
     prefs.begin("APB");
     load();
+
     Log.infoln(LOG_SCOPE "Setup finished");
 }
 
@@ -67,6 +70,10 @@ void APB::Settings::load() {
         runOnFormatKey(APB_KEY_STATION_X_PSK, i, [this, i](const char *key) { prefs.getString(key, _stations[i].psk, APB_MAX_ESSID_PSK_SIZE); });
         Log.traceln(LOG_SCOPE "Station %d: essid=`%s`, psk=`%s`", i, _stations[i].essid, _stations[i].psk);
     }
+
+    if(std::none_of(_stations.begin(), _stations.end(), std::bind(&WiFiStation::valid, _1))) {
+        loadDefaultStations();
+    }
     _statusLedDuty = prefs.getFloat(APB_KEY_STATUS_LED_DUTY, 1);
     Log.infoln(LOG_SCOPE "Preferences loaded");
 }
@@ -79,6 +86,33 @@ void APB::Settings::loadDefaults() {
     sprintf(_apConfiguration.essid, "AstroPowerBox-%s", mac.c_str());
     memset(_apConfiguration.psk, 0, APB_MAX_ESSID_PSK_SIZE);
     Log.traceln(LOG_SCOPE "Using default ESSID: `%s`", _apConfiguration.essid);
+    loadDefaultStations();
+}
+
+void APB::Settings::loadDefaultStations() {
+    if(LittleFS.exists("/wifi.json")) {
+        fs::File wifiJson = LittleFS.open("/wifi.json");
+        StaticJsonDocument<512> doc;
+        DeserializationError error = deserializeJson(doc, wifiJson);
+        if (error) {
+            Log.warningln(F("Failed to read file \"/wifi.json\", using empty wifi configuration"));
+            wifiJson.close();
+            return;
+        }
+        wifiJson.close();
+        JsonArray stations = doc.as<JsonArray>();
+        Log.infoln("Found valid /wifi.json settings file, loading default wifi settings with %d stations", stations.size());
+        for(int i=0; i<stations.size() && i<APB_MAX_STATIONS; i++) {
+            String ssid = stations[i]["ssid"];
+            String psk = stations[i]["psk"];
+            Log.infoln("Adding station: %s", ssid);
+            _stations[i] = WiFiStation{};
+            strcpy(_stations[i].essid, ssid.c_str());
+            strcpy(_stations[i].psk, psk.c_str());
+            
+        }
+        save();
+    }
 }
 
 void APB::Settings::save() {

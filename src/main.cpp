@@ -43,17 +43,21 @@ void setupArduinoOTA();
 void addHistoryEntry();
 
 void setup() {
-  settings.setup();
-  led.setup();
   Serial.begin(115200);
   #ifdef WAIT_FOR_SERIAL
-  auto started = millis(); while(!Serial && millis() - started < 10000);
+  auto wait_until = millis() + WAIT_FOR_SERIAL; while(!Serial && millis() < wait_until);
   #endif
+  #ifdef BOOT_DELAY
+  delay(BOOT_DELAY);
+  #endif
+  
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
-  
-  LittleFS.begin();
 
+  LittleFS.begin();
+  settings.setup();
+  led.setup();
+  
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   ambient.setup(scheduler);

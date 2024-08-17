@@ -27,11 +27,11 @@ def copy_matching(rootdir, directory, filter):
             copy_strip(rootdir, os.path.join(directory, file))
 
 def gzip_all():
-    env.Execute('find data -type f -exec gzip -9 {} \\;')
+    env.Execute('find data/web -type f -exec gzip -9 {} \\;')
 
 def before_build_filesystem(source, target, env):
     print('Removing old filesystem image...')
-    env.Execute('rm -rf data')
+    env.Execute('rm -rf data/web')
     env.Execute('mkdir -p data/web')
     print('[OK]\n')
     print('Building react app')
