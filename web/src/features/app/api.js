@@ -13,6 +13,7 @@ const payloadJson = async (path, method, payload) => {
     })
 }
 
+export const fetchHistory = async () => await fetchJson('/api/history')
 export const fetchHeaters = async () => await fetchJson('/api/heaters')
 export const fetchConfig = async () => await fetchJson('/api/config')
 export const saveConfig = async () => await fetchJson('/api/config/write', { method: 'POST'})

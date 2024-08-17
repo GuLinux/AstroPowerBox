@@ -4,7 +4,7 @@ import { setAmbient } from './features/sensors/ambient/ambientSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { getHeatersAsync, updateHeaters } from './features/sensors/heaters/heatersSlice';
 import { setPower } from './features/sensors/power/powerSlice';
-import { darkModeSelector, setUptime, tabSelector } from './features/app/appSlice';
+import { darkModeSelector, getHistoryAsync, setUptime, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
@@ -29,6 +29,7 @@ const LightMode = () => <link rel="stylesheet" type="text/css" href='flatly.min.
 function App() {
   const dispatch = useDispatch();
   const darkMode = useSelector(darkModeSelector)
+  useEffect(() => { dispatch(getHistoryAsync()) }, [dispatch])
   useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
   useEffect(() => registerEventSource(dispatch), [dispatch]);
   const activeTab = useSelector(tabSelector);

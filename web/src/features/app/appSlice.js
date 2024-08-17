@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { fetchAppInfo, fetchReconnectWiFi, fetchRestart } from './api';
+import { fetchAppInfo, fetchHistory, fetchReconnectWiFi, fetchRestart } from './api';
 
 const initialState = {
     tab: 'home',
@@ -19,6 +19,12 @@ export const getAppInfoAsync = createAsyncThunk(
   'app/getInfo',
   async () => await fetchAppInfo()
 );
+
+export const getHistoryAsync = createAsyncThunk(
+  'app/getHistory',
+  async () => await fetchHistory()
+);
+
 
 export const restartAsync = createAsyncThunk(
   'app/restart',
