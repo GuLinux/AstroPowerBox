@@ -36,6 +36,7 @@ private:
     WiFiStation _apConfiguration;
     float _statusLedDuty;
     void loadDefaults();
+    void loadDefaultStations();
 };
 }
 #endif

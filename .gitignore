@@ -6,3 +6,4 @@ data
 .vscode/ipch
 src/configuration_custom.h
 logs
+data/wifi.json
