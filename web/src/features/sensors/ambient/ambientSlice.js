@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { getHistoryAsync } from '../../app/appSlice';
 
 const initialState = {
     dewpoint: null,
@@ -22,6 +23,20 @@ export const ambientSlice = createSlice({
         state.history = [...state.history, { timestamp: new Date().getTime(), temperature, humidity, dewpoint}].slice(-1000)
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(getHistoryAsync.fulfilled, (state, { payload }) => {
+        if(!payload) {
+          return;
+        }
+        const { now: bootSeconds, entries } = payload;
+        const dateStarted = new Date().getTime() - (bootSeconds * 1000);
+        entries.forEach( ({uptime, ambientTemperature, ambientHumidity, ambientDewpoint }) => {
+          state.history = [...state.history, { timestamp: dateStarted + uptime, temperature: ambientTemperature, humidity: ambientHumidity, dewpoint: ambientDewpoint}]
+        })
+      })
+
+  }
 });
  
 export default ambientSlice.reducer;

@@ -56,7 +56,7 @@ public:
     size_t jsonSize() const { return _entries.size() * HISTORY_ENTRY_SIZE; }
 private:
     Entries _entries;
-    uint16_t maxSize = 500;
+    uint16_t maxSize = 200;
 };
 extern History HistoryInstance;
 }
