@@ -16,6 +16,7 @@
 #include <OneButton.h>
 #include "statusled.h"
 #include <ArduinoOTA.h>
+#include <AsyncTCP.h>
 
 Scheduler scheduler;
 APB::Settings settings;
@@ -25,7 +26,39 @@ APB::Ambient ambient;
 APB::Heaters heaters;
 APB::PowerMonitor powerMonitor;
 APB::History APB::HistoryInstance;
+AsyncServer loggerServer{9911};
 
+class BufferedLogger: public Print {
+public:
+  BufferedLogger() {
+    loggerServer.onClient([this](void *,AsyncClient *c){
+      this->client = c;
+    }, nullptr);
+  }
+
+  virtual size_t write(uint8_t c) {
+    if(!client) {
+      return 0;
+    }
+    buffer[currentPosition++] = c;
+    if(c == '\n') {
+      client->write(buffer.data(), currentPosition);
+      reset();
+    }
+    return 1;
+  }
+
+private:
+  AsyncClient *client = nullptr;
+  void reset() {
+    std::fill(std::begin(buffer), std::end(buffer), 0);
+    currentPosition = 0;
+  }
+  std::array<char, 1024> buffer = {0};
+  uint16_t currentPosition = 0;
+};
+
+BufferedLogger bufferedLogger;
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;
@@ -58,12 +91,17 @@ void setup() {
   settings.setup();
   led.setup();
   
+  wifiManager.setup();
+  loggerServer.begin();
+
+  Log.addHandler(&bufferedLogger);
+
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   ambient.setup(scheduler);
   powerMonitor.setup(scheduler);
   std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
-  wifiManager.setup();
+  
   webServer.setup();
   setupArduinoOTA();
 
