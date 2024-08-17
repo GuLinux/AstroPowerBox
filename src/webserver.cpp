@@ -116,7 +116,7 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
-    AsyncJsonResponse* response = new AsyncJsonResponse(false, 32 + (192*HistoryInstance.entries().size()));
+    AsyncJsonResponse* response = new AsyncJsonResponse(false, 32 + HistoryInstance.jsonSize());
     JsonObject root = response->getRoot().to<JsonObject>();
     root["now"] = esp_timer_get_time() / 1000'000;
     JsonArray entries = root["entries"].to<JsonArray>();

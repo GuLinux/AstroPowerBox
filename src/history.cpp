@@ -13,6 +13,11 @@ void APB::History::Entry::setAmbient(const std::optional<Ambient::Reading> &read
     ambientHumidityHundredth = static_cast<uint16_t>(readingValue.humidity * 100.0);
 }
 
+void APB::History::Entry::setPower(const PowerMonitor::Status & powerStatus) {
+    busVoltageHundreth = static_cast<uint16_t>(powerStatus.busVoltage * 100.0);
+    currentHundreth = static_cast<uint16_t>(powerStatus.current * 100.0);
+}
+
 void APB::History::Entry::populate(JsonObject object) {
     object["uptime"] = secondsFromBoot;
     setNullableFloat(object, "ambientTemperature", getAmbientTemperature());
@@ -23,6 +28,9 @@ void APB::History::Entry::populate(JsonObject object) {
         heaterObject["duty"] = heaters[i].getDuty();
         setNullableFloat(heaterObject, "temperature", heaters[i].getTemperature());
     }
+    object["busVoltage"] = getBusVoltage();
+    object["power"] = getPower();
+    object["current"] = getCurrent();
 }
 
 
