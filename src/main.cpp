@@ -135,6 +135,7 @@ void addHistoryEntry() {
   for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
     entry.heaters[i].set(heaters[i]);
   }
+  entry.setPower(powerMonitor.status());
   APB::HistoryInstance.add(entry);
 }
 
