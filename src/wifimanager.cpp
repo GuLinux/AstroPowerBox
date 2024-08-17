@@ -69,6 +69,8 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
             Log.infoln(LOG_SCOPE "[EVENT] WiFi AP stopped");
             _status = Status::Idle;
             break;
+        default:
+            Log.traceln("[EVENT] Unknown event %d", event);
     }
 }
 
