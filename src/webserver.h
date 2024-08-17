@@ -43,6 +43,7 @@ private:
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
     void onGetHistory(AsyncWebServerRequest *request);
+    void onNotFound(AsyncWebServerRequest *request);
     void onConfigStation(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json);
     void onPostWriteConfig(AsyncWebServerRequest *request);
