@@ -16,4 +16,15 @@ namespace APB {
         int64_t decimalPart = static_cast<int64_t>(pow(10, decimals) * (f - intPart));
         return String(intPart) + "." + String(decimalPart);
     }
+
+    class ScopeGuard {
+    public:
+        ScopeGuard(std::function<void()> onEnd) : onEnd{onEnd} {};
+        ScopeGuard(std::function<void()> onStart, std::function<void()> onEnd) : onEnd{onEnd} {
+            onStart();
+        };
+        ~ScopeGuard() { onEnd(); }
+    private:
+        std::function<void()> onEnd;
+    };
 }

@@ -9,6 +9,7 @@
 #include "ambient/ambient.h"
 #include "powermonitor.h"
 #include "heater.h"
+#include "utils.h"
 
 #define HISTORY_ENTRY_SIZE 256
 
@@ -46,7 +47,26 @@ public:
     private:
         void setNullableFloat(JsonObject object, const char *field, float value, float minValue=-50);
     };
+
     typedef std::list<Entry> Entries;
+    
+    class JsonSerialiser {
+    public:
+        JsonSerialiser(History &history);
+        int write(uint8_t *buffer, size_t maxLen, size_t index);
+    private:
+        History &history;
+        bool footerCreated = false;
+        bool firstEntrySent = false;
+        Entries::iterator it;
+        char jsonBuffer[512];
+        StaticJsonDocument<512> jsonDocument;
+        uint16_t currentBufferIndex = 0;
+        size_t jsonBufferSize = 0;
+        size_t currentIndex = 0;
+        void populateEntry();
+        // APB::ScopeGuard scopeGuard;
+    };
 
     void setMaxSize(uint16_t maxSize) { this->maxSize = maxSize; }
 
@@ -56,7 +76,8 @@ public:
     size_t jsonSize() const { return _entries.size() * HISTORY_ENTRY_SIZE; }
 private:
     Entries _entries;
-    uint16_t maxSize = 200;
+    uint16_t maxSize = 300;
+    bool lockInserts = false;
 };
 extern History HistoryInstance;
 }
