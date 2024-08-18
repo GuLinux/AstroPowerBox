@@ -116,15 +116,12 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
-    AsyncJsonResponse* response = new AsyncJsonResponse(false, 32 + HistoryInstance.jsonSize());
-    JsonObject root = response->getRoot().to<JsonObject>();
-    root["now"] = esp_timer_get_time() / 1000'000;
-    JsonArray entries = root["entries"].to<JsonArray>();
-    uint16_t index=0;
-    for(History::Entry &entry: HistoryInstance.entries()) {
-        entry.populate(entries[index++].to<JsonObject>());
-    }
-    response->setLength();
+    auto jsonSerialiser = std::make_shared<History::JsonSerialiser>(HistoryInstance);
+   
+    AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
+        [jsonSerialiser](uint8_t *buffer, size_t maxLen, size_t index){
+            return jsonSerialiser->write(buffer, maxLen, index);
+        });
     request->send(response);
 }
 
