@@ -86,7 +86,7 @@ int APB::History::JsonSerialiser::write(uint8_t *buffer, size_t maxLen, size_t i
         Log.traceln(JSON_SERIALISER_TAG "Footer already sent, exiting");
         return response;
     }
-    while(overflowPrint->overflow() == 0 && response < maxLen/2 && it != history._entries.end()) {
+    while(overflowPrint->overflow() == 0 && response < maxLen && it != history._entries.end()) {
         Log.traceln(JSON_SERIALISER_TAG "Sending item at index=%d of %d", currentIndex, history._entries.size());
         it->populate(jsonDocument.to<JsonObject>());
         response += serializeJson(jsonDocument, *overflowPrint);
