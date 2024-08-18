@@ -46,9 +46,8 @@ size_t APB::OverflowPrint::setNewBuffer(uint8_t *mainBuffer, size_t mainBufferSi
         mainBufferWritten = backfill;
         overflowBufferWritten -= backfill;
         if(overflowBufferWritten > 0) {
-            std::shared_ptr<uint8_t[]> newOverflow = std::make_shared<uint8_t[]>(overflowBufferSize);
-            memcpy(newOverflow.get(), &overflowBuffer.get()[backfill], overflowBufferWritten);
-            overflowBuffer.swap(newOverflow);
+            Log.traceln(OVERFLOW_TAG "Moving back data in overflowBuffer");
+            std::move(overflowBuffer.get() + backfill, overflowBuffer.get() + backfill + overflowBufferWritten, overflowBuffer.get());
         }
     }
     Log.traceln(OVERFLOW_TAG "Swapping buffer, backfill=%d, overflowBufferWritten=%d", backfill, overflowBufferWritten);
