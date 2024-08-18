@@ -63,7 +63,7 @@ APB::History::JsonSerialiser::JsonSerialiser(History &history) : history{history
 }
 
 int APB::History::JsonSerialiser::write(uint8_t *buffer, size_t maxLen, size_t index) {
-    Log.traceln(JSON_SERIALISER_TAG "===> write: bufferMaxLen=%d, index=%d", maxLen, index);
+    // Log.traceln(JSON_SERIALISER_TAG "===> write: bufferMaxLen=%d, index=%d", maxLen, index);
     int response = 0;
     if(index == 0) {
         overflowPrint = std::make_unique<OverflowPrint>(buffer, maxLen);
@@ -72,26 +72,30 @@ int APB::History::JsonSerialiser::write(uint8_t *buffer, size_t maxLen, size_t i
     }
     
     
-    ScopeGuard printResponseSize = {[&](){
-        Log.traceln(JSON_SERIALISER_TAG "<=== exiting write, response=%d, overflow=%d", response, overflowPrint->overflow());
-    }};
+    // ScopeGuard printResponseSize = {[&](){
+    //     Log.traceln(JSON_SERIALISER_TAG "<=== exiting write, response=%d, overflow=%d", response, overflowPrint->overflow());
+    // }};
     
     if(!headerCreated) {
         response = overflowPrint->printf("{\"now\":%d,\"entries\":[", esp_timer_get_time() / 1'000'000);
-        Log.traceln(JSON_SERIALISER_TAG "Creating header, response=%d", response);
+        // Log.traceln(JSON_SERIALISER_TAG "Creating header, response=%d", response);
         headerCreated = true;
         it = history._entries.begin();
     }
+    if(history._entries.empty()) {
+        response = overflowPrint->printf("]}");
+        footerCreated = true;
+    }
     if(footerCreated) {
-        Log.traceln(JSON_SERIALISER_TAG "Footer already sent, exiting");
+        // Log.traceln(JSON_SERIALISER_TAG "Footer already sent, exiting");
         return response;
     }
     while(overflowPrint->overflow() == 0 && response < maxLen && it != history._entries.end()) {
-        Log.traceln(JSON_SERIALISER_TAG "Sending item at index=%d of %d", currentIndex, history._entries.size());
+        // Log.traceln(JSON_SERIALISER_TAG "Sending item at index=%d of %d", currentIndex, history._entries.size());
         it->populate(jsonDocument.to<JsonObject>());
         response += serializeJson(jsonDocument, *overflowPrint);
         std::advance(it, 1);
-        Log.traceln(JSON_SERIALISER_TAG "Item[%d] sent, is last: %d", currentIndex, it == history._entries.end());
+        // Log.traceln(JSON_SERIALISER_TAG "Item[%d] sent, is last: %d", currentIndex, it == history._entries.end());
         currentIndex++;
         if(it != history._entries.end()) {
             response += overflowPrint->print(',');
