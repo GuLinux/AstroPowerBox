@@ -38,6 +38,10 @@ APB::WebServer::WebServer(
 void APB::WebServer::setup() {
     Log.traceln(LOG_SCOPE "Setup");
     ElegantOTA.begin(&server);
+    #ifdef ALLOW_ALL_CORS
+    #warning "Adding Access-Control-Allow-Origin:* header to all requests (CORS)"
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+    #endif
     ElegantOTA.onStart([this](){ Log.infoln(LOG_SCOPE "OTA Started"); });
     ElegantOTA.onProgress([this](size_t current, size_t total){
         Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(current * 100.0 /total), current, total);

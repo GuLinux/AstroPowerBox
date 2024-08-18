@@ -37,7 +37,7 @@ size_t APB::OverflowPrint::setNewBuffer(uint8_t *mainBuffer, size_t mainBufferSi
 {
     this->mainBuffer = mainBuffer;
     this->mainBufferSize = mainBufferSize;
-    Log.traceln(OVERFLOW_TAG "Swapping buffer, mainBufferSize=%d, overflowBufferWritten=%d", mainBufferSize, overflowBufferWritten);
+    // Log.traceln(OVERFLOW_TAG "Swapping buffer, mainBufferSize=%d, overflowBufferWritten=%d", mainBufferSize, overflowBufferWritten);
     mainBufferWritten = 0;
     size_t backfill = std::min(mainBufferSize, overflowBufferWritten);
     
@@ -46,11 +46,11 @@ size_t APB::OverflowPrint::setNewBuffer(uint8_t *mainBuffer, size_t mainBufferSi
         mainBufferWritten = backfill;
         overflowBufferWritten -= backfill;
         if(overflowBufferWritten > 0) {
-            Log.traceln(OVERFLOW_TAG "Moving back data in overflowBuffer");
+            // Log.traceln(OVERFLOW_TAG "Moving back data in overflowBuffer");
             std::move(overflowBuffer.get() + backfill, overflowBuffer.get() + backfill + overflowBufferWritten, overflowBuffer.get());
         }
     }
-    Log.traceln(OVERFLOW_TAG "Swapping buffer, backfill=%d, overflowBufferWritten=%d", backfill, overflowBufferWritten);
+    // Log.traceln(OVERFLOW_TAG "Swapping buffer, backfill=%d, overflowBufferWritten=%d", backfill, overflowBufferWritten);
     return backfill;
 }
 
