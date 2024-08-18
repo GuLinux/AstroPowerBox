@@ -5,6 +5,7 @@
 #include <list>
 #include <optional>
 #include <ArduinoJson.h>
+#include <memory>
 
 #include "ambient/ambient.h"
 #include "powermonitor.h"
@@ -14,6 +15,7 @@
 #define HISTORY_ENTRY_SIZE 256
 
 namespace APB {
+
 class History {
 public:
     struct Entry {
@@ -56,16 +58,13 @@ public:
         int write(uint8_t *buffer, size_t maxLen, size_t index);
     private:
         History &history;
+        bool headerCreated = false;
         bool footerCreated = false;
         bool firstEntrySent = false;
         Entries::iterator it;
-        char jsonBuffer[512];
         StaticJsonDocument<512> jsonDocument;
-        uint16_t currentBufferIndex = 0;
-        size_t jsonBufferSize = 0;
         size_t currentIndex = 0;
-        void populateEntry();
-        // APB::ScopeGuard scopeGuard;
+        std::unique_ptr<OverflowPrint> overflowPrint;
     };
 
     void setMaxSize(uint16_t maxSize) { this->maxSize = maxSize; }
