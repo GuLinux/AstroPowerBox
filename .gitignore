@@ -8,3 +8,4 @@ src/configuration_custom.h
 logs
 data/wifi.json
 extra_envs.ini
+web/.env.*.local
