@@ -1,4 +1,5 @@
 import Table from 'react-bootstrap/Table';
+import Accordion from 'react-bootstrap/Accordion';
 import { useSelector } from 'react-redux';
 import { selectAmbient, selectAmbientHistory } from './ambientSlice';
 import { Number } from '../../Number';
@@ -45,6 +46,13 @@ export const Ambient = () => {
             </tr>
             </tbody>
         </Table>
-        <AmbientChart temperature={temperature} />
+        <Accordion>
+            <Accordion.Item eventKey='0'>
+                <Accordion.Header>History</Accordion.Header>
+                <Accordion.Body>
+                    <AmbientChart temperature={temperature} />
+                </Accordion.Body>
+            </Accordion.Item>
+        </Accordion>
     </>
 }
