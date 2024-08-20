@@ -6,9 +6,9 @@ export const Home = () => {
     return <>
         <h2>Environment</h2>
         <Ambient />
-        <h2>Heaters</h2>
+        <h2 className="mt-5">Heaters</h2>
         <Heaters />
-        <h2>Power</h2>
+        <h2 className="mt-5">Power</h2>
         <Power />
     </>
 }

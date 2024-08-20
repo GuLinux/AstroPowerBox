@@ -11,6 +11,7 @@ const initialState = {
 };
 
 export const selectPower = state => state.power;
+export const selectPowerHistory = state => state.power.history.map(entry => ({...entry, name: new Date(entry.timestamp).toLocaleTimeString()}))
 
 export const powerSlice = createSlice({
   name: 'power',
