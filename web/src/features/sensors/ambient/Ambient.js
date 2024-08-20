@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { selectAmbient, selectAmbientHistory } from './ambientSlice';
 import { Number } from '../../Number';
 import { LineChart, CartesianGrid, XAxis, YAxis, Legend, Line, ResponsiveContainer } from 'recharts'
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 const AmbientChart = ({}) => {
     const id = useId();
@@ -50,7 +50,7 @@ export const Ambient = () => {
             <Accordion.Item eventKey='0'>
                 <Accordion.Header>History</Accordion.Header>
                 <Accordion.Body>
-                    <AmbientChart temperature={temperature} />
+                    <AmbientChart />
                 </Accordion.Body>
             </Accordion.Item>
         </Accordion>
