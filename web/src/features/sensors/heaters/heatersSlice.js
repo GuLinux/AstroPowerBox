@@ -27,6 +27,17 @@ const onHeatersReceived = (state, payload) => {
 }
 
 export const selectHeaters = state => state.heaters;
+export const selectHeatersHistory = state => state.heaters.history.map(entry => {
+  const mappedEntry = { name: new Date(entry.timestamp).toLocaleTimeString(), heaters: entry.heaters.length }
+  entry.heaters.forEach((heater, index) => {
+    Object.keys(heater).forEach(key => {
+      mappedEntry[`heater-${index}-${key}`] = heater[key]
+    })
+    
+  })
+  return mappedEntry;
+});
+
 
 export const heatersSlice = createSlice({
   name: 'heaters',
