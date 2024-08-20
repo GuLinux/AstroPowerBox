@@ -32,7 +32,7 @@ const HeatersChart = ({}) => {
     const history = useSelector(selectHeatersHistory)
     
     const [selected, setSelected] = useState(null);
-    const [activeHeater, setActiveHeater] = useState();
+    const [activeHeater, setActiveHeater] = useState(null);
     const shouldShow = key => selected === null || selected === key;
     if(history.length === 0) {
         return null;
