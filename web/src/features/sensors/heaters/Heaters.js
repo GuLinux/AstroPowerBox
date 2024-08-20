@@ -1,23 +1,79 @@
 import Table from 'react-bootstrap/Table';
 import { useDispatch, useSelector } from 'react-redux';
 import { Number, formatPercentage } from '../../Number';
-import { selectHeaters, setHeaterAsync } from './heatersSlice';
+import { selectHeaters, selectHeatersHistory, setHeaterAsync } from './heatersSlice';
 import { FaPowerOff, FaLightbulb } from "react-icons/fa6";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+import Dropdown from 'react-bootstrap/Dropdown';
 import Form from 'react-bootstrap/Form';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 import Badge from 'react-bootstrap/Badge';
 import Collapse from 'react-bootstrap/Collapse';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { selectAmbient } from '../ambient/ambientSlice';
+import { LineChart, CartesianGrid, XAxis, YAxis, Legend, Line, ResponsiveContainer } from 'recharts'
+import Accordion from 'react-bootstrap/Accordion';
+
 
 const HeaterModes = {
     off: 'Off',
     fixed: 'Fixed',
     target_temperature: 'Set to Temperature',
     dewpoint: 'Set to Dewpoint',
+}
+
+const HeatersChart = ({}) => {
+    const id = useId();
+    const history = useSelector(selectHeatersHistory)
+    
+    const [selected, setSelected] = useState(null);
+    const [activeHeater, setActiveHeater] = useState();
+    const shouldShow = key => selected === null || selected === key;
+    if(history.length === 0) {
+        return null;
+    }
+
+    const heaters = [...Array(history[history.length-1].heaters).keys()]
+    return <>
+        <Form>
+            <Form.Group as={Row} className="justify-content-md-center">
+                <Form.Label column sm={4}>
+                    Select heater number to show history
+                </Form.Label>
+                <Col sm={4}>
+                    <DropdownButton title='Heater'>
+                        {heaters.map(index =>
+                            <Dropdown.Item active={index === activeHeater} onClick={() => setActiveHeater(index)}>
+                                Heater {index}
+                            </Dropdown.Item>)}
+
+        </DropdownButton>
+
+                </Col>
+            </Form.Group>
+        </Form>
+        
+        {activeHeater !== null &&
+        <div style={{ height: 400 }}>
+                <ResponsiveContainer>
+                <LineChart width={600} height={300} data={history}>
+                    <CartesianGrid stroke="#ccc" />
+                    <XAxis dataKey="name" />
+                    <YAxis yAxisId={`tempYAxis-${id}`} />
+                    <YAxis yAxisId={`dutyYAxis-${id}`} orientation='right' />
+                    <Legend onClick={({dataKey}) => setSelected(selected !== dataKey ? dataKey : null)}/>
+                    <Line name={`Heater ${activeHeater} temperature`} yAxisId={`tempYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-temperature`} stroke="#ffaa22" />
+                    <Line name={`Heater ${activeHeater} duty`} yAxisId={`dutyYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-duty`} stroke="#22aaff" />
+                </LineChart>
+            </ResponsiveContainer>
+        </div>
+        }
+    </>
 }
 
 const HeaterMode = ({mode}) => <option value={mode}>{HeaterModes[mode]}</option>
@@ -120,19 +176,30 @@ const Heater = ({heater, index}) => {
 
 export const Heaters = () => {
     const { heaters } = useSelector(selectHeaters);
-    return <Table>
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">mode</th>
-              <th scope="col">target</th>
-              <th scope="col">duty</th>
-              <th scope="col">temperature</th>
-              <th></th>
-            </tr>
-          </thead>
-        <tbody>
-            { heaters.map((heater, index) => <Heater heater={heater} key={index} index={index} />)}
-        </tbody>
-    </Table>
+    return <>
+        <Table>
+            <thead>
+                <tr>
+                <th scope="col">#</th>
+                <th scope="col">mode</th>
+                <th scope="col">target</th>
+                <th scope="col">duty</th>
+                <th scope="col">temperature</th>
+                <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                { heaters.map((heater, index) => <Heater heater={heater} key={index} index={index} />)}
+            </tbody>
+        </Table>
+        <Accordion>
+            <Accordion.Item eventKey='0'>
+                <Accordion.Header>History</Accordion.Header>
+                <Accordion.Body>
+                    <HeatersChart/>
+                </Accordion.Body>
+            </Accordion.Item>
+        </Accordion>
+    </>
+
 }
