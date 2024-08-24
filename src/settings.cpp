@@ -20,6 +20,8 @@
 
 using namespace std::placeholders;
 
+APB::Settings &APB::Settings::Instance = *new APB::Settings();
+
 namespace {
     Preferences prefs;
 }

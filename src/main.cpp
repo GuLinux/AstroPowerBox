@@ -19,13 +19,6 @@
 #include <AsyncTCP.h>
 
 Scheduler scheduler;
-APB::Settings settings;
-APB::StatusLed led{settings};
-APB::WiFiManager wifiManager{settings, led, scheduler};
-APB::Ambient ambient;
-APB::Heaters heaters;
-APB::PowerMonitor powerMonitor;
-APB::History APB::HistoryInstance;
 AsyncServer loggerServer{9911};
 
 class BufferedLogger: public Print {
@@ -65,7 +58,7 @@ OneButton userButton;
 #endif
 
 
-APB::WebServer webServer(settings, wifiManager, ambient, heaters, powerMonitor, scheduler, led);
+APB::WebServer webServer(scheduler);
 
 
 #define LOG_SCOPE "APB::Main - "
@@ -83,32 +76,32 @@ void setup() {
   #ifdef BOOT_DELAY
   delay(BOOT_DELAY);
   #endif
-  
+
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
 
   LittleFS.begin();
-  settings.setup();
-  led.setup();
+  APB::Settings::Instance.setup();
+  APB::StatusLed::Instance.setup();
   
-  wifiManager.setup();
+  APB::WiFiManager::Instance.setup(scheduler);
   loggerServer.begin();
 
   Log.addHandler(&bufferedLogger);
 
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
-  ambient.setup(scheduler);
-  powerMonitor.setup(scheduler);
-  std::for_each(heaters.begin(), heaters.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler, &ambient); });
+  APB::Ambient::Instance.setup(scheduler);
+  APB::PowerMonitor::Instance.setup(scheduler);
+  std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
   
   webServer.setup();
   setupArduinoOTA();
 
 #ifdef ONEBUTTON_USER_BUTTON_1
-  userButton.attachDoubleClick([&wifiManager]() {
+  userButton.attachDoubleClick([]() {
     Log.infoln("[OneButton] User button 1 double clicked, reconnecting WiFi");
-    wifiManager.reconnect();
+    APB::WiFiManager::Instance.reconnect();
   });
   userButton.setup(ONEBUTTON_USER_BUTTON_1, INPUT, false);
 #endif
@@ -117,7 +110,7 @@ void setup() {
 
 uint64_t el = 0;
 void loop() {
-  wifiManager.loop(); 
+  APB::WiFiManager::Instance.loop(); 
   scheduler.execute();
   ElegantOTA.loop();
 
@@ -131,12 +124,12 @@ void addHistoryEntry() {
   APB::History::Entry entry {
     esp_timer_get_time() / 1000'000
   };
-  entry.setAmbient(ambient.reading());
+  entry.setAmbient(APB::Ambient::Instance.reading());
   for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
-    entry.heaters[i].set(heaters[i]);
+    entry.heaters[i].set(APB::Heaters::Instance[i]);
   }
-  entry.setPower(powerMonitor.status());
-  APB::HistoryInstance.add(entry);
+  entry.setPower(APB::PowerMonitor::Instance.status());
+  APB::History::Instance.add(entry);
 }
 
 void setupArduinoOTA() {

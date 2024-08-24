@@ -4,6 +4,12 @@
 #include <iterator>
 #include <memory>
 
+APB::History &APB::History::Instance = *new APB::History{};
+
+APB::History::History() {
+}
+
+
 void APB::History::Entry::Heater::set(const APB::Heater &heater) {
     temperatureHundredth = static_cast<int16_t>(heater.temperature().value_or(-100.0) * 100.0);
     duty = heater.active() ? heater.duty() : 0;
@@ -44,9 +50,8 @@ void APB::History::Entry::setNullableFloat(JsonObject object, const char *field,
     }
 }
 
-
-
-void APB::History::add(const Entry &entry) {
+void APB::History::add(const Entry &entry)
+{
     if(lockInserts) {
         Log.warningln("[HISTORY] Inserts locked, unable to add entry");
         return;

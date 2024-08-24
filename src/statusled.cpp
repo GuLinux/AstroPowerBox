@@ -1,12 +1,14 @@
 #include "statusled.h"
 #include "configuration.h"
 
-APB::StatusLed::StatusLed(Settings &settings) : settings{settings}, led{APB_STATUS_LED_PIN, APB_STATUS_LED_INVERT_LOGIC} {
+APB::StatusLed &APB::StatusLed::Instance = *new APB::StatusLed();
+
+APB::StatusLed::StatusLed() : led{APB_STATUS_LED_PIN, APB_STATUS_LED_INVERT_LOGIC} {
 }
 
 void APB::StatusLed::setup() {
     led.setup();
-    setDuty(settings.statusLedDuty());
+    setDuty(Settings::Instance.statusLedDuty());
     setupPattern();
 }
 
@@ -16,7 +18,7 @@ float APB::StatusLed::duty() const {
 
 void APB::StatusLed::setDuty(float duty) {
     led.setDuty(duty);
-    settings.setStatusLedDuty(duty);
+    Settings::Instance.setStatusLedDuty(duty);
 }
 
 void APB::StatusLed::setupPattern() {

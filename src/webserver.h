@@ -18,25 +18,12 @@ namespace APB {
 
 class WebServer {
 public:
-    WebServer(
-        Settings &configuration,
-        WiFiManager &wifiManager,
-        Ambient &ambient,
-        Heaters &heaters,
-        PowerMonitor &powerMonitor,
-        Scheduler &scheduler,
-        StatusLed &statusLed);
+    WebServer(Scheduler &scheduler);
     void setup();
 private:
     AsyncWebServer server;
     AsyncEventSource events;
-    Settings &configuration;
-    WiFiManager &wifiManager;
-    Ambient &ambient;
-    Heaters &heaters;
-    PowerMonitor &powerMonitor;
     Scheduler &scheduler;
-    StatusLed &statusLed;
     StaticJsonDocument<800> eventsDocument;
     std::array<char, 800> eventsString;
 

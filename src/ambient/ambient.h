@@ -11,6 +11,7 @@ namespace APB {
 
 class Ambient {
 public:
+    static Ambient &Instance;
     Ambient();
     void setup(Scheduler &scheduler);
     struct Reading {

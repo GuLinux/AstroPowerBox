@@ -2,16 +2,15 @@
 #include <ArduinoLog.h>
 #include <WiFi.h>
 
-
 #define LOG_SCOPE "APB::WiFiManager:"
 
 using namespace std::placeholders;
 
-APB::WiFiManager::WiFiManager(APB::Settings &configuration, StatusLed &led, Scheduler &scheduler)
-    : configuration(configuration),
+APB::WiFiManager &APB::WiFiManager::Instance = *new APB::WiFiManager();
+
+APB::WiFiManager::WiFiManager() : 
     _status{Status::Idle},
-    led{led},
-    rescanWiFiTask{3'000, TASK_ONCE, std::bind(&WiFiManager::startScanning, this), &scheduler, false} {
+    rescanWiFiTask{3'000, TASK_ONCE, std::bind(&WiFiManager::startScanning, this)} {
     WiFi.onEvent(std::bind(&APB::WiFiManager::onEvent, this, _1, _2));
 }
 
@@ -26,7 +25,7 @@ void APB::WiFiManager::onScanDone(const wifi_event_sta_scan_done_t &scan_done) {
             return;
         }
         for(uint8_t i=0; i<scan_done.number; i++) {
-            if(configuration.hasStation(WiFi.SSID(i))) {
+            if(Settings::Instance.hasStation(WiFi.SSID(i))) {
                 Log.infoln(LOG_SCOPE "[EVENT] Found at least one AP from configuration, scheduling reconnection");
                 scheduleReconnect = true;
                 return;
@@ -74,12 +73,14 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
     }
 }
 
-void APB::WiFiManager::setup() {
+void APB::WiFiManager::setup(Scheduler &scheduler) {
     Log.traceln(LOG_SCOPE "setup");
-    WiFi.setHostname(configuration.apConfiguration().essid);
+    scheduler.addTask(rescanWiFiTask);
+
+    WiFi.setHostname(Settings::Instance.apConfiguration().essid);
     _status = Status::Connecting;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        auto station = configuration.station(i);
+        auto station = Settings::Instance.station(i);
         if(station) {
             Log.infoln(LOG_SCOPE "found valid station: %s", station.essid);
             wifiMulti.addAP(station.essid, station.psk);
@@ -91,30 +92,30 @@ void APB::WiFiManager::setup() {
 
 void APB::WiFiManager::setApMode() {
     Log.infoln(LOG_SCOPE "Starting softAP with essid=`%s`, ip address=`%s`",
-            configuration.apConfiguration().essid, WiFi.softAPIP().toString().c_str());
-    WiFi.softAP(configuration.apConfiguration().essid, 
-        configuration.apConfiguration().open() ? nullptr : configuration.apConfiguration().psk);
+            Settings::Instance.apConfiguration().essid, WiFi.softAPIP().toString().c_str());
+    WiFi.softAP(Settings::Instance.apConfiguration().essid, 
+        Settings::Instance.apConfiguration().open() ? nullptr : Settings::Instance.apConfiguration().psk);
 }
 
 void APB::WiFiManager::connect() {
     connectionFailed = false;
-    bool hasValidStations = configuration.hasValidStations();
+    bool hasValidStations = Settings::Instance.hasValidStations();
     if(!hasValidStations) {
         Log.warningln(LOG_SCOPE "No valid stations found");
         setApMode();
-        led.noWiFiStationsFoundPattern();
+        StatusLed::Instance.noWiFiStationsFoundPattern();
         return;
     }
     WiFi.mode(WIFI_MODE_STA);
     if( wifiMulti.run() != WL_CONNECTED) {
         Log.warningln(LOG_SCOPE "Unable to connect to WiFi stations");
-        led.wifiConnectionFailedPattern();
+        StatusLed::Instance.wifiConnectionFailedPattern();
         setApMode();
         connectionFailed = true;
         rescanWiFiTask.enable();
         return;
     }
-    led.okPattern();
+    StatusLed::Instance.okPattern();
     Log.infoln(LOG_SCOPE "Connected to WiFi `%s`, ip address: %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 }
 
@@ -130,7 +131,7 @@ String APB::WiFiManager::essid() const {
         return WiFi.SSID();
     }
     if(_status == +Status::AccessPoint) {
-        return configuration.apConfiguration().essid;
+        return Settings::Instance.apConfiguration().essid;
     }
     return "N/A";
 }
