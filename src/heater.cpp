@@ -13,6 +13,8 @@
 static const char *TEMPERATURE_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without temperature sensor";
 static const char *AMBIENT_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without ambient sensor";
 
+APB::Heaters::Array &APB::Heaters::Instance = *new APB::Heaters::Array();
+
 struct APB::Heater::Private {
     APB::Heater *q;
     Heater::Mode mode{Heater::Mode::off};
@@ -25,7 +27,6 @@ struct APB::Heater::Private {
     char log_scope[20];
     uint8_t index;
     Heater::GetTargetTemperature getTargetTemperature;
-    Ambient *ambient;
     
     void setup();
     void loop();
@@ -53,7 +54,7 @@ APB::Heater::Heater() : d{std::make_shared<Private>()} {
 APB::Heater::~Heater() {
 }
 
-void APB::Heater::setup(uint8_t index, Scheduler &scheduler, Ambient *ambient) {
+void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     d->index = index;
     sprintf(d->log_scope, "Heater[%d] -", index);
 
@@ -63,7 +64,6 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler, Ambient *ambient) {
     scheduler.addTask(d->loopTask);
     d->loopTask.enable();
     
-    d->ambient = ambient;
     Log.infoln("%s Heater initialised", d->log_scope);
 
 }
@@ -108,7 +108,7 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
     }
-    if(!d->ambient->reading().has_value()) {
+    if(!Ambient::Instance.reading().has_value()) {
         Log.warningln(AMBIENT_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
     }
@@ -176,12 +176,12 @@ void APB::Heater::Private::loop()
         targetTemperature = this->targetTemperature;
     }
     if(mode == +Heater::Mode::dewpoint) {
-        if(!ambient->reading()) {
+        if(!Ambient::Instance.reading()) {
             Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
             q->setDuty(0);
             return;
         }
-        targetTemperature = dewpointOffset + ambient->reading()->dewpoint();
+        targetTemperature = dewpointOffset + Ambient::Instance.reading()->dewpoint();
     }
 
     float currentTemperature = temperature.value();

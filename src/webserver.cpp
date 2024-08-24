@@ -14,23 +14,9 @@
 
 using namespace std::placeholders;
 
-APB::WebServer::WebServer(
-        Settings &configuration,
-        WiFiManager &wifiManager,
-        Ambient &ambient,
-        Heaters &heaters,
-        PowerMonitor &powerMonitor,
-        Scheduler &scheduler,
-        StatusLed &statusLed)
-    : server(80),
+APB::WebServer::WebServer(Scheduler &scheduler) : server(80),
     events("/api/events"),
-    configuration(configuration),
-    wifiManager(wifiManager),
-    ambient(ambient),
-    heaters(heaters),
-    powerMonitor(powerMonitor),
-    scheduler(scheduler),
-    statusLed{statusLed}
+    scheduler(scheduler)
 {
 }
 
@@ -102,25 +88,26 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request, 500);
     response.document["status"] = "ok";
     response.document["uptime"] = esp_timer_get_time() / 1000'000.0;
-    response.document["has_power_monitor"] = powerMonitor.status().initialised;
-    response.document["has_ambient_sensor"] = ambient.isInitialised();
+
+    response.document["has_power_monitor"] = PowerMonitor::Instance.status().initialised;
+    response.document["has_ambient_sensor"] = Ambient::Instance.isInitialised();
     response.document["has_serial"] = static_cast<bool>(Serial);
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonResponse response(request, 600);
-    response.document["accessPoint"]["essid"] = configuration.apConfiguration().essid;
-    response.document["accessPoint"]["psk"] = configuration.apConfiguration().psk;
+    response.document["accessPoint"]["essid"] = Settings::Instance.apConfiguration().essid;
+    response.document["accessPoint"]["psk"] = Settings::Instance.apConfiguration().psk;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        auto station = configuration.station(i);
+        auto station = Settings::Instance.station(i);
         response.document["stations"][i]["essid"] = station.essid;
         response.document["stations"][i]["psk"] = station.psk;
     }
-    response.document["ledDuty"] = configuration.statusLedDuty();
+    response.document["ledDuty"] = Settings::Instance.statusLedDuty();
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
-    auto jsonSerialiser = std::make_shared<History::JsonSerialiser>(HistoryInstance);
+    auto jsonSerialiser = std::make_shared<History::JsonSerialiser>(History::Instance);
    
     AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
         [jsonSerialiser](uint8_t *buffer, size_t maxLen, size_t index){
@@ -138,7 +125,7 @@ void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_DELETE) {
         Log.traceln(LOG_SCOPE "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
-        configuration.setAPConfiguration("", "");
+        Settings::Instance.setAPConfiguration("", "");
     }
     if(request->method() == HTTP_POST) {
         if(Validation{request, json}.required({"essid", "psk"}).notEmpty("essid").invalid()) return;
@@ -147,7 +134,7 @@ void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVar
         String psk = json["psk"];
         Log.traceln(LOG_SCOPE "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
             essid.c_str(), psk.c_str(), request->method(), request->methodToString());
-        configuration.setAPConfiguration(essid.c_str(), psk.c_str());
+        Settings::Instance.setAPConfiguration(essid.c_str(), psk.c_str());
 
     }
     onGetConfig(request);
@@ -169,33 +156,33 @@ void APB::WebServer::onConfigStation(AsyncWebServerRequest *request, JsonVariant
     Log.traceln(LOG_SCOPE "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
         stationIndex, essid.c_str(), psk.c_str(), request->method(), request->methodToString());
     if(request->method() == HTTP_POST) {
-        configuration.setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
+        Settings::Instance.setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
     } else if(request->method() == HTTP_DELETE) {
-        configuration.setStationConfiguration(stationIndex, "", "");
+        Settings::Instance.setStationConfiguration(stationIndex, "", "");
     }
     onGetConfig(request);
 }
 
 void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
-    configuration.save();
+    Settings::Instance.save();
     onGetConfig(request);
 }
 
 void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request, 100);
-    response.document["wifi"]["status"] = wifiManager.status()._to_string();
-    response.document["wifi"]["essid"] = wifiManager.essid();
-    response.document["wifi"]["ip"] = wifiManager.ipAddress();
-    response.document["wifi"]["gateway"] = wifiManager.gateway();
+    response.document["wifi"]["status"] = WiFiManager::Instance.status()._to_string();
+    response.document["wifi"]["essid"] = WiFiManager::Instance.essid();
+    response.document["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
+    response.document["wifi"]["gateway"] = WiFiManager::Instance.gateway();
 }
 
 void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
-    wifiManager.reconnect();
+    WiFiManager::Instance.reconnect();
     onGetConfig(request);
 }
 
 void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
-    if(!ambient.reading()) {
+    if(!Ambient::Instance.reading()) {
         JsonResponse::error(500, "Ambient reading not available", request);
         return;
     }
@@ -206,12 +193,12 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
 
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
-    JsonResponse response(request, heaters.size() * 100);
+    JsonResponse response(request, Heaters::Instance.size() * 100);
     populateHeatersStatus(response.document.to<JsonArray>());
 }
 
 void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
-    std::for_each(heaters.begin(), heaters.end(), [heatersStatus](Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
         heatersStatus[heater.index()]["mode"] = heater.mode()._to_string();
         heatersStatus[heater.index()]["duty"] = heater.duty();
         heatersStatus[heater.index()]["active"] = heater.active();
@@ -223,23 +210,23 @@ void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
 }
 
 void APB::WebServer::populateAmbientStatus(JsonObject ambientStatus) {
-    ambientStatus["temperature"] = ambient.reading()->temperature;
-    ambientStatus["humidity"] = ambient.reading()->humidity;
-    ambientStatus["dewpoint"] = ambient.reading()->dewpoint();
+    ambientStatus["temperature"] = Ambient::Instance.reading()->temperature;
+    ambientStatus["humidity"] = Ambient::Instance.reading()->humidity;
+    ambientStatus["dewpoint"] = Ambient::Instance.reading()->dewpoint();
 }
 
 
 void APB::WebServer::populatePowerStatus(JsonObject powerStatus) {
-    powerStatus["busVoltage"] = powerMonitor.status().busVoltage;
-    powerStatus["current"] = powerMonitor.status().current;
-    powerStatus["power"] = powerMonitor.status().power;
-    powerStatus["shuntVoltage"] = powerMonitor.status().shuntVoltage;
+    powerStatus["busVoltage"] = PowerMonitor::Instance.status().busVoltage;
+    powerStatus["current"] = PowerMonitor::Instance.status().current;
+    powerStatus["power"] = PowerMonitor::Instance.status().power;
+    powerStatus["shuntVoltage"] = PowerMonitor::Instance.status().shuntVoltage;
 }
 
 
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
-    if(!powerMonitor.status().initialised) {
+    if(!PowerMonitor::Instance.status().initialised) {
         JsonResponse::error(500, "Power reading not available", request);
         return;
     }
@@ -272,10 +259,10 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     std::forward_list<String> valid_modes;
     std::transform(Heater::Mode::_values().begin(), Heater::Mode::_values().end(), std::front_inserter(valid_modes), std::bind(&Heater::Mode::_to_string, _1));
     if(validation.required({"index", "mode"})
-        .range("index", {0}, {heaters.size()-1})
+        .range("index", {0}, {Heaters::Instance.size()-1})
         .range("duty", {0}, {1})
         .choice("mode", valid_modes).invalid()) return;
-    Heater &heater = heaters[json["index"]];
+    Heater &heater = Heaters::Instance[json["index"]];
     Heater::Mode mode = Heater::Mode::_from_string(json["mode"]);
     if(mode == +Heater::Mode::off) {
         heater.setDuty(0);
@@ -315,9 +302,9 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
     if(validation.required({"duty"})
         .range("duty", {0}, {1})
         .invalid()) return;
-    statusLed.setDuty(json["duty"]);
+    StatusLed::Instance.setDuty(json["duty"]);
     JsonResponse response(request, 100);
-    response.document["duty"] = statusLed.duty();
+    response.document["duty"] = StatusLed::Instance.duty();
 }
 
 void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {

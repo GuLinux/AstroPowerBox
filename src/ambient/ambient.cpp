@@ -1,5 +1,6 @@
 #include "ambient-p.h"
 
+APB::Ambient &APB::Ambient::Instance = *new APB::Ambient();
 
 APB::Ambient::Ambient() {
 }

@@ -7,7 +7,8 @@
 namespace APB {
 class StatusLed {
 public:
-    StatusLed(Settings &settings);
+    static StatusLed &Instance;
+    StatusLed();
     void setup();
     float duty() const;
     void setDuty(float duty);
@@ -18,7 +19,6 @@ public:
     void wifiConnectionFailedPattern();
     void okPattern();
 private:
-    Settings &settings; 
     AsyncLed led;
 };
 }

@@ -12,9 +12,10 @@ namespace APB {
 BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessPoint, Error)
 class WiFiManager {
 public:
+    static WiFiManager &Instance;
     using Status = WifiManager_WiFi_Status;
-    WiFiManager(Settings &configuration, StatusLed &led, Scheduler &scheduler);
-    void setup();
+    WiFiManager();
+    void setup(Scheduler &scheduler);
     
     void reconnect() { scheduleReconnect = true; }
     Status status() const { return _status; }
@@ -23,8 +24,6 @@ public:
     String gateway() const;
     void loop();
 private:
-    Settings &configuration;
-    StatusLed &led;
     WiFiMulti wifiMulti;
     Status _status;
     bool scheduleReconnect = false;

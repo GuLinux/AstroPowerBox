@@ -11,6 +11,12 @@
 
 namespace APB {
 BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, target_temperature, dewpoint)
+class Heater;
+namespace Heaters {
+    using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
+    extern Array &Instance;
+}
+
 
 class Heater {
 public:
@@ -18,7 +24,7 @@ public:
     Heater();
     ~Heater();
     using Mode = Heater_Mode;
-    void setup(uint8_t index, Scheduler &scheduler, Ambient *ambient);
+    void setup(uint8_t index, Scheduler &scheduler);
     float duty() const;
     void setDuty(float duty);
     bool setTemperature(float targetTemperature, float maxDuty=1);
@@ -35,7 +41,6 @@ private:
     friend struct Private;
     std::shared_ptr<Private> d;
 };
-using Heaters = std::array<APB::Heater, APB_HEATERS_SIZE>;
 }
 
 

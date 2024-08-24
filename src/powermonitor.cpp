@@ -3,6 +3,8 @@
 #include "configuration.h"
 #include <INA219.h>
 
+APB::PowerMonitor &APB::PowerMonitor::Instance = *new APB::PowerMonitor();
+
 struct APB::PowerMonitor::Private {
     INA219 ina219{APB_INA1219_ADDRESS};
     PowerMonitor::Status status;

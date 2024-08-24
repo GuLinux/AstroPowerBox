@@ -18,6 +18,7 @@ namespace APB {
 
 class History {
 public:
+    History();
     struct Entry {
         struct Heater {
             int16_t temperatureHundredth;
@@ -73,10 +74,11 @@ public:
     Entries entries() const { return _entries; }
 
     size_t jsonSize() const { return _entries.size() * HISTORY_ENTRY_SIZE; }
+
+    static History &Instance;
 private:
     Entries _entries;
     uint16_t maxSize = 300;
     bool lockInserts = false;
 };
-extern History HistoryInstance;
 }

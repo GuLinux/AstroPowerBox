@@ -9,6 +9,7 @@
 namespace APB {
 class Settings {
 public:
+    static Settings &Instance;
     struct WiFiStation {
         char essid[APB_MAX_ESSID_PSK_SIZE] = {0};
         char psk[APB_MAX_ESSID_PSK_SIZE] = {0};

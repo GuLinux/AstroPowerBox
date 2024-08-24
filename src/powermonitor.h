@@ -12,6 +12,7 @@ namespace APB {
 
 class PowerMonitor {
 public:
+    static PowerMonitor &Instance;
     PowerMonitor();
     ~PowerMonitor();
     void setup(Scheduler &scheduler);
