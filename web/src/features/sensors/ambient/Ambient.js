@@ -19,9 +19,9 @@ const AmbientChart = ({}) => {
                 <YAxis yAxisId={`tempYaxis-${id}`} />
                 <YAxis yAxisId={`humidityYaxis-${id}`} orientation='right' />
                 <Legend onClick={({dataKey}) => setSelected(selected !== dataKey ? dataKey : null)}/>
-                { shouldShow('temperature') && <Line yAxisId={`tempYaxis-${id}`} type="monotone" dataKey="temperature" stroke="#8884d8" /> }
-                { shouldShow('humidity') && <Line yAxisId={`humidityYaxis-${id}`} type="monotone" dataKey="humidity" stroke="#2284d8" /> }
-                { shouldShow('dewpoint') && <Line yAxisId={`tempYaxis-${id}`} type="monotone" dataKey="dewpoint" stroke="#8822d8" /> }
+                { shouldShow('temperature') && <Line animationDuration={100} yAxisId={`tempYaxis-${id}`} type="monotone" dataKey="temperature" stroke="#8884d8" /> }
+                { shouldShow('humidity') && <Line animationDuration={100} yAxisId={`humidityYaxis-${id}`} type="monotone" dataKey="humidity" stroke="#2284d8" /> }
+                { shouldShow('dewpoint') && <Line animationDuration={100} yAxisId={`tempYaxis-${id}`} type="monotone" dataKey="dewpoint" stroke="#8822d8" /> }
 
             </LineChart>
         </ResponsiveContainer>

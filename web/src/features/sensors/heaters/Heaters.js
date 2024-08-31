@@ -56,7 +56,7 @@ const HeatersChart = ({}) => {
 
                 </Col>
             </Form.Group>
-        </Form>
+        </Form>//MLin
         
         {activeHeater !== null &&
         <div style={{ height: 400 }}>
@@ -67,8 +67,8 @@ const HeatersChart = ({}) => {
                     <YAxis yAxisId={`tempYAxis-${id}`} />
                     <YAxis yAxisId={`dutyYAxis-${id}`} orientation='right' />
                     <Legend onClick={({dataKey}) => setSelected(selected !== dataKey ? dataKey : null)}/>
-                    {shouldShow(`heater-${activeHeater}-temperature`) && <Line name={`Heater ${activeHeater} temperature`} yAxisId={`tempYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-temperature`} stroke="#ffaa22" />}
-                    {shouldShow(`heater-${activeHeater}-duty`) && <Line name={`Heater ${activeHeater} duty`} yAxisId={`dutyYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-duty`} stroke="#22aaff" />}
+                    {shouldShow(`heater-${activeHeater}-temperature`) && <Line animationDuration={100} name={`Heater ${activeHeater} temperature`} yAxisId={`tempYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-temperature`} stroke="#ffaa22" />}
+                    {shouldShow(`heater-${activeHeater}-duty`) && <Line animationDuration={100} name={`Heater ${activeHeater} duty`} yAxisId={`dutyYAxis-${id}`} type="monotone" dataKey={`heater-${activeHeater}-duty`} stroke="#22aaff" />}
                 </LineChart>
             </ResponsiveContainer>
         </div>

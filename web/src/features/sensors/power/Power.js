@@ -20,9 +20,9 @@ const PowerChart= ({}) => {
                 <YAxis yAxisId={`powerAxis-${id}`} />
                 <YAxis yAxisId={`currentYAxis-${id}`} orientation='right' />
                 <Legend onClick={({dataKey}) => setSelected(selected !== dataKey ? dataKey : null)}/>
-                { shouldShow('busVoltage') && <Line yAxisId={`voltageAxis-${id}`} type="monotone" dataKey="busVoltage" stroke="#8884d8" /> }
-                { shouldShow('current') && <Line yAxisId={`currentYAxis-${id}`} type="monotone" dataKey="current" stroke="#2284d8" /> }
-                { shouldShow('power') && <Line yAxisId={`powerAxis-${id}`} type="monotone" dataKey="power" stroke="#8822d8" /> }
+                { shouldShow('busVoltage') && <Line animationDuration={100} yAxisId={`voltageAxis-${id}`} type="monotone" dataKey="busVoltage" stroke="#8884d8" /> }
+                { shouldShow('current') && <Line animationDuration={100} yAxisId={`currentYAxis-${id}`} type="monotone" dataKey="current" stroke="#2284d8" /> }
+                { shouldShow('power') && <Line animationDuration={100} yAxisId={`powerAxis-${id}`} type="monotone" dataKey="power" stroke="#8822d8" /> }
 
             </LineChart>
         </ResponsiveContainer>
