@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
 import { fetchHeaters, setHeater } from '../../app/api';
 import { historyEntryTimestamp } from '../../../utils';
 import { getHistoryAsync } from '../../app/appSlice';
@@ -29,7 +29,8 @@ const onHeatersReceived = (state, payload) => {
   addHeatersToHistory(state)
 }
 
-export const selectHeaters = state => state.heaters;
+export const selectHeaters = state => state.heaters.heaters;
+export const selectHeatersCount = createSelector([selectHeaters], heaters => heaters.length)
 export const selectHeatersHistory = state => state.heaters.history.map(entry => {
   const mappedEntry = { name: new Date(entry.timestamp).toLocaleTimeString(), heaters: entry.heaters.length }
   entry.heaters.forEach((heater, index) => {
@@ -56,12 +57,15 @@ export const heatersSlice = createSlice({
       .addCase(getHeatersAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
       .addCase(setHeaterAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
       .addCase(getHistoryAsync.fulfilled, (state, { payload }) => {
+        console.log(payload)
         if(!payload) {
           return;
         }
         const { now: bootSeconds, entries } = payload;
         entries.forEach( ({uptime,  heaters}) => {
-          state.history = [...state.history, { timestamp: historyEntryTimestamp(bootSeconds, uptime), heaters }]
+          if(heaters.length > 0) {
+            state.history = [...state.history, { timestamp: historyEntryTimestamp(bootSeconds, uptime), heaters }]
+          }
         })
       })
   },

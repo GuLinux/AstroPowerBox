@@ -20,6 +20,7 @@ const payloadJson = async (path, method, payload) => {
 export const fetchHistory = async () => await fetchJson('/api/history')
 export const fetchHeaters = async () => await fetchJson('/api/heaters')
 export const fetchConfig = async () => await fetchJson('/api/config')
+export const fetchStatus = async () => await fetchJson('/api/status')
 export const saveConfig = async () => await fetchJson('/api/config/write', { method: 'POST'})
 export const saveWiFiAccessPointConfig = async payload => await payloadJson('/api/config/accessPoint', 'POST', payload)
 export const saveWiFiStationConfig = async payload => await payloadJson('/api/config/station', 'POST', payload)

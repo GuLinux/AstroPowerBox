@@ -32,7 +32,9 @@ export const ambientSlice = createSlice({
         }
         const { now: bootSeconds, entries } = payload;
         entries.forEach( ({uptime, ambientTemperature: temperature, ambientHumidity: humidity, ambientDewpoint: dewpoint }) => {
-          state.history = [...state.history, { timestamp: historyEntryTimestamp(bootSeconds, uptime), temperature, humidity, dewpoint}]
+          if(temperature !== null && humidity !== null ) {
+            state.history = [...state.history, { timestamp: historyEntryTimestamp(bootSeconds, uptime), temperature, humidity, dewpoint}]
+          }
         })
       })
   }

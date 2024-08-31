@@ -175,7 +175,7 @@ const Heater = ({heater, index}) => {
 }
 
 export const Heaters = () => {
-    const { heaters } = useSelector(selectHeaters);
+    const heaters = useSelector(selectHeaters);
     return <>
         <Table>
             <thead>

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { fetchAppInfo, fetchHistory, fetchReconnectWiFi, fetchRestart } from './api';
+import { fetchAppInfo, fetchHistory, fetchReconnectWiFi, fetchRestart, fetchStatus } from './api';
 
 const initialState = {
     tab: 'home',
@@ -7,17 +7,24 @@ const initialState = {
     info: {
       ready: false,
       uptime: 0,
-    }
+    },
+    status: {}
 };
 
 export const tabSelector = state => state.app.tab
 export const darkModeSelector = state => state.app.darkMode
 export const appInfoSelector = state => state.app.info
 export const appUptimeSelector = state => state.app.info.uptime
+export const appStatusSelector = state => state.app.status
 
 export const getAppInfoAsync = createAsyncThunk(
   'app/getInfo',
   async () => await fetchAppInfo()
+);
+
+export const getAppStatusAsync = createAsyncThunk(
+  'app/getStatus',
+  async () => await fetchStatus()
 );
 
 export const getHistoryAsync = createAsyncThunk(
@@ -46,6 +53,17 @@ export const appSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(getAppStatusAsync.pending, (state) => {
+        state.status.ready = false
+      })
+      .addCase(getAppStatusAsync.fulfilled, (state, {payload: status}) => {
+        state.status.ready = true;
+        state.status.hasPowerMonitor = status.has_power_monitor;
+        state.status.hasAmbientSensor = status.has_ambient_sensor;
+        state.status.status = status.status;
+      })
+
+
       .addCase(getAppInfoAsync.pending, (state) => {
         state.info.ready = false
       })

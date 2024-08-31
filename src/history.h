@@ -20,6 +20,7 @@ class History {
 public:
     History();
     struct Entry {
+        #if APB_HEATERS_SIZE > 0
         struct Heater {
             int16_t temperatureHundredth;
             uint8_t duty;
@@ -27,23 +28,27 @@ public:
             float getTemperature() const { return static_cast<float>(temperatureHundredth) / 100.0; }
             float getDuty() const { return static_cast<float>(duty); }
         };
+        std::array<Heater, APB_HEATERS_TEMP_SENSORS> heaters;
+        #endif
         uint32_t secondsFromBoot;
+        #ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
         void setAmbient(const std::optional<Ambient::Reading> &reading);
-        void setPower(const PowerMonitor::Status &powerStatus);
-
-        int16_t ambientTemperatureHundredth;
-        int16_t ambientHumidityHundredth;
-        int16_t busVoltageHundreth;
-        int16_t currentHundreth;
-
         float getAmbientTemperature() const { return static_cast<float>(ambientTemperatureHundredth) / 100.0; }
         float getAmbientHumidity() const { return static_cast<float>(ambientHumidityHundredth) / 100.0; }
         float getDewpoint() const { return Ambient::calculateDewpoint(getAmbientTemperature(), getAmbientHumidity()); }
+        int16_t ambientTemperatureHundredth;
+        int16_t ambientHumidityHundredth;
+        #endif
+        void setPower(const PowerMonitor::Status &powerStatus);
 
+        int16_t busVoltageHundreth;
+        int16_t currentHundreth;
+
+        
         float getBusVoltage() const { return static_cast<float>(busVoltageHundreth) / 100.0; }
         float getCurrent() const { return static_cast<float>(currentHundreth) / 100.0; }
         float getPower() const { return getCurrent() * getBusVoltage(); }
-        std::array<Heater, APB_HEATERS_TEMP_SENSORS> heaters;
+        
 
         void populate(JsonObject object);
         

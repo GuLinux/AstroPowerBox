@@ -4,7 +4,7 @@ import { setAmbient } from './features/sensors/ambient/ambientSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { getHeatersAsync, updateHeaters } from './features/sensors/heaters/heatersSlice';
 import { setPower } from './features/sensors/power/powerSlice';
-import { darkModeSelector, getHistoryAsync, setUptime, tabSelector } from './features/app/appSlice';
+import { darkModeSelector, getAppStatusAsync, getHistoryAsync, setUptime, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
@@ -15,8 +15,13 @@ const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
   es.addEventListener('status', m => {
     const data = JSON.parse(m.data);
-    dispatch(setAmbient(data.ambient));
-    dispatch(updateHeaters(data.heaters));
+    if(data.ambient) {
+      dispatch(setAmbient(data.ambient));
+    }
+    if(data.heaters.length > 0) {
+      dispatch(updateHeaters(data.heaters));
+    } 
+    
     dispatch(setPower(data.power));
     dispatch(setUptime(data.app.uptime));
   })
@@ -29,6 +34,7 @@ const LightMode = () => <link rel="stylesheet" type="text/css" href='flatly.min.
 function App() {
   const dispatch = useDispatch();
   const darkMode = useSelector(darkModeSelector)
+  useEffect(() => { dispatch(getAppStatusAsync()) }, [dispatch])
   useEffect(() => { dispatch(getHistoryAsync()) }, [dispatch])
   useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
   useEffect(() => registerEventSource(dispatch), [dispatch]);
