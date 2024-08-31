@@ -10,16 +10,20 @@ APB::History::History() {
 }
 
 
+#if APB_HEATERS_SIZE > 0
 void APB::History::Entry::Heater::set(const APB::Heater &heater) {
     temperatureHundredth = static_cast<int16_t>(heater.temperature().value_or(-100.0) * 100.0);
     duty = heater.active() ? heater.duty() : 0;
 }
+#endif
 
+#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
 void APB::History::Entry::setAmbient(const std::optional<Ambient::Reading> &reading) {
     const auto readingValue = reading.value_or(Ambient::Reading{-100.0, -100.0});
     ambientTemperatureHundredth = static_cast<uint16_t>(readingValue.temperature * 100.0);
     ambientHumidityHundredth = static_cast<uint16_t>(readingValue.humidity * 100.0);
 }
+#endif
 
 void APB::History::Entry::setPower(const PowerMonitor::Status & powerStatus) {
     busVoltageHundreth = static_cast<uint16_t>(powerStatus.busVoltage * 100.0);
@@ -28,14 +32,26 @@ void APB::History::Entry::setPower(const PowerMonitor::Status & powerStatus) {
 
 void APB::History::Entry::populate(JsonObject object) {
     object["uptime"] = secondsFromBoot;
+
+#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
     setNullableFloat(object, "ambientTemperature", getAmbientTemperature());
     setNullableFloat(object, "ambientHumidity", getAmbientHumidity());
     object["ambientDewpoint"] = getDewpoint();
+#else
+    object["ambientTemperature"] = static_cast<char*>(0);
+    object["ambientHumidity"] = static_cast<char*>(0);
+    object["ambientDewpoint"] = static_cast<char*>(0);
+#endif
+
+#if APB_HEATERS_SIZE > 0
     for(uint8_t i=0; i<heaters.size(); i++) {
         JsonObject heaterObject = object["heaters"][i].to<JsonObject>();;
         heaterObject["duty"] = heaters[i].getDuty();
         setNullableFloat(heaterObject, "temperature", heaters[i].getTemperature());
     }
+#else
+    object["heaters"].to<JsonArray>();
+#endif
     object["busVoltage"] = getBusVoltage();
     object["power"] = getPower();
     object["current"] = getCurrent();

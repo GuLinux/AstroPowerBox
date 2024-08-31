@@ -124,10 +124,16 @@ void addHistoryEntry() {
   APB::History::Entry entry {
     esp_timer_get_time() / 1000'000
   };
+
+#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
   entry.setAmbient(APB::Ambient::Instance.reading());
+#endif
+  
+#if APB_HEATERS_SIZE > 0
   for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
     entry.heaters[i].set(APB::Heaters::Instance[i]);
   }
+#endif
   entry.setPower(APB::PowerMonitor::Instance.status());
   APB::History::Instance.add(entry);
 }

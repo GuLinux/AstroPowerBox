@@ -68,7 +68,12 @@ void APB::WebServer::setup() {
 
     new Task(1000, TASK_FOREVER, [this](){
         eventsDocument.clear();
-        populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
+        if(Ambient::Instance.isInitialised()) {
+            populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
+        } else {
+            eventsDocument["ambient"] = static_cast<char*>(0);
+        }
+        
         populatePowerStatus(eventsDocument.createNestedObject("power"));
         populateHeatersStatus(eventsDocument.createNestedArray("heaters"));
         eventsDocument["app"]["uptime"] = esp_timer_get_time() / 1000'000.0;
