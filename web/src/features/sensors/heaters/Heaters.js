@@ -56,7 +56,7 @@ const HeatersChart = ({}) => {
 
                 </Col>
             </Form.Group>
-        </Form>//MLin
+        </Form>
         
         {activeHeater !== null &&
         <div style={{ height: 400 }}>
