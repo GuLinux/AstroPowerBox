@@ -18,8 +18,11 @@ export const setHeaterAsync = createAsyncThunk(
   async ({index, heater}) => await setHeater(index, heater)
 )
 
+const transformDuty = heater => {
+  return {...heater, duty: heater.active ? heater.duty : 0}
+}
 const addHeatersToHistory = (state) => {
-  state.history = [...state.history, { timestamp: new Date().getTime(), heaters: state.heaters }].slice(-1000)
+  state.history = [...state.history, { timestamp: new Date().getTime(), heaters: state.heaters.map(transformDuty) }].slice(-1000)
 }
 const onHeatersReceived = (state, payload) => {
   state.heaters = payload;
