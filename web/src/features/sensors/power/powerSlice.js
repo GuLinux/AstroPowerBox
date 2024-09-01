@@ -23,7 +23,7 @@ export const powerSlice = createSlice({
         state.current = current;
         state.power = power;
         state.shuntVoltage = shuntVoltage;
-        state.history = [...state.history, { timestamp: new Date().getTime(), busVoltage, current, power}].slice(-1000)
+        state.history = [...state.history, { timestamp: new Date().getTime(), busVoltage, current, power}]
     },
   },
   extraReducers: (builder) => {

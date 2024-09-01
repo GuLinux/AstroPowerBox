@@ -1,6 +1,6 @@
 const fetchJson = async (path, init) => {
     let url = path;
-    console.log(process.env)
+    // console.log(process.env)
     if(process.env.NODE_ENV === 'development' && 'REACT_APP_ASTROPOWERBOX_API_HOST' in process.env) {
         url = `${process.env.REACT_APP_ASTROPOWERBOX_API_HOST}${path}`;
     }
