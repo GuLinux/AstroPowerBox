@@ -32,6 +32,7 @@ const PowerChart= ({}) => {
 
 export const Power = () => {
     const { busVoltage, current, power } = useSelector(selectPower);
+    const [historyVisible, setHistoryVisible] = useState(false);
     return <>
         <Table>
             <tbody>
@@ -52,8 +53,8 @@ export const Power = () => {
         <Accordion>
             <Accordion.Item eventKey='0'>
                 <Accordion.Header>History</Accordion.Header>
-                <Accordion.Body>
-                    <PowerChart />
+                <Accordion.Body onEnter={() => setHistoryVisible(true)} onExited={() => setHistoryVisible(false)}>
+                    { historyVisible && <PowerChart /> }
                 </Accordion.Body>
             </Accordion.Item>
         </Accordion>

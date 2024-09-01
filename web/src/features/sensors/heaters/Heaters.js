@@ -176,6 +176,7 @@ const Heater = ({heater, index}) => {
 
 export const Heaters = () => {
     const heaters = useSelector(selectHeaters);
+    const [historyVisible, setHistoryVisible] = useState(false);
     return <>
         <Table>
             <thead>
@@ -195,8 +196,8 @@ export const Heaters = () => {
         <Accordion>
             <Accordion.Item eventKey='0'>
                 <Accordion.Header>History</Accordion.Header>
-                <Accordion.Body>
-                    <HeatersChart/>
+                <Accordion.Body onEnter={() => setHistoryVisible(true)} onExited={() => setHistoryVisible(false)}>
+                    { historyVisible && <HeatersChart/> }
                 </Accordion.Body>
             </Accordion.Item>
         </Accordion>

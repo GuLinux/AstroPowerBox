@@ -22,7 +22,7 @@ const transformDuty = heater => {
   return {...heater, duty: heater.active ? heater.duty : 0}
 }
 const addHeatersToHistory = (state) => {
-  state.history = [...state.history, { timestamp: new Date().getTime(), heaters: state.heaters.map(transformDuty) }].slice(-1000)
+  state.history = [...state.history, { timestamp: new Date().getTime(), heaters: state.heaters.map(transformDuty) }]
 }
 const onHeatersReceived = (state, payload) => {
   state.heaters = payload;
@@ -57,7 +57,6 @@ export const heatersSlice = createSlice({
       .addCase(getHeatersAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
       .addCase(setHeaterAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
       .addCase(getHistoryAsync.fulfilled, (state, { payload }) => {
-        console.log(payload)
         if(!payload) {
           return;
         }

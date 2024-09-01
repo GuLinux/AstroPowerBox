@@ -21,7 +21,7 @@ export const ambientSlice = createSlice({
         state.dewpoint = dewpoint;
         state.humidity = humidity;
         state.temperature = temperature;
-        state.history = [...state.history, { timestamp: new Date().getTime(), temperature, humidity, dewpoint}].slice(-1000)
+        state.history = [...state.history, { timestamp: new Date().getTime(), temperature, humidity, dewpoint}]
     },
   },
   extraReducers: (builder) => {

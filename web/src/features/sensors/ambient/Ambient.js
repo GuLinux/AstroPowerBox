@@ -29,6 +29,7 @@ const AmbientChart = ({}) => {
 }
 export const Ambient = () => {
     const { dewpoint, humidity, temperature } = useSelector(selectAmbient);
+    const [historyVisible, setHistoryVisible] = useState(false);
     return <>
     <Table>
             <tbody>
@@ -49,8 +50,8 @@ export const Ambient = () => {
         <Accordion>
             <Accordion.Item eventKey='0'>
                 <Accordion.Header>History</Accordion.Header>
-                <Accordion.Body>
-                    <AmbientChart />
+                <Accordion.Body onEnter={() => setHistoryVisible(true)} onExited={() => setHistoryVisible(false)}>
+                    {historyVisible && <AmbientChart /> }
                 </Accordion.Body>
             </Accordion.Item>
         </Accordion>
