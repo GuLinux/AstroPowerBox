@@ -81,11 +81,15 @@ void APB::Settings::load() {
 }
 
 void APB::Settings::loadDefaults() {
+#ifdef APB_DEFAULT_HOSTNAME
+    sprintf(_apConfiguration.essid, APB_DEFAULT_HOSTNAME);
+#else
     String mac = WiFi.macAddress();
     Log.traceln(LOG_SCOPE "Found mac address: `%s`", mac.c_str());
     mac.replace(F(":"), F(""));
     mac = mac.substring(6);
     sprintf(_apConfiguration.essid, "AstroPowerBox-%s", mac.c_str());
+#endif
     memset(_apConfiguration.psk, 0, APB_MAX_ESSID_PSK_SIZE);
     Log.traceln(LOG_SCOPE "Using default ESSID: `%s`", _apConfiguration.essid);
     loadDefaultStations();
