@@ -6,6 +6,7 @@
 #include <optional>
 #include <ArduinoJson.h>
 #include <memory>
+#include <TaskSchedulerDeclarations.h>
 
 #include "ambient/ambient.h"
 #include "powermonitor.h"
@@ -73,9 +74,10 @@ public:
         std::unique_ptr<OverflowPrint> overflowPrint;
     };
 
+    void setup(Scheduler &scheduler);
     void setMaxSize(uint16_t maxSize) { this->maxSize = maxSize; }
+    void add();
 
-    void add(const Entry &entry);
     Entries entries() const { return _entries; }
 
     size_t jsonSize() const { return _entries.size() * HISTORY_ENTRY_SIZE; }

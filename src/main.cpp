@@ -17,41 +17,15 @@
 #include "statusled.h"
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
+#include "asyncbufferedtcplogger.h"
 
+#include "time.h"
+#include "esp_sntp.h"
 Scheduler scheduler;
 AsyncServer loggerServer{9911};
 
-class BufferedLogger: public Print {
-public:
-  BufferedLogger() {
-    loggerServer.onClient([this](void *,AsyncClient *c){
-      this->client = c;
-    }, nullptr);
-  }
 
-  virtual size_t write(uint8_t c) {
-    if(!client) {
-      return 0;
-    }
-    buffer[currentPosition++] = c;
-    if(c == '\n') {
-      client->write(buffer.data(), currentPosition);
-      reset();
-    }
-    return 1;
-  }
-
-private:
-  AsyncClient *client = nullptr;
-  void reset() {
-    std::fill(std::begin(buffer), std::end(buffer), 0);
-    currentPosition = 0;
-  }
-  std::array<char, 1024> buffer = {0};
-  uint16_t currentPosition = 0;
-};
-
-BufferedLogger bufferedLogger;
+APB::AsyncBufferedTCPLogger bufferedLogger{loggerServer};
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;
@@ -66,7 +40,6 @@ APB::WebServer webServer(scheduler);
 using namespace std::placeholders;
 
 void setupArduinoOTA();
-void addHistoryEntry();
 
 void setup() {
   Serial.begin(115200);
@@ -97,6 +70,7 @@ void setup() {
   
   webServer.setup();
   setupArduinoOTA();
+  APB::History::Instance.setup(scheduler);
 
 #ifdef ONEBUTTON_USER_BUTTON_1
   userButton.attachDoubleClick([]() {
@@ -105,10 +79,8 @@ void setup() {
   });
   userButton.setup(ONEBUTTON_USER_BUTTON_1, INPUT, false);
 #endif
-  new Task(APB_HISTORY_TASK_SECONDS, TASK_FOREVER, addHistoryEntry, &scheduler, true);
 }
 
-uint64_t el = 0;
 void loop() {
   APB::WiFiManager::Instance.loop(); 
   scheduler.execute();
@@ -118,24 +90,6 @@ void loop() {
   userButton.tick();
 #endif
   ArduinoOTA.handle();
-}
-
-void addHistoryEntry() {
-  APB::History::Entry entry {
-    esp_timer_get_time() / 1000'000
-  };
-
-#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
-  entry.setAmbient(APB::Ambient::Instance.reading());
-#endif
-  
-#if APB_HEATERS_SIZE > 0
-  for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
-    entry.heaters[i].set(APB::Heaters::Instance[i]);
-  }
-#endif
-  entry.setPower(APB::PowerMonitor::Instance.status());
-  APB::History::Instance.add(entry);
 }
 
 void setupArduinoOTA() {
