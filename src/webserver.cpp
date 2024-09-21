@@ -9,6 +9,7 @@
 #include <esp_system.h>
 #include <LittleFS.h>
 #include "utils.h"
+#include "datalogger.h"
 
 #define LOG_SCOPE "APB::WebServer "
 
@@ -97,6 +98,10 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
     response.document["has_power_monitor"] = PowerMonitor::Instance.status().initialised;
     response.document["has_ambient_sensor"] = Ambient::Instance.isInitialised();
     response.document["has_serial"] = static_cast<bool>(Serial);
+
+#if APB_DATALOGGER == APB_DATALOGGER_SD
+    response.document["has_datalogger"] = DataLogger::Instance.initialised();
+#endif
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {

@@ -31,8 +31,20 @@
 
 #define APB_INA1219_ADDRESS 0x40
 
+#define APB_DATALOGGER_NONE 0
+#define APB_DATALOGGER_SD 1
+#define APB_DATALOGGER APB_DATALOGGER_NONE
+
 #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
+#endif
+
+#if APB_DATALOGGER == APB_DATALOGGER_NONE
+#pragma message "APB_DATALOGGER == APB_DATALOGGER_NONE"
+#endif
+
+#if APB_DATALOGGER == APB_DATALOGGER_SD
+#pragma message "APB_DATALOGGER == APB_DATALOGGER_SD"
 #endif
 
 #endif
