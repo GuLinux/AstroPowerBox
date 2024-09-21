@@ -15,6 +15,7 @@
 #include <LittleFS.h>
 #include <OneButton.h>
 #include "statusled.h"
+#include "datalogger.h"
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
 #include "asyncbufferedtcplogger.h"
@@ -54,6 +55,7 @@ void setup() {
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
 
   LittleFS.begin();
+  APB::DataLogger::Instance.setup();
   APB::Settings::Instance.setup();
   APB::StatusLed::Instance.setup();
   
