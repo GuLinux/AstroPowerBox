@@ -66,17 +66,33 @@ void APB::History::Entry::setNullableFloat(JsonObject object, const char *field,
     }
 }
 
-void APB::History::add(const Entry &entry)
-{
-    if(lockInserts) {
-        Log.warningln("[HISTORY] Inserts locked, unable to add entry");
-        return;
-    }
-    _entries.push_back(entry);
-    while(_entries.size() > maxSize) {
-        _entries.pop_front();
-    }
+void APB::History::add() {
+  if(lockInserts) {
+      Log.warningln("[HISTORY] Inserts locked, unable to add entry");
+      return;
+  }
+
+  APB::History::Entry entry {
+    esp_timer_get_time() / 1000'000
+  };
+
+#ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
+  entry.setAmbient(APB::Ambient::Instance.reading());
+#endif
+  
+#if APB_HEATERS_SIZE > 0
+  for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
+    entry.heaters[i].set(APB::Heaters::Instance[i]);
+  }
+#endif
+  entry.setPower(APB::PowerMonitor::Instance.status());
+
+  _entries.push_back(entry);
+  while(_entries.size() > maxSize) {
+      _entries.pop_front();
+  }
 }
+
 
 #define JSON_SERIALISER_TAG "[History::JsonSerialiser] "
 
@@ -126,4 +142,8 @@ int APB::History::JsonSerialiser::write(uint8_t *buffer, size_t maxLen, size_t i
         }
     }
     return response;
+}
+
+void APB::History::setup(Scheduler &scheduler) {
+  new Task(APB_HISTORY_TASK_SECONDS, TASK_FOREVER, std::bind(&History::add, this), &scheduler, true);
 }
