@@ -19,8 +19,6 @@
 #include <AsyncTCP.h>
 #include "asyncbufferedtcplogger.h"
 
-#include "time.h"
-#include "esp_sntp.h"
 Scheduler scheduler;
 AsyncServer loggerServer{9911};
 
@@ -52,6 +50,8 @@ void setup() {
 
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
+  
+  Log.addHandler(&bufferedLogger);
 
   LittleFS.begin();
   APB::Settings::Instance.setup();
@@ -59,9 +59,6 @@ void setup() {
   
   APB::WiFiManager::Instance.setup(scheduler);
   loggerServer.begin();
-
-  Log.addHandler(&bufferedLogger);
-
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);
@@ -103,28 +100,31 @@ void setupArduinoOTA() {
       }
 
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
+      Log.infoln("Start updating %s", type.c_str());
       LittleFS.end();
     })
     .onEnd([]() {
-      Serial.println("\nEnd");
+      Log.infoln("\nEnd");
     })
     .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      Log.infoln("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
+      String errorMessage;
       if (error == OTA_AUTH_ERROR) {
-        Serial.println("Auth Failed");
+        errorMessage = "Auth Failed";
       } else if (error == OTA_BEGIN_ERROR) {
-        Serial.println("Begin Failed");
+        errorMessage = "Begin Failed";
       } else if (error == OTA_CONNECT_ERROR) {
-        Serial.println("Connect Failed");
+        errorMessage = "Connect Failed";
       } else if (error == OTA_RECEIVE_ERROR) {
-        Serial.println("Receive Failed");
+        errorMessage = "Receive Failed";
       } else if (error == OTA_END_ERROR) {
-        Serial.println("End Failed");
+        errorMessage = "End Failed";
+      } else {
+        errorMessage = "Unknown error";
       }
+      Log.errorln("Error[%u]: %s", error, errorMessage.c_str());
     });
 
   ArduinoOTA.begin();
