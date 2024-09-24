@@ -32,7 +32,12 @@ bool APB::Ambient::initialiseSensor() {
 }
 
 void APB::Ambient::readSensor() {
-  shtCheckForError(sht.measureHighPrecision(_reading->temperature, _reading->humidity), "Error reading temperature/humidity");
+  Reading reading;
+  if(!shtCheckForError(sht.measureHighPrecision(reading.temperature, reading.humidity), "Error reading temperature/humidity")) {
+    _reading = reading;
+  } else {
+    _reading.reset();
+  }
 }
 
 #endif

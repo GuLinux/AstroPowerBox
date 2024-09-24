@@ -7,11 +7,13 @@
 #include <vector>
 #include "settings.h"
 #include <TaskSchedulerDeclarations.h>
+#include <map>
 
 namespace APB {
 BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessPoint, Error)
 class WiFiManager {
 public:
+    using OnConnectCallback = std::function<void()>;
     static WiFiManager &Instance;
     using Status = WifiManager_WiFi_Status;
     WiFiManager();
@@ -23,12 +25,14 @@ public:
     String ipAddress() const;
     String gateway() const;
     void loop();
+    void addOnConnectedListener(const OnConnectCallback &onConnected);
 private:
     WiFiMulti wifiMulti;
     Status _status;
     bool scheduleReconnect = false;
     bool connectionFailed = false;
     Task rescanWiFiTask;
+    std::list<OnConnectCallback> onConnectedCallbacks;
 
     void connect();
     void setApMode();

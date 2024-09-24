@@ -18,6 +18,7 @@
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
 #include "asyncbufferedtcplogger.h"
+#include "influxdb.h"
 
 Scheduler scheduler;
 AsyncServer loggerServer{9911};
@@ -55,6 +56,8 @@ void setup() {
 
   LittleFS.begin();
   APB::Settings::Instance.setup();
+  APB::InfluxDb::Instance.setup(scheduler);
+  
   APB::StatusLed::Instance.setup();
   
   APB::WiFiManager::Instance.setup(scheduler);

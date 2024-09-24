@@ -40,6 +40,7 @@ private:
     void onGetPower(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);
     void onGetESPInfo(AsyncWebServerRequest *request);
+    void onGetMetrics(AsyncWebServerRequest *request);
     void onRestart(AsyncWebServerRequest *request);
     void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json);

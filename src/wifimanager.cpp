@@ -2,6 +2,10 @@
 #include <ArduinoLog.h>
 #include <WiFi.h>
 
+#include "time.h"
+#include "esp_sntp.h"
+
+
 #define LOG_SCOPE "APB::WiFiManager:"
 
 using namespace std::placeholders;
@@ -55,6 +59,7 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
                 reinterpret_cast<char*>(info.wifi_sta_connected.ssid),
                 info.wifi_sta_connected.channel);
             _status = Status::Station;
+            std::for_each(onConnectedCallbacks.begin(), onConnectedCallbacks.end(), std::bind(&OnConnectCallback::operator(), _1));
             break;
         case(ARDUINO_EVENT_WIFI_STA_DISCONNECTED):
         case(ARDUINO_EVENT_WIFI_STA_STOP):
@@ -124,6 +129,10 @@ void APB::WiFiManager::loop() {
         scheduleReconnect = false;
         connect();
     }
+}
+
+void APB::WiFiManager::addOnConnectedListener(const OnConnectCallback &onConnected) {
+    onConnectedCallbacks.push_back(onConnected);
 }
 
 String APB::WiFiManager::essid() const {
