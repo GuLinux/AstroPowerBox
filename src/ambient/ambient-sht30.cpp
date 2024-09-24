@@ -43,6 +43,7 @@ void APB::Ambient::readSensor() {
     // Log.traceln("reading values: %d degrees, %d humidity", _reading->temperature, _reading->humidity);
   } else {
     logSHT30Error("reading values");
+    _reading.reset();
   }
 }
 

@@ -6,6 +6,7 @@
 #include <forward_list>
 #include "validation.h"
 #include "jsonresponse.h"
+#include "metricsresponse.h"
 #include <esp_system.h>
 #include <LittleFS.h>
 #include "utils.h"
@@ -38,6 +39,7 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&APB::WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
+    server.on("/api/metrics", HTTP_GET, std::bind(&APB::WebServer::onGetMetrics, this, _1));
     server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
     server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
@@ -68,7 +70,7 @@ void APB::WebServer::setup() {
 
     new Task(1000, TASK_FOREVER, [this](){
         eventsDocument.clear();
-        if(Ambient::Instance.isInitialised()) {
+        if(Ambient::Instance.reading().has_value()) {
             populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
         } else {
             eventsDocument["ambient"] = static_cast<char*>(0);
@@ -238,6 +240,71 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
     JsonResponse response(request, 200);
     populatePowerStatus(response.document.to<JsonObject>());
 }
+
+void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
+    MetricsResponse metricsResponse(request, MetricsResponse::Labels().add("source", Settings::Instance.apConfiguration().essid));
+    const auto powerMonitorReading = PowerMonitor::Instance.status();
+    metricsResponse
+        .gauge("powermonitor", powerMonitorReading.busVoltage, MetricsResponse::Labels().unit("V").field("voltage"))
+        .gauge("powermonitor", powerMonitorReading.current, MetricsResponse::Labels().unit("A").field("current"), nullptr, false)
+        .gauge("powermonitor", powerMonitorReading.power, MetricsResponse::Labels().unit("W").field("power"), nullptr, false);
+    
+    const auto ambientReading = Ambient::Instance.reading();
+    if(ambientReading.has_value()) {
+        // Log.traceln("adding ambient metrics data: T=%d, H=%d, D=%d", ambientReading->temperature, ambientReading->humidity, ambientReading->dewpoint());
+        metricsResponse
+            .gauge("ambient", ambientReading->temperature, MetricsResponse::Labels().unit("°C").field("temperature"))
+            .gauge("ambient", ambientReading->humidity, MetricsResponse::Labels().unit("%").field("humidity"), nullptr, false)
+            .gauge("ambient", ambientReading->dewpoint(), MetricsResponse::Labels().unit("°C").field("dewpoint"), nullptr, false);
+    }
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        metricsResponse.gauge("heater", heater.duty(), MetricsResponse::Labels()
+            .add("index", String(heater.index()).c_str())
+            .field("duty")
+            .add("mode", heater.mode()._to_string()), nullptr, index++==0);
+    });
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        metricsResponse.gauge("heater", heater.active(), MetricsResponse::Labels()
+            .add("index", String(heater.index()).c_str())
+            .field("active")
+            .add("mode", heater.mode()._to_string()), nullptr, false);
+    });
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        if(heater.temperature().has_value()) {
+            metricsResponse.gauge("heater", heater.temperature().value(), MetricsResponse::Labels()
+                .add("index", String(heater.index()).c_str())
+                .unit("°C")
+                .field("temperature")
+                .add("mode", heater.mode()._to_string()), nullptr, false);
+        }
+    });
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        if(heater.targetTemperature().has_value()) {
+            metricsResponse.gauge("heater_target_temperature", heater.targetTemperature().value(), MetricsResponse::Labels()
+                .add("index", String(heater.index()).c_str())
+                .field("target_temperature")
+                .unit("°C")
+                .add("mode", heater.mode()._to_string()), nullptr, false);
+        }
+    });
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        if(heater.dewpointOffset().has_value()) {
+            metricsResponse.gauge("heater_dewpoint_offset", heater.dewpointOffset().value(), MetricsResponse::Labels()
+                .add("index", String(heater.index()).c_str())
+                .field("dewpoint_offset")
+                .unit("°C")
+                .add("mode", heater.mode()._to_string()), nullptr, false);
+        }
+    });
+
+
+    metricsResponse.gauge("heap", ESP.getFreeHeap(), MetricsResponse::Labels().field("free"));
+    metricsResponse.gauge("heap", ESP.getHeapSize(), MetricsResponse::Labels().field("size"), nullptr, false);
+    metricsResponse.gauge("heap", ESP.getMinFreeHeap(), MetricsResponse::Labels().field("min_free"), nullptr, false);
+    metricsResponse.gauge("heap", ESP.getMaxAllocHeap(), MetricsResponse::Labels().field("max_alloc"), nullptr, false);
+    metricsResponse.gauge("uptime", esp_timer_get_time() / 1000'000.0);
+}
+
 
 
 void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {

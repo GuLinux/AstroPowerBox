@@ -2,9 +2,11 @@
 #include <ArduinoLog.h>
 #include "utils.h"
 #include <iterator>
+#include "configuration.h"
 #include <memory>
 
 APB::History &APB::History::Instance = *new APB::History{};
+
 
 APB::History::History() {
 }
@@ -85,7 +87,7 @@ void APB::History::add() {
     entry.heaters[i].set(APB::Heaters::Instance[i]);
   }
 #endif
-  entry.setPower(APB::PowerMonitor::Instance.status());
+  entry.setPower(PowerMonitor::Instance.status());
 
   _entries.push_back(entry);
   while(_entries.size() > maxSize) {
