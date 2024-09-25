@@ -1,7 +1,9 @@
+#include <WiFi.h>
+
 #include "asyncbufferedtcplogger.h"
 #include "configuration.h"
 
-APB::AsyncBufferedTCPLogger::AsyncBufferedTCPLogger(AsyncServer & loggerServer) {
+APB::AsyncBufferedTCPLogger::AsyncBufferedTCPLogger(uint16_t port) : loggerServer{port} {
     loggerServer.onClient([this](void *,AsyncClient *c){
       this->client = c;
       if(!this->backlog.empty()) {
@@ -13,6 +15,23 @@ APB::AsyncBufferedTCPLogger::AsyncBufferedTCPLogger(AsyncServer & loggerServer) 
         c->write("==== Backlog finished ====\n");
       }
     }, nullptr);
+}
+
+void APB::AsyncBufferedTCPLogger::setup() {
+  WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info){
+    switch (event) {
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_START:
+      this->loggerServer.begin();
+      break;
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+      this->loggerServer.end();
+      this->client = nullptr;
+    default:
+      break;
+    }
+  });
 }
 
 #include "utils.h"
