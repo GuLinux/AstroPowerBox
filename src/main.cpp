@@ -23,7 +23,7 @@
 Scheduler scheduler;
 
 
-APB::AsyncBufferedTCPLogger bufferedLogger{9911};
+APB::AsyncBufferedTCPLogger bufferedLogger{9911, APB_NETWORK_LOGGER_BACKLOG };
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;

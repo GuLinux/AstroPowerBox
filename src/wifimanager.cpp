@@ -2,10 +2,6 @@
 #include <ArduinoLog.h>
 #include <WiFi.h>
 
-#include "time.h"
-#include "esp_sntp.h"
-
-
 #define LOG_SCOPE "APB::WiFiManager:"
 
 using namespace std::placeholders;
