@@ -21,10 +21,9 @@
 #include "influxdb.h"
 
 Scheduler scheduler;
-AsyncServer loggerServer{9911};
 
 
-APB::AsyncBufferedTCPLogger bufferedLogger{loggerServer};
+APB::AsyncBufferedTCPLogger bufferedLogger{9911};
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;
@@ -49,10 +48,12 @@ void setup() {
   delay(BOOT_DELAY);
   #endif
 
+  bufferedLogger.setup();
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
+  Log.addHandler(&bufferedLogger);
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
   
-  Log.addHandler(&bufferedLogger);
+  
 
   LittleFS.begin();
   APB::Settings::Instance.setup();
@@ -61,7 +62,6 @@ void setup() {
   APB::StatusLed::Instance.setup();
   
   APB::WiFiManager::Instance.setup(scheduler);
-  loggerServer.begin();
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);
