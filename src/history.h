@@ -69,7 +69,7 @@ public:
         bool footerCreated = false;
         bool firstEntrySent = false;
         Entries::iterator it;
-        StaticJsonDocument<512> jsonDocument;
+        JsonDocument jsonDocument;
         size_t currentIndex = 0;
         std::unique_ptr<OverflowPrint> overflowPrint;
     };

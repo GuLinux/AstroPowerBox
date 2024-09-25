@@ -49,7 +49,7 @@ void APB::WebServer::setup() {
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
-        JsonResponse response(request, 100);
+        JsonResponse response(request);
         response.document["status"] = "Dropping WiFi";
     });
     #endif
@@ -71,13 +71,13 @@ void APB::WebServer::setup() {
     new Task(1000, TASK_FOREVER, [this](){
         eventsDocument.clear();
         if(Ambient::Instance.reading().has_value()) {
-            populateAmbientStatus(eventsDocument.createNestedObject("ambient"));
+            populateAmbientStatus(eventsDocument["ambient"].to<JsonObject>());
         } else {
             eventsDocument["ambient"] = static_cast<char*>(0);
         }
         
-        populatePowerStatus(eventsDocument.createNestedObject("power"));
-        populateHeatersStatus(eventsDocument.createNestedArray("heaters"));
+        populatePowerStatus(eventsDocument["power"].to<JsonObject>());
+        populateHeatersStatus(eventsDocument["heaters"].to<JsonArray>());
         eventsDocument["app"]["uptime"] = esp_timer_get_time() / 1000'000.0;
         serializeJson(eventsDocument, eventsString.data(), eventsString.size());
         this->events.send(eventsString.data(), "status", millis(), 5000);
@@ -86,13 +86,13 @@ void APB::WebServer::setup() {
 
 
 void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 100);
+    JsonResponse response(request);
     response.document["status"] = "restarting";
     new Task(1000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
 }
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 500);
+    JsonResponse response(request);
     response.document["status"] = "ok";
     response.document["uptime"] = esp_timer_get_time() / 1000'000.0;
 
@@ -102,7 +102,7 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 600);
+    JsonResponse response(request);
     response.document["accessPoint"]["essid"] = Settings::Instance.apConfiguration().essid;
     response.document["accessPoint"]["psk"] = Settings::Instance.apConfiguration().psk;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
@@ -124,7 +124,7 @@ void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 500, 404);
+    JsonResponse response(request, 404);
     response.document["error"] = "NotFound";
     response.document["url"] = request->url();
 }
@@ -135,7 +135,7 @@ void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVar
         Settings::Instance.setAPConfiguration("", "");
     }
     if(request->method() == HTTP_POST) {
-        if(Validation{request, json}.required({"essid", "psk"}).notEmpty("essid").invalid()) return;
+        if(Validation{request, json}.required<const char*>({"essid", "psk"}).notEmpty("essid").invalid()) return;
 
         String essid = json["essid"];
         String psk = json["psk"];
@@ -151,10 +151,10 @@ void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVar
 
 void APB::WebServer::onConfigStation(AsyncWebServerRequest *request, JsonVariant &json) {
     Validation validation{request, json};
-    validation.required("index").range("index", {0}, {APB_MAX_STATIONS-1});
+    validation.required<int>("index").range("index", {0}, {APB_MAX_STATIONS-1});
 
     if(request->method() == HTTP_POST) {
-        validation.required({"essid", "psk"}).notEmpty("essid");
+        validation.required<const char*>({"essid", "psk"}).notEmpty("essid");
     }
     if(validation.invalid()) return;
     int stationIndex = json["index"];
@@ -176,7 +176,7 @@ void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 100);
+    JsonResponse response(request);
     response.document["wifi"]["status"] = WiFiManager::Instance.statusAsString();
     response.document["wifi"]["essid"] = WiFiManager::Instance.essid();
     response.document["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
@@ -193,14 +193,14 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
         JsonResponse::error(500, "Ambient reading not available", request);
         return;
     }
-    JsonResponse response(request, 100);
+    JsonResponse response(request);
     populateAmbientStatus(response.document.to<JsonObject>());
 }
 
 
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
-    JsonResponse response(request, Heaters::Instance.size() * 100);
+    JsonResponse response(request);
     populateHeatersStatus(response.document.to<JsonArray>());
 }
 
@@ -237,7 +237,7 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
         JsonResponse::error(500, "Power reading not available", request);
         return;
     }
-    JsonResponse response(request, 200);
+    JsonResponse response(request);
     populatePowerStatus(response.document.to<JsonObject>());
 }
 
@@ -308,7 +308,7 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
 
 
 void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 500);
+    JsonResponse response(request);
     response.document["mem"]["freeHeap"] = ESP.getFreeHeap();
     response.document["mem"]["freePsRam"] = ESP.getFreePsram();
     response.document["mem"]["heapSize"] = ESP.getHeapSize();
@@ -328,7 +328,7 @@ void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json) {
     Validation validation{request, json};
-    if(validation.required({"index", "mode"})
+    if(validation.required<int>("index").required<const char*>("mode")
         .range("index", {0}, {Heaters::Instance.size()-1})
         .range("duty", {0}, {1})
         .choice("mode", Heater::validModes()).invalid()) return;
@@ -340,7 +340,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         return;
     }
     
-    if(validation.range("duty", {0}, {1}).required("duty").invalid()) return;
+    if(validation.range("duty", {0}, {1}).required<float>("duty").invalid()) return;
     float duty = json["duty"];
     static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
     static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
@@ -349,7 +349,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         heater.setDuty(json["duty"]);
     }
     if(mode == Heater::Mode::dewpoint) {
-        if(validation.range("dewpoint_offset", {-30}, {30}).required("dewpoint_offset").invalid()) return;
+        if(validation.range("dewpoint_offset", {-30}, {30}).required<float>("dewpoint_offset").invalid()) return;
         float dewpointOffset = json["dewpoint_offset"];
         if(!heater.setDewpoint(dewpointOffset, duty)) {
             JsonResponse::error(500, dewpointTemperatureErrorMessage, request);
@@ -357,7 +357,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         }
     }
     if(mode == Heater::Mode::target_temperature) {
-        if(validation.range("target_temperature", {-50}, {50}).required("target_temperature").invalid()) return;
+        if(validation.range("target_temperature", {-50}, {50}).required<float>("target_temperature").invalid()) return;
         float targetTemperature = json["target_temperature"];
         if(!heater.setTemperature(targetTemperature, duty)) {
             JsonResponse::error(500, temperatureErrorMessage, request);
@@ -369,11 +369,11 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
 
 void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json) {
     Validation validation{request, json};
-    if(validation.required({"duty"})
+    if(validation.required<float>("duty")
         .range("duty", {0}, {1})
         .invalid()) return;
     StatusLed::Instance.setDuty(json["duty"]);
-    JsonResponse response(request, 100);
+    JsonResponse response(request);
     response.document["duty"] = StatusLed::Instance.duty();
 }
 
