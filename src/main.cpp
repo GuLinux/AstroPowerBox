@@ -17,13 +17,13 @@
 #include "statusled.h"
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
-#include "asyncbufferedtcplogger.h"
+#include <asyncbufferedtcplogger.h>
 #include "influxdb.h"
 
 Scheduler scheduler;
 
 
-APB::AsyncBufferedTCPLogger bufferedLogger{9911, APB_NETWORK_LOGGER_BACKLOG };
+AsyncBufferedTCPLogger bufferedLogger{9911, APB_NETWORK_LOGGER_BACKLOG };
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;
