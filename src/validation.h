@@ -62,6 +62,7 @@ struct Validation {
         }
         return *this;
     }
+    
     Validation &notEmpty(const char *key) {
         if(valid() && json.containsKey(key) && json[key].as<String>().isEmpty()) {
             sprintf(errorMessage, "Parameter `%s` must not be empty", key);

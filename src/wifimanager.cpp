@@ -135,7 +135,26 @@ void APB::WiFiManager::addOnConnectedListener(const OnConnectCallback &onConnect
     onConnectedCallbacks.push_back(onConnected);
 }
 
-String APB::WiFiManager::essid() const {
+const char *APB::WiFiManager::statusAsString() const
+{
+    switch (_status) {
+    case Status::AccessPoint:
+        return "AccessPoint";
+    case Status::Connecting:
+        return "Connecting";
+    case Status::Error:
+        return "Error";
+    case Status::Idle:
+        return "Idle";
+    case Status::Station:
+        return "Station";
+    default:
+        return "N/A";
+    }
+}
+
+String APB::WiFiManager::essid() const
+{
     if(_status == +Status::Station) {
         return WiFi.SSID();
     }

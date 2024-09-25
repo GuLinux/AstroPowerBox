@@ -2,7 +2,6 @@
 #define APB_POWERMONITOR_H
 
 #include <optional>
-#include <enum.h>
 #include <memory>
 #include <TaskSchedulerDeclarations.h>
 

@@ -2,15 +2,16 @@
 #define APB_HEATER_H
 
 #include <optional>
-#include <enum.h>
 #include <memory>
 #include <TaskSchedulerDeclarations.h>
+#include <forward_list>
+#include <unordered_map>
 
 #include "configuration.h"
 #include "ambient/ambient.h"
 
 namespace APB {
-BETTER_ENUM(Heater_Mode, uint8_t, off, fixed, target_temperature, dewpoint)
+
 class Heater;
 namespace Heaters {
     using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
@@ -23,8 +24,9 @@ public:
     using GetTargetTemperature = std::function<std::optional<float>()>;
     Heater();
     ~Heater();
-    using Mode = Heater_Mode;
+    enum Mode { off, fixed, target_temperature, dewpoint };
     void setup(uint8_t index, Scheduler &scheduler);
+    
     float duty() const;
     void setDuty(float duty);
     bool setTemperature(float targetTemperature, float maxDuty=1);
@@ -35,6 +37,9 @@ public:
     bool active() const;
 
     Mode mode() const;
+    static std::forward_list<String> validModes();
+    static Mode modeFromString(const String &mode);
+    const String modeAsString() const;
     uint8_t index() const;
 private:
     struct Private;
