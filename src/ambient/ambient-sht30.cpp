@@ -2,12 +2,12 @@
 #ifdef APB_AMBIENT_TEMPERATURE_SENSOR_SHT30
 
 #include <SHT85.h>
-#include <map>
+#include <unordered_map>
 
 namespace {
 SHT30 sht = SHT30{APB_AMBIENT_TEMPERATURE_SENSOR_I2C_ADDRESS};
 void logSHT30Error(const char *phase) {
-  static const std::map<uint8_t, String> SHT_ERRORS {
+  static const std::unordered_map<uint8_t, String> SHT_ERRORS {
     { SHT_OK, "no error" },
     { SHT_ERR_WRITECMD, "I2C write failed" },
     { SHT_ERR_READBYTES, "I2C read failed" },

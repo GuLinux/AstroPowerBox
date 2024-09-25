@@ -7,7 +7,6 @@
 #include <vector>
 #include "settings.h"
 #include <TaskSchedulerDeclarations.h>
-#include <map>
 
 namespace APB {
 BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessPoint, Error)
