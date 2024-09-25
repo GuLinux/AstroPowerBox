@@ -50,7 +50,7 @@ void APB::WebServer::setup() {
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
         JsonResponse response(request);
-        response.document["status"] = "Dropping WiFi";
+        response.root()["status"] = "Dropping WiFi";
     });
     #endif
     server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
@@ -87,30 +87,30 @@ void APB::WebServer::setup() {
 
 void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.document["status"] = "restarting";
+    response.root()["status"] = "restarting";
     new Task(1000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
 }
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.document["status"] = "ok";
-    response.document["uptime"] = esp_timer_get_time() / 1000'000.0;
+    response.root()["status"] = "ok";
+    response.root()["uptime"] = esp_timer_get_time() / 1000'000.0;
 
-    response.document["has_power_monitor"] = PowerMonitor::Instance.status().initialised;
-    response.document["has_ambient_sensor"] = Ambient::Instance.isInitialised();
-    response.document["has_serial"] = static_cast<bool>(Serial);
+    response.root()["has_power_monitor"] = PowerMonitor::Instance.status().initialised;
+    response.root()["has_ambient_sensor"] = Ambient::Instance.isInitialised();
+    response.root()["has_serial"] = static_cast<bool>(Serial);
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.document["accessPoint"]["essid"] = Settings::Instance.apConfiguration().essid;
-    response.document["accessPoint"]["psk"] = Settings::Instance.apConfiguration().psk;
+    response.root()["accessPoint"]["essid"] = Settings::Instance.apConfiguration().essid;
+    response.root()["accessPoint"]["psk"] = Settings::Instance.apConfiguration().psk;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
         auto station = Settings::Instance.station(i);
-        response.document["stations"][i]["essid"] = station.essid;
-        response.document["stations"][i]["psk"] = station.psk;
+        response.root()["stations"][i]["essid"] = station.essid;
+        response.root()["stations"][i]["psk"] = station.psk;
     }
-    response.document["ledDuty"] = Settings::Instance.statusLedDuty();
+    response.root()["ledDuty"] = Settings::Instance.statusLedDuty();
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
@@ -125,8 +125,8 @@ void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
     JsonResponse response(request, 404);
-    response.document["error"] = "NotFound";
-    response.document["url"] = request->url();
+    response.root()["error"] = "NotFound";
+    response.root()["url"] = request->url();
 }
 
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
@@ -177,10 +177,10 @@ void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.document["wifi"]["status"] = WiFiManager::Instance.statusAsString();
-    response.document["wifi"]["essid"] = WiFiManager::Instance.essid();
-    response.document["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
-    response.document["wifi"]["gateway"] = WiFiManager::Instance.gateway();
+    response.root()["wifi"]["status"] = WiFiManager::Instance.statusAsString();
+    response.root()["wifi"]["essid"] = WiFiManager::Instance.essid();
+    response.root()["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
+    response.root()["wifi"]["gateway"] = WiFiManager::Instance.gateway();
 }
 
 void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
@@ -194,14 +194,14 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request);
-    populateAmbientStatus(response.document.to<JsonObject>());
+    populateAmbientStatus(response.root().to<JsonObject>());
 }
 
 
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    populateHeatersStatus(response.document.to<JsonArray>());
+    populateHeatersStatus(response.root().to<JsonArray>());
 }
 
 void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
@@ -238,7 +238,7 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request);
-    populatePowerStatus(response.document.to<JsonObject>());
+    populatePowerStatus(response.root().to<JsonObject>());
 }
 
 void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
@@ -309,21 +309,21 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.document["mem"]["freeHeap"] = ESP.getFreeHeap();
-    response.document["mem"]["freePsRam"] = ESP.getFreePsram();
-    response.document["mem"]["heapSize"] = ESP.getHeapSize();
-    response.document["mem"]["psRamSize"] = ESP.getPsramSize();
-    response.document["mem"]["usedHeap"] = ESP.getHeapSize() - ESP.getFreeHeap();
-    response.document["mem"]["usedPsRam"] = ESP.getPsramSize() - ESP.getFreePsram();
-    response.document["mem"]["maxAllocHeap"] = ESP.getMaxAllocHeap();
-    response.document["mem"]["maxAllocPsRam"] = ESP.getMaxAllocPsram();
-    response.document["sketch"]["MD5"] = ESP.getSketchMD5();
-    response.document["sketch"]["size"] = ESP.getSketchSize();
-    response.document["sketch"]["totalSpace"] = ESP.getFreeSketchSpace();
-    response.document["sketch"]["sdkVersion"] = ESP.getSdkVersion();
-    response.document["esp"]["chipModel"] = ESP.getChipModel();
-    response.document["esp"]["chipCores"] = ESP.getChipCores();
-    response.document["esp"]["cpuFreqMHz"] = ESP.getCpuFreqMHz();
+    response.root()["mem"]["freeHeap"] = ESP.getFreeHeap();
+    response.root()["mem"]["freePsRam"] = ESP.getFreePsram();
+    response.root()["mem"]["heapSize"] = ESP.getHeapSize();
+    response.root()["mem"]["psRamSize"] = ESP.getPsramSize();
+    response.root()["mem"]["usedHeap"] = ESP.getHeapSize() - ESP.getFreeHeap();
+    response.root()["mem"]["usedPsRam"] = ESP.getPsramSize() - ESP.getFreePsram();
+    response.root()["mem"]["maxAllocHeap"] = ESP.getMaxAllocHeap();
+    response.root()["mem"]["maxAllocPsRam"] = ESP.getMaxAllocPsram();
+    response.root()["sketch"]["MD5"] = ESP.getSketchMD5();
+    response.root()["sketch"]["size"] = ESP.getSketchSize();
+    response.root()["sketch"]["totalSpace"] = ESP.getFreeSketchSpace();
+    response.root()["sketch"]["sdkVersion"] = ESP.getSdkVersion();
+    response.root()["esp"]["chipModel"] = ESP.getChipModel();
+    response.root()["esp"]["chipCores"] = ESP.getChipCores();
+    response.root()["esp"]["cpuFreqMHz"] = ESP.getCpuFreqMHz();
 }
 
 void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json) {
@@ -374,7 +374,7 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
         .invalid()) return;
     StatusLed::Instance.setDuty(json["duty"]);
     JsonResponse response(request);
-    response.document["duty"] = StatusLed::Instance.duty();
+    response.root()["duty"] = StatusLed::Instance.duty();
 }
 
 void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {

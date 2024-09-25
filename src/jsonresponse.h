@@ -8,24 +8,28 @@
 
 namespace APB {   
     struct JsonResponse {
-        JsonResponse(AsyncWebServerRequest *request, int statusCode=200)
-            : document{}, request{request}, statusCode{statusCode} {
+        JsonResponse(AsyncWebServerRequest *request, int statusCode=200, bool isArray = false)
+            : request{request}, statusCode{statusCode} {
+            response = new AsyncJsonResponse(isArray);
+        }
+
+        JsonVariant &root() {
+            return response->getRoot();
         }
 
         ~JsonResponse() {
-            AsyncResponseStream *response = request->beginResponseStream(JSON_CONTENT_TYPE);
-            serializeJson(document, *response);
             response->setCode(statusCode);
+            response->setLength();
             request->send(response);
         }
 
-        ArduinoJson::JsonDocument document;
         AsyncWebServerRequest *request;
+        AsyncJsonResponse *response;
         int statusCode;
 
         static JsonResponse error(int statusCode, const String &errorMessage, AsyncWebServerRequest *request) {
             JsonResponse response(request, statusCode);
-            response.document["error"] = errorMessage;
+            response.root()["error"] = errorMessage;
             return response;
         }
     };
