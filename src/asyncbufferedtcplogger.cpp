@@ -3,9 +3,12 @@
 #include "asyncbufferedtcplogger.h"
 #include "configuration.h"
 
-APB::AsyncBufferedTCPLogger::AsyncBufferedTCPLogger(uint16_t port) : loggerServer{port} {
+APB::AsyncBufferedTCPLogger::AsyncBufferedTCPLogger(uint16_t port, uint16_t backlog_lines) : loggerServer{port}, backlog_lines{backlog_lines} {
     loggerServer.onClient([this](void *,AsyncClient *c){
       this->client = c;
+      c->onDisconnect([this](void *,AsyncClient *){
+        this->client = nullptr;
+      }, nullptr);
       if(!this->backlog.empty()) {
         c->write("==== Flushing backlog ====\n");
         while(!this->backlog.empty()) {
@@ -34,16 +37,18 @@ void APB::AsyncBufferedTCPLogger::setup() {
   });
 }
 
-#include "utils.h"
 size_t APB::AsyncBufferedTCPLogger::write(uint8_t c) {
     buffer[currentPosition++] = c;
     if(c == '\n') {
-      ScopeGuard resetBuffer(std::bind(&AsyncBufferedTCPLogger::reset, this));
       if(!client) {
-        return fillBacklog();
+        fillBacklog();
+        reset();
+        return 0;
       }
       client->write(buffer.data(), currentPosition);
+      reset();
     }
+    
     return 1;
 }
 
@@ -52,12 +57,11 @@ void APB::AsyncBufferedTCPLogger::reset() {
     currentPosition = 0;
 }
 
-size_t APB::AsyncBufferedTCPLogger::fillBacklog() {
-  #if APB_NETWORK_LOGGER_BACKLOG > 0
+void APB::AsyncBufferedTCPLogger::fillBacklog() {
+  if (backlog_lines > 0) {
     backlog.push(String{buffer.data()});
-    while(backlog.size() > APB_NETWORK_LOGGER_BACKLOG) {
+    while(backlog.size() > backlog_lines) {
       backlog.pop();
     }
-  #endif
-    return 0;
+  }
 }
