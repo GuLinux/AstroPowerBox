@@ -2,24 +2,24 @@
 #define APB_WIFIMANAGER_H
 
 #include <WiFiMulti.h>
-#include <enum.h>
 #include <statusled.h>
 #include <vector>
 #include "settings.h"
 #include <TaskSchedulerDeclarations.h>
 
 namespace APB {
-BETTER_ENUM(WifiManager_WiFi_Status, uint8_t, Idle, Connecting, Station, AccessPoint, Error)
+
 class WiFiManager {
 public:
     using OnConnectCallback = std::function<void()>;
     static WiFiManager &Instance;
-    using Status = WifiManager_WiFi_Status;
+    enum Status { Idle, Connecting, Station, AccessPoint, Error };
     WiFiManager();
     void setup(Scheduler &scheduler);
     
     void reconnect() { scheduleReconnect = true; }
     Status status() const { return _status; }
+    const char *statusAsString() const;
     String essid() const;
     String ipAddress() const;
     String gateway() const;

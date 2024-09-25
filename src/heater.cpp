@@ -45,7 +45,18 @@ struct APB::Heater::Private {
     NTC_Thermistor *ntcThermistor;
     std::unique_ptr<SmoothThermistor> smoothThermistor;
 #endif
+
+    static std::unordered_map<Heater::Mode, String> modesToString;
 };
+
+std::unordered_map<APB::Heater::Mode, String> APB::Heater::Private::modesToString = {
+    { APB::Heater::Mode::off, "off" },
+    { APB::Heater::Mode::dewpoint, "dewpoint" },
+    { APB::Heater::Mode::fixed, "fixed" },
+    { APB::Heater::Mode::target_temperature, "target_temperature" },
+};
+
+
 
 APB::Heater::Heater() : d{std::make_shared<Private>()} {
     d->q = this;
@@ -66,6 +77,25 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     
     Log.infoln("%s Heater initialised", d->log_scope);
 
+}
+std::forward_list<String> APB::Heater::validModes() {
+    static std::forward_list<String> keys;
+    if(keys.empty())
+        std::transform(Private::modesToString.begin(), Private::modesToString.end(), std::front_inserter(keys), [](const auto &i) { return i.second; });
+    return keys;
+}
+
+APB::Heater::Mode APB::Heater::modeFromString(const String &mode) {
+    const auto found = std::find_if(Private::modesToString.begin(), Private::modesToString.end(), [&mode](const auto item){ return mode == item.second; });
+    if(found == Private::modesToString.end()) {
+        return Mode::off;
+    }
+    return found->first; 
+}
+
+const String APB::Heater::modeAsString() const
+{
+    return Private::modesToString[mode()];
 }
 
 float APB::Heater::duty() const {
@@ -120,14 +150,14 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty) {
 }
 
 std::optional<float> APB::Heater::targetTemperature() const {
-    if(d->mode != +Heater::Mode::target_temperature) {
+    if(d->mode != Heater::Mode::target_temperature) {
         return {};
     }
     return {d->targetTemperature};
 }
 
 std::optional<float> APB::Heater::dewpointOffset() const {
-    if(d->mode != +Heater::Mode::dewpoint) {
+    if(d->mode != Heater::Mode::dewpoint) {
         return {};
     }
     return {d->dewpointOffset};
@@ -150,17 +180,17 @@ void APB::Heater::Private::loop()
     if(temperature.has_value() && temperature.value() < -50) {
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         temperature = {};
-        if(mode == +Heater::Mode::dewpoint || mode == +Heater::Mode::target_temperature) {
+        if(mode == Heater::Mode::dewpoint || mode == Heater::Mode::target_temperature) {
             Log.warningln("%s Lost temperature sensor, switching off.", log_scope);
             mode = Heater::Mode::off;
         }
     }
 
-    if(mode == +Heater::Mode::fixed) {
+    if(mode == Heater::Mode::fixed) {
         setDuty(pwm);
         return;
     }
-    if(mode == +Heater::Mode::off) {
+    if(mode == Heater::Mode::off) {
         setDuty(0);
         return;
     }
@@ -172,10 +202,10 @@ void APB::Heater::Private::loop()
     }
 
     float targetTemperature;
-    if(mode == +Heater::Mode::target_temperature) {
+    if(mode == Heater::Mode::target_temperature) {
         targetTemperature = this->targetTemperature;
     }
-    if(mode == +Heater::Mode::dewpoint) {
+    if(mode == Heater::Mode::dewpoint) {
         if(!Ambient::Instance.reading()) {
             Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
             q->setDuty(0);
@@ -221,9 +251,9 @@ void APB::Heater::Private::setup() {
 
 void APB::Heater::Private::readTemperature() {
     auto rawValue = analogRead(pinout->thermistor);
-    Log.infoln("Thermistor %d raw value for pin %d: %d", index, pinout->thermistor, rawValue);
+    // Log.infoln("Thermistor %d raw value for pin %d: %d", index, pinout->thermistor, rawValue);
     temperature = smoothThermistor->temperature();
-    Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
+    // Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
 }
 
 float APB::Heater::Private::getDuty() const {
