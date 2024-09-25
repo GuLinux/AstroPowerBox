@@ -98,7 +98,7 @@ void APB::Settings::loadDefaults() {
 void APB::Settings::loadDefaultStations() {
     if(LittleFS.exists("/wifi.json")) {
         fs::File wifiJson = LittleFS.open("/wifi.json");
-        StaticJsonDocument<512> doc;
+        JsonDocument doc;
         DeserializationError error = deserializeJson(doc, wifiJson);
         if (error) {
             Log.warningln(F("Failed to read file \"/wifi.json\", using empty wifi configuration"));

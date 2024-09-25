@@ -2,7 +2,7 @@
 #include <ArduinoLog.h>
 #include <WiFi.h>
 
-#define LOG_SCOPE "APB::WiFiManager:"
+#define LOG_SCOPE "WiFiManager:"
 
 using namespace std::placeholders;
 

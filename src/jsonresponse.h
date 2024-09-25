@@ -8,8 +8,8 @@
 
 namespace APB {   
     struct JsonResponse {
-        JsonResponse(AsyncWebServerRequest *request, size_t bufferSize=512, int statusCode=200)
-            : document(bufferSize), request{request}, statusCode{statusCode} {
+        JsonResponse(AsyncWebServerRequest *request, int statusCode=200)
+            : document{}, request{request}, statusCode{statusCode} {
         }
 
         ~JsonResponse() {
@@ -19,12 +19,12 @@ namespace APB {
             request->send(response);
         }
 
-        ArduinoJson::DynamicJsonDocument document;
+        ArduinoJson::JsonDocument document;
         AsyncWebServerRequest *request;
         int statusCode;
 
-        static JsonResponse error(int statusCode, const String &errorMessage, AsyncWebServerRequest *request, size_t bufferSize=512) {
-            JsonResponse response(request, bufferSize, statusCode);
+        static JsonResponse error(int statusCode, const String &errorMessage, AsyncWebServerRequest *request) {
+            JsonResponse response(request, statusCode);
             response.document["error"] = errorMessage;
             return response;
         }
