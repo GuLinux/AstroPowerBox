@@ -155,7 +155,7 @@ String APB::WiFiManager::essid() const
         return WiFi.SSID();
     }
     if(_status == +Status::AccessPoint) {
-        return Settings::Instance.apConfiguration().essid;
+        return WiFi.softAPSSID();
     }
     return "N/A";
 }
