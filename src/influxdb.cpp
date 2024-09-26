@@ -18,7 +18,7 @@ APB::InfluxDb &APB::InfluxDb::Instance = *new APB::InfluxDb{};
 #define TZ_INFO "UTC1"
 
 void setPointSource(Point &point) {
-    point.addTag("source", APB::Settings::Instance.apConfiguration().essid);
+    point.addTag("source", APB::Settings::Instance.wifi().hostname());
 }
 
 InfluxDBClient influxDbClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);

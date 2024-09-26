@@ -103,10 +103,10 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.root()["accessPoint"]["essid"] = Settings::Instance.apConfiguration().essid;
-    response.root()["accessPoint"]["psk"] = Settings::Instance.apConfiguration().psk;
+    response.root()["accessPoint"]["essid"] = Settings::Instance.wifi().apConfiguration().essid;
+    response.root()["accessPoint"]["psk"] = Settings::Instance.wifi().apConfiguration().psk;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        auto station = Settings::Instance.station(i);
+        auto station = Settings::Instance.wifi().station(i);
         response.root()["stations"][i]["essid"] = station.essid;
         response.root()["stations"][i]["psk"] = station.psk;
     }
@@ -132,7 +132,7 @@ void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
 void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_DELETE) {
         Log.traceln(LOG_SCOPE "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
-        Settings::Instance.setAPConfiguration("", "");
+        Settings::Instance.wifi().setAPConfiguration("", "");
     }
     if(request->method() == HTTP_POST) {
         if(Validation{request, json}.required<const char*>({"essid", "psk"}).notEmpty("essid").invalid()) return;
@@ -141,7 +141,7 @@ void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVar
         String psk = json["psk"];
         Log.traceln(LOG_SCOPE "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
             essid.c_str(), psk.c_str(), request->method(), request->methodToString());
-        Settings::Instance.setAPConfiguration(essid.c_str(), psk.c_str());
+        Settings::Instance.wifi().setAPConfiguration(essid.c_str(), psk.c_str());
 
     }
     onGetConfig(request);
@@ -163,9 +163,9 @@ void APB::WebServer::onConfigStation(AsyncWebServerRequest *request, JsonVariant
     Log.traceln(LOG_SCOPE "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
         stationIndex, essid.c_str(), psk.c_str(), request->method(), request->methodToString());
     if(request->method() == HTTP_POST) {
-        Settings::Instance.setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
+        Settings::Instance.wifi().setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
     } else if(request->method() == HTTP_DELETE) {
-        Settings::Instance.setStationConfiguration(stationIndex, "", "");
+        Settings::Instance.wifi().setStationConfiguration(stationIndex, "", "");
     }
     onGetConfig(request);
 }
@@ -242,7 +242,7 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
-    MetricsResponse metricsResponse(request, MetricsResponse::Labels().add("source", Settings::Instance.apConfiguration().essid));
+    MetricsResponse metricsResponse(request, MetricsResponse::Labels().add("source", Settings::Instance.wifi().hostname()));
     const auto powerMonitorReading = PowerMonitor::Instance.status();
     metricsResponse
         .gauge("powermonitor", powerMonitorReading.busVoltage, MetricsResponse::Labels().unit("V").field("voltage"))
