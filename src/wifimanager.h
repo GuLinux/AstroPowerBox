@@ -6,6 +6,7 @@
 #include <vector>
 #include "settings.h"
 #include <TaskSchedulerDeclarations.h>
+#include "wifisettings.h"
 
 namespace APB {
 
@@ -26,6 +27,7 @@ public:
     void loop();
     void addOnConnectedListener(const OnConnectCallback &onConnected);
 private:
+    GuLinux::WiFiSettings *wifiSettings;
     WiFiMulti wifiMulti;
     Status _status;
     bool scheduleReconnect = false;

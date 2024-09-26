@@ -25,7 +25,7 @@ void APB::WiFiManager::onScanDone(const wifi_event_sta_scan_done_t &scan_done) {
             return;
         }
         for(uint8_t i=0; i<scan_done.number; i++) {
-            if(Settings::Instance.hasStation(WiFi.SSID(i))) {
+            if(wifiSettings->hasStation(WiFi.SSID(i))) {
                 Log.infoln(LOG_SCOPE "[EVENT] Found at least one AP from configuration, scheduling reconnection");
                 scheduleReconnect = true;
                 return;
@@ -76,12 +76,13 @@ void APB::WiFiManager::onEvent(arduino_event_id_t event, arduino_event_info_t in
 
 void APB::WiFiManager::setup(Scheduler &scheduler) {
     Log.traceln(LOG_SCOPE "setup");
+    wifiSettings = &Settings::Instance.wifi();
     scheduler.addTask(rescanWiFiTask);
 
-    WiFi.setHostname(Settings::Instance.apConfiguration().essid);
+    WiFi.setHostname(wifiSettings->hostname());
     _status = Status::Connecting;
     for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        auto station = Settings::Instance.station(i);
+        auto station = wifiSettings->station(i);
         if(station) {
             Log.infoln(LOG_SCOPE "found valid station: %s", station.essid);
             wifiMulti.addAP(station.essid, station.psk);
@@ -93,14 +94,14 @@ void APB::WiFiManager::setup(Scheduler &scheduler) {
 
 void APB::WiFiManager::setApMode() {
     Log.infoln(LOG_SCOPE "Starting softAP with essid=`%s`, ip address=`%s`",
-            Settings::Instance.apConfiguration().essid, WiFi.softAPIP().toString().c_str());
-    WiFi.softAP(Settings::Instance.apConfiguration().essid, 
-        Settings::Instance.apConfiguration().open() ? nullptr : Settings::Instance.apConfiguration().psk);
+            wifiSettings->apConfiguration().essid, WiFi.softAPIP().toString().c_str());
+    WiFi.softAP(wifiSettings->apConfiguration().essid, 
+        wifiSettings->apConfiguration().open() ? nullptr : wifiSettings->apConfiguration().psk);
 }
 
 void APB::WiFiManager::connect() {
     connectionFailed = false;
-    bool hasValidStations = Settings::Instance.hasValidStations();
+    bool hasValidStations = wifiSettings->hasValidStations();
     if(!hasValidStations) {
         Log.warningln(LOG_SCOPE "No valid stations found");
         setApMode();
