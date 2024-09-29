@@ -16,10 +16,11 @@
 #include <LittleFS.h>
 #include <OneButton.h>
 #include "statusled.h"
-#include <ArduinoOTA.h>
 #include <AsyncTCP.h>
 #include <asyncbufferedtcplogger.h>
 #include "influxdb.h"
+#include <arduinoota-manager.h>
+#include <ArduinoOTA.h>
 
 Scheduler scheduler;
 
@@ -38,8 +39,6 @@ APB::WebServer webServer(scheduler);
 
 using namespace std::placeholders;
 using namespace GuLinux;
-
-void setupArduinoOTA();
 
 void setup() {
   Serial.begin(115200);
@@ -74,7 +73,7 @@ void setup() {
   std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
   
   webServer.setup();
-  setupArduinoOTA();
+  ArduinoOTAManager::Instance.setup(&LittleFS);
   APB::History::Instance.setup(scheduler);
 
 #ifdef ONEBUTTON_USER_BUTTON_1
@@ -94,46 +93,5 @@ void loop() {
 #ifdef ONEBUTTON_USER_BUTTON_1
   userButton.tick();
 #endif
-  ArduinoOTA.handle();
-}
-
-void setupArduinoOTA() {
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH) {
-        type = "sketch";
-      } else {  // U_SPIFFS
-        type = "filesystem";
-      }
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Log.infoln("Start updating %s", type.c_str());
-      LittleFS.end();
-    })
-    .onEnd([]() {
-      Log.infoln("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Log.infoln("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      String errorMessage;
-      if (error == OTA_AUTH_ERROR) {
-        errorMessage = "Auth Failed";
-      } else if (error == OTA_BEGIN_ERROR) {
-        errorMessage = "Begin Failed";
-      } else if (error == OTA_CONNECT_ERROR) {
-        errorMessage = "Connect Failed";
-      } else if (error == OTA_RECEIVE_ERROR) {
-        errorMessage = "Receive Failed";
-      } else if (error == OTA_END_ERROR) {
-        errorMessage = "End Failed";
-      } else {
-        errorMessage = "Unknown error";
-      }
-      Log.errorln("Error[%u]: %s", error, errorMessage.c_str());
-    });
-
-  ArduinoOTA.begin();
+  ArduinoOTAManager::Instance.loop();
 }
