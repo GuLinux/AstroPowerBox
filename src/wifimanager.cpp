@@ -1,6 +1,8 @@
 #include "wifimanager.h"
 #include <ArduinoLog.h>
 #include <WiFi.h>
+#include <jsonresponse.h>
+#include <validation.h>
 
 #define LOG_SCOPE "WiFiManager:"
 
@@ -175,3 +177,72 @@ String APB::WiFiManager::gateway() const {
     return "N/A"; 
 }
 
+void APB::WiFiManager::onGetConfig(AsyncWebServerRequest *request) {
+    JsonResponse response(request);
+    auto rootObject = response.root().to<JsonObject>();
+    onGetConfig(rootObject);
+}
+
+void APB::WiFiManager::onGetConfig(JsonObject &responseObject) {
+    responseObject["accessPoint"]["essid"] = wifiSettings->apConfiguration().essid;
+    responseObject["accessPoint"]["psk"] = wifiSettings->apConfiguration().psk;
+    for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
+        auto station = Settings::Instance.wifi().station(i);
+        responseObject["stations"][i]["essid"] = station.essid;
+        responseObject["stations"][i]["psk"] = station.psk;
+    }
+}
+
+void APB::WiFiManager::onGetWiFiStatus(AsyncWebServerRequest *request) {
+    JsonResponse response(request);
+    response.root()["wifi"]["status"] = WiFiManager::Instance.statusAsString();
+    response.root()["wifi"]["essid"] = WiFiManager::Instance.essid();
+    response.root()["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
+    response.root()["wifi"]["gateway"] = WiFiManager::Instance.gateway();
+}
+
+void APB::WiFiManager::onPostReconnectWiFi(AsyncWebServerRequest *request) {
+    reconnect();
+    onGetConfig(request);
+}
+
+void APB::WiFiManager::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
+    if(request->method() == HTTP_DELETE) {
+        Log.traceln(LOG_SCOPE "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
+        Settings::Instance.wifi().setAPConfiguration("", "");
+    }
+    if(request->method() == HTTP_POST) {
+        if(Validation{request, json}.required<const char*>({"essid", "psk"}).notEmpty("essid").invalid()) return;
+
+        String essid = json["essid"];
+        String psk = json["psk"];
+        Log.traceln(LOG_SCOPE "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
+            essid.c_str(), psk.c_str(), request->method(), request->methodToString());
+        Settings::Instance.wifi().setAPConfiguration(essid.c_str(), psk.c_str());
+
+    }
+    onGetConfig(request);
+}
+
+
+
+void APB::WiFiManager::onConfigStation(AsyncWebServerRequest *request, JsonVariant &json) {
+    Validation validation{request, json};
+    validation.required<int>("index").range("index", {0}, {APB_MAX_STATIONS-1});
+
+    if(request->method() == HTTP_POST) {
+        validation.required<const char*>({"essid", "psk"}).notEmpty("essid");
+    }
+    if(validation.invalid()) return;
+    int stationIndex = json["index"];
+    String essid = json["essid"];
+    String psk = json["psk"];
+    Log.traceln(LOG_SCOPE "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
+        stationIndex, essid.c_str(), psk.c_str(), request->method(), request->methodToString());
+    if(request->method() == HTTP_POST) {
+        Settings::Instance.wifi().setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
+    } else if(request->method() == HTTP_DELETE) {
+        Settings::Instance.wifi().setStationConfiguration(stationIndex, "", "");
+    }
+    onGetConfig(request);
+}

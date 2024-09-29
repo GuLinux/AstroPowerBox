@@ -27,15 +27,12 @@ private:
     JsonDocument eventsDocument;
     std::array<char, 800> eventsString;
 
+
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
     void onGetHistory(AsyncWebServerRequest *request);
     void onNotFound(AsyncWebServerRequest *request);
-    void onConfigStation(AsyncWebServerRequest *request, JsonVariant &json);
-    void onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json);
     void onPostWriteConfig(AsyncWebServerRequest *request);
-    void onPostReconnectWiFi(AsyncWebServerRequest *request);
-    void onGetWiFiStatus(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetPower(AsyncWebServerRequest *request);
     void onGetHeaters(AsyncWebServerRequest *request);

@@ -7,6 +7,8 @@
 #include "settings.h"
 #include <TaskSchedulerDeclarations.h>
 #include "wifisettings.h"
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
 
 namespace APB {
 
@@ -26,6 +28,14 @@ public:
     String gateway() const;
     void loop();
     void addOnConnectedListener(const OnConnectCallback &onConnected);
+
+    void onGetConfig(AsyncWebServerRequest *request);
+    void onGetConfig(JsonObject &responseObject);
+    void onPostReconnectWiFi(AsyncWebServerRequest *request);
+    void onGetWiFiStatus(AsyncWebServerRequest *request);
+    void onConfigStation(AsyncWebServerRequest *request, JsonVariant &json);
+    void onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json);
+
 private:
     GuLinux::WiFiSettings *wifiSettings;
     WiFiMulti wifiMulti;

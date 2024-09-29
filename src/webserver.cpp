@@ -36,16 +36,16 @@ void APB::WebServer::setup() {
     ElegantOTA.onEnd([this](bool success){ Log.infoln(LOG_SCOPE "OTA Finished, success=%d", success); });
     Log.traceln(LOG_SCOPE "ElegantOTA setup");
    
-    onJsonRequest("/api/config/accessPoint", std::bind(&APB::WebServer::onConfigAccessPoint, this, _1, _2), HTTP_POST | HTTP_DELETE);
-    onJsonRequest("/api/config/station", std::bind(&APB::WebServer::onConfigStation, this, _1, _2), HTTP_POST | HTTP_DELETE);
-    onJsonRequest("/api/config/statusLedDuty", std::bind(&APB::WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
-    server.on("/api/metrics", HTTP_GET, std::bind(&APB::WebServer::onGetMetrics, this, _1));
-    server.on("/api/config/write", HTTP_POST, std::bind(&APB::WebServer::onPostWriteConfig, this, _1));
-    server.on("/api/config", HTTP_GET, std::bind(&APB::WebServer::onGetConfig, this, _1));
-    server.on("/api/info", HTTP_GET, std::bind(&APB::WebServer::onGetESPInfo, this, _1));
-    server.on("/api/history", HTTP_GET, std::bind(&APB::WebServer::onGetHistory, this, _1));
-    server.on("/api/power", HTTP_GET, std::bind(&APB::WebServer::onGetPower, this, _1));
-    server.on("/api/wifi/connect", HTTP_POST, std::bind(&APB::WebServer::onPostReconnectWiFi, this, _1));
+    onJsonRequest("/api/config/accessPoint", std::bind(&WiFiManager::onConfigAccessPoint, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/station", std::bind(&WiFiManager::onConfigStation, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
+    server.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
+    server.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
+    server.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1));
+    server.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1));
+    server.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1));
+    server.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1));
+    server.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1));
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
@@ -53,12 +53,12 @@ void APB::WebServer::setup() {
         response.root()["status"] = "Dropping WiFi";
     });
     #endif
-    server.on("/api/wifi", HTTP_GET, std::bind(&APB::WebServer::onGetWiFiStatus, this, _1));
-    server.on("/api/restart", HTTP_POST, std::bind(&APB::WebServer::onRestart, this, _1));
+    server.on("/api/wifi", HTTP_GET, std::bind(&WiFiManager::onGetWiFiStatus, &WiFiManager::Instance, _1));
+    server.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1));
     
-    server.on("/api/status", HTTP_GET, std::bind(&APB::WebServer::onGetStatus, this, _1));
-    server.on("/api/ambient", HTTP_GET, std::bind(&APB::WebServer::onGetAmbient, this, _1));
-    server.on("/api/heaters", HTTP_GET, std::bind(&APB::WebServer::onGetHeaters, this, _1));
+    server.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
+    server.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1));
+    server.on("/api/heaters", HTTP_GET, std::bind(&WebServer::onGetHeaters, this, _1));
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
     server.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
     server.addHandler(&events);
@@ -103,14 +103,9 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    response.root()["accessPoint"]["essid"] = Settings::Instance.wifi().apConfiguration().essid;
-    response.root()["accessPoint"]["psk"] = Settings::Instance.wifi().apConfiguration().psk;
-    for(uint8_t i=0; i<APB_MAX_STATIONS; i++) {
-        auto station = Settings::Instance.wifi().station(i);
-        response.root()["stations"][i]["essid"] = station.essid;
-        response.root()["stations"][i]["psk"] = station.psk;
-    }
-    response.root()["ledDuty"] = Settings::Instance.statusLedDuty();
+    JsonObject rootObject = response.root().to<JsonObject>();
+    WiFiManager::Instance.onGetConfig(rootObject);
+    rootObject["ledDuty"] = Settings::Instance.statusLedDuty();
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
@@ -129,62 +124,9 @@ void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
     response.root()["url"] = request->url();
 }
 
-void APB::WebServer::onConfigAccessPoint(AsyncWebServerRequest *request, JsonVariant &json) {
-    if(request->method() == HTTP_DELETE) {
-        Log.traceln(LOG_SCOPE "onConfigAccessPoint: method=%d (%s)", request->method(), request->methodToString());
-        Settings::Instance.wifi().setAPConfiguration("", "");
-    }
-    if(request->method() == HTTP_POST) {
-        if(Validation{request, json}.required<const char*>({"essid", "psk"}).notEmpty("essid").invalid()) return;
-
-        String essid = json["essid"];
-        String psk = json["psk"];
-        Log.traceln(LOG_SCOPE "onConfigAccessPoint: essid=%s, psk=%s, method=%d (%s)",
-            essid.c_str(), psk.c_str(), request->method(), request->methodToString());
-        Settings::Instance.wifi().setAPConfiguration(essid.c_str(), psk.c_str());
-
-    }
-    onGetConfig(request);
-}
-
-
-
-void APB::WebServer::onConfigStation(AsyncWebServerRequest *request, JsonVariant &json) {
-    Validation validation{request, json};
-    validation.required<int>("index").range("index", {0}, {APB_MAX_STATIONS-1});
-
-    if(request->method() == HTTP_POST) {
-        validation.required<const char*>({"essid", "psk"}).notEmpty("essid");
-    }
-    if(validation.invalid()) return;
-    int stationIndex = json["index"];
-    String essid = json["essid"];
-    String psk = json["psk"];
-    Log.traceln(LOG_SCOPE "onConfigStation: `%d`, essid=`%s`, psk=`%s`, method=%d (%s)", 
-        stationIndex, essid.c_str(), psk.c_str(), request->method(), request->methodToString());
-    if(request->method() == HTTP_POST) {
-        Settings::Instance.wifi().setStationConfiguration(stationIndex, essid.c_str(), psk.c_str());
-    } else if(request->method() == HTTP_DELETE) {
-        Settings::Instance.wifi().setStationConfiguration(stationIndex, "", "");
-    }
-    onGetConfig(request);
-}
 
 void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
     Settings::Instance.save();
-    onGetConfig(request);
-}
-
-void APB::WebServer::onGetWiFiStatus(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
-    response.root()["wifi"]["status"] = WiFiManager::Instance.statusAsString();
-    response.root()["wifi"]["essid"] = WiFiManager::Instance.essid();
-    response.root()["wifi"]["ip"] = WiFiManager::Instance.ipAddress();
-    response.root()["wifi"]["gateway"] = WiFiManager::Instance.gateway();
-}
-
-void APB::WebServer::onPostReconnectWiFi(AsyncWebServerRequest *request) {
-    WiFiManager::Instance.reconnect();
     onGetConfig(request);
 }
 
