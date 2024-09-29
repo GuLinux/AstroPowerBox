@@ -14,6 +14,7 @@
 #define LOG_SCOPE "APB::WebServer "
 
 using namespace std::placeholders;
+using namespace GuLinux;
 
 APB::WebServer::WebServer(Scheduler &scheduler) : server(80),
     events("/api/events"),

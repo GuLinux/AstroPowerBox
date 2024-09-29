@@ -6,7 +6,7 @@
 #include <AsyncJson.h>
 
 #include "settings.h"
-#include "wifimanager.h"
+#include <wifimanager.h>
 #include "ambient/ambient.h"
 #include "heater.h"
 #include "powermonitor.h"
@@ -26,7 +26,6 @@ private:
     Scheduler &scheduler;
     JsonDocument eventsDocument;
     std::array<char, 800> eventsString;
-
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);

@@ -2,11 +2,12 @@
 #include <ElegantOTA.h>
 #include <TaskScheduler.h>
 #include <ArduinoLog.h>
+#include <wifimanager.h>
 
 #include "configuration.h"
 
 #include "webserver.h"
-#include "wifimanager.h"
+
 #include "settings.h"
 #include "ambient/ambient.h"
 #include "heater.h"
@@ -36,6 +37,7 @@ APB::WebServer webServer(scheduler);
 #define LOG_SCOPE "APB::Main - "
 
 using namespace std::placeholders;
+using namespace GuLinux;
 
 void setupArduinoOTA();
 
@@ -61,7 +63,10 @@ void setup() {
   
   APB::StatusLed::Instance.setup();
   
-  APB::WiFiManager::Instance.setup(scheduler);
+  WiFiManager::Instance.setOnConnectedCallback(std::bind(&APB::StatusLed::okPattern, &APB::StatusLed::Instance));
+  WiFiManager::Instance.setOnConnectionFailedCallback(std::bind(&APB::StatusLed::wifiConnectionFailedPattern, &APB::StatusLed::Instance));
+  WiFiManager::Instance.setOnNoStationsFoundCallback(std::bind(&APB::StatusLed::noWiFiStationsFoundPattern, &APB::StatusLed::Instance));
+  WiFiManager::Instance.setup(scheduler, &APB::Settings::Instance.wifi());
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);
@@ -75,14 +80,14 @@ void setup() {
 #ifdef ONEBUTTON_USER_BUTTON_1
   userButton.attachDoubleClick([]() {
     Log.infoln("[OneButton] User button 1 double clicked, reconnecting WiFi");
-    APB::WiFiManager::Instance.reconnect();
+    WiFiManager::Instance.reconnect();
   });
   userButton.setup(ONEBUTTON_USER_BUTTON_1, INPUT, false);
 #endif
 }
 
 void loop() {
-  APB::WiFiManager::Instance.loop(); 
+  WiFiManager::Instance.loop(); 
   scheduler.execute();
   ElegantOTA.loop();
 
