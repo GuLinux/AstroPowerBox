@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { appInfoSelector, appUptimeSelector, getAppInfoAsync, reconnectWiFiAsync, restartAsync } from './appSlice';
 import { Number, formatPercentage, formatSize, formatTime } from '../Number';
 import { useEffect } from 'react';
-import { saveConfigAsync } from './wifiSlice';
+import { saveConfigAsync } from './configSlice';
 import { ConfirmModal } from '../../ConfirmModal';
 import { RestartModalButton } from './RestartModalButton';
 

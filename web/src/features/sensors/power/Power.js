@@ -5,6 +5,7 @@ import { selectPower, selectPowerHistory } from './powerSlice';
 import { LineChart, CartesianGrid, XAxis, YAxis, Legend, Line, ResponsiveContainer } from 'recharts'
 import Accordion from 'react-bootstrap/Accordion';
 import { useId, useState } from 'react';
+import { selectPowerSourceType } from '../../app/configSlice';
 
 const PowerChart= ({}) => {
     const id = useId();
@@ -31,7 +32,8 @@ const PowerChart= ({}) => {
 
 
 export const Power = () => {
-    const { busVoltage, current, power } = useSelector(selectPower);
+    const { busVoltage, current, power, charge } = useSelector(selectPower);
+    const powerSourceType = useSelector(selectPowerSourceType)
     const [historyVisible, setHistoryVisible] = useState(false);
     return <>
         <Table>
@@ -48,6 +50,10 @@ export const Power = () => {
                 <th scope="row">Power</th>
                 <td><Number value={power} unit="W"/></td>
             </tr>
+            { powerSourceType !== 'AC' && <tr>
+                    <th scope="row">Battery charge</th>
+                    <td><Number value={charge} unit="%"/></td>
+                </tr>}
             </tbody>
         </Table>
         <Accordion>

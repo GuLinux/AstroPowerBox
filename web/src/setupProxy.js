@@ -1,7 +1,7 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
-  const target = 'http://astropowerbox-prototype.lan'
+  const target = 'http://astropowerbox-travel.lan'
   console.log(`****** proxy setup: "/api" => ${target}`)
   app.use(
     '/api',

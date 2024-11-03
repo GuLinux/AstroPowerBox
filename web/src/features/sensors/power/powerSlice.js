@@ -7,6 +7,7 @@ const initialState = {
     current: null,
     power: null,
     shuntVoltage: null,
+    charge: null,
     history: [],
 };
 
@@ -18,11 +19,12 @@ export const powerSlice = createSlice({
   initialState,
   reducers: {
     setPower: (state, action) => {
-        const { busVoltage, current, power, shuntVoltage } = action.payload;
+        const { busVoltage, current, power, shuntVoltage, charge } = action.payload;
         state.busVoltage = busVoltage;
         state.current = current;
         state.power = power;
         state.shuntVoltage = shuntVoltage;
+        state.charge = charge;
         state.history = [...state.history, { timestamp: new Date().getTime(), busVoltage, current, power}]
     },
   },
