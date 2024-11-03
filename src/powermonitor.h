@@ -6,6 +6,7 @@
 #include <TaskSchedulerDeclarations.h>
 
 #include "configuration.h"
+#include <INA219.h>
 
 namespace APB {
 
@@ -22,13 +23,20 @@ public:
         float busVoltage = 0;
         float current = 0;
         float power = 0;
-        
+        float charge = 0;
     };
-    Status status() const;
+    enum PowerSource {
+        AC = 0,
+        LipoBattery3C = 1,
+    };
+    Status status() const { return _status; }
 private:
-    struct Private;
-    friend struct Private;
-    std::shared_ptr<Private> d;
+    INA219 _ina219{APB_INA1219_ADDRESS};
+    PowerMonitor::Status _status;
+    Task _loopTask;
+    PowerSource _powerSource = AC;
+
+    void setCharge();
 };
 }
 
