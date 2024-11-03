@@ -9,6 +9,7 @@
 #include "metricsresponse.h"
 #include <esp_system.h>
 #include <LittleFS.h>
+#include <map>
 #include "utils.h"
 
 #define LOG_SCOPE "APB::WebServer "
@@ -40,6 +41,7 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/config/accessPoint", std::bind(&WiFiManager::onConfigAccessPoint, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&WiFiManager::onConfigStation, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
+    onJsonRequest("/api/config/powerSourceType", std::bind(&WebServer::onConfigPowerSourceType, this, _1, _2), HTTP_POST);
     server.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
     server.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
     server.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1));
@@ -107,6 +109,7 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonObject rootObject = response.root().to<JsonObject>();
     WiFiManager::Instance.onGetConfig(rootObject);
     rootObject["ledDuty"] = Settings::Instance.statusLedDuty();
+    rootObject["powerSourceType"] = Settings::PowerSourcesNames.at(Settings::Instance.powerSource());
 }
 
 void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
@@ -171,6 +174,7 @@ void APB::WebServer::populatePowerStatus(JsonObject powerStatus) {
     powerStatus["current"] = PowerMonitor::Instance.status().current;
     powerStatus["power"] = PowerMonitor::Instance.status().power;
     powerStatus["shuntVoltage"] = PowerMonitor::Instance.status().shuntVoltage;
+    powerStatus["charge"] = PowerMonitor::Instance.status().charge;
 }
 
 
@@ -318,6 +322,26 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
     StatusLed::Instance.setDuty(json["duty"]);
     JsonResponse response(request);
     response.root()["duty"] = StatusLed::Instance.duty();
+}
+
+void APB::WebServer::onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json) {
+    Validation validation{request, json};
+    std::forward_list<String> choices;
+    std::map<String, PowerMonitor::PowerSource> mapping;
+    std::for_each(
+        Settings::PowerSourcesNames.begin(),
+        Settings::PowerSourcesNames.end(),
+        [&choices, &mapping](const auto &item){
+            choices.push_front(item.second);
+            mapping[item.second] = item.first;
+        }
+    );
+    if(validation.required<String>("powerSourceType")
+        .choice("powerSourceType", choices)
+        .invalid()) return;
+    Settings::Instance.setPowerSource(mapping.at(json["powerSourceType"]));
+    JsonResponse response(request);
+    response.root()["powerSourceType"] = Settings::PowerSourcesNames.at(Settings::Instance.powerSource());
 }
 
 void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {

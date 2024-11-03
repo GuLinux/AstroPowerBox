@@ -40,6 +40,7 @@ private:
     void onRestart(AsyncWebServerRequest *request);
     void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json);
+    void onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json);
     
 
     void populateHeatersStatus(JsonArray heatersStatus);
