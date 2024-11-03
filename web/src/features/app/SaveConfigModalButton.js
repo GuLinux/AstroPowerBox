@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux"
 import { ConfirmModal } from "../../ConfirmModal"
 import Button from 'react-bootstrap/Button';
-import { saveConfigAsync } from "./wifiSlice";
+import { saveConfigAsync } from "./configSlice";
 
 const defaultButtonText = 'Save Configuration'
 const defaultModalMessage = 'Are you sure you want to save the configuration? The new configuration will be applied when restarting'

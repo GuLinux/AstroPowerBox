@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
 import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointConfig, saveWiFiStationConfig } from './api';
 
 const initialState = {
@@ -11,40 +11,41 @@ const initialState = {
 };
 
 export const getConfigAsync = createAsyncThunk(
-  'wifi/getConfig',
+  'config/getConfig',
   async () => await fetchConfig()
 );
 
 export const saveAccessPointConfigAsync = createAsyncThunk(
-  'wifi/saveAccessPoint',
+  'config/saveAccessPoint',
   async payload => await saveWiFiAccessPointConfig(payload)
 );
 
 export const saveStationConfigAsync = createAsyncThunk(
-  'wifi/saveStation',
+  'config/saveStation',
   async payload => await saveWiFiStationConfig(payload)
 );
 
 export const removeStationConfigAsync = createAsyncThunk(
-  'wifi/removeStation',
+  'config/removeStation',
   async payload => await removeWiFiStationConfig(payload)
 );
 
 
 export const saveConfigAsync = createAsyncThunk(
-  'wifi/saveConfig',
+  'config/saveConfig',
   async () => await saveConfig()
 );
 
 
 
-export const selectWiFiConfig = state => state.wifi;
-export const selectWiFiConfigReady = state => state.wifi.ready;
-export const selectWiFiAccessPointConfig = state => state.wifi.accessPoint;
-export const selectWiFiStationsConfig = state => state.wifi.stations;
+export const selectConfig = state => state.config;
+export const selectConfigReady = createSelector([selectConfig], config => config.ready)
+export const selectPowerSourceType = createSelector([selectConfig], config => config.powerSourceType)
+export const selectWiFiAccessPointConfig = createSelector([selectConfig], config => config.accessPoint)
+export const selectWiFiStationsConfig = createSelector([selectConfig], config => config.stations)
 
 export const wifiSlice = createSlice({
-  name: 'wifi',
+  name: 'config',
   initialState,
   reducers: {
     setWiFiConfig: (state, action) => {
