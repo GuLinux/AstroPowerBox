@@ -156,6 +156,7 @@ void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
         heatersStatus[heater.index()]["duty"] = heater.duty();
         heatersStatus[heater.index()]["active"] = heater.active();
         heatersStatus[heater.index()]["has_temperature"] = heater.temperature().has_value();
+        optional::if_present(heater.rampOffset(), [&](float v){ heatersStatus[heater.index()]["ramp_offset"] = v; });
         optional::if_present(heater.temperature(), [&](float v){ heatersStatus[heater.index()]["temperature"] = v; });
         optional::if_present(heater.targetTemperature(), [&](float v){ heatersStatus[heater.index()]["target_temperature"] = v; });
         optional::if_present(heater.dewpointOffset(), [&](float v){ heatersStatus[heater.index()]["dewpoint_offset"] = v; });
