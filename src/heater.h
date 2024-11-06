@@ -29,11 +29,12 @@ public:
     
     float duty() const;
     void setDuty(float duty);
-    bool setTemperature(float targetTemperature, float maxDuty=1);
-    bool setDewpoint(float offset, float maxDuty=1);
+    bool setTemperature(float targetTemperature, float maxDuty=1, float rampOffset=0);
+    bool setDewpoint(float offset, float maxDuty=1, float rampOffset=0);
     std::optional<float> temperature() const;
     std::optional<float> targetTemperature() const;
     std::optional<float> dewpointOffset() const;
+    std::optional<float> rampOffset() const;
     bool active() const;
 
     Mode mode() const;
