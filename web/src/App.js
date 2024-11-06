@@ -8,7 +8,7 @@ import { darkModeSelector, getAppStatusAsync, getHistoryAsync, setUptime, tabSel
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
-import { WiFi } from './features/app/WiFi';
+import { Config } from './features/app/Config';
 import { System } from './features/app/System';
 
 const registerEventSource = dispatch => {
@@ -48,7 +48,7 @@ function App() {
         <Tab.Container activeKey={activeTab}>
           <Tab.Content>
             <Tab.Pane eventKey='home'><Home /></Tab.Pane>
-            <Tab.Pane eventKey='wifi'><WiFi /></Tab.Pane>
+            <Tab.Pane eventKey='config'><Config /></Tab.Pane>
             <Tab.Pane eventKey='system'><System /></Tab.Pane>
           </Tab.Content>
         </Tab.Container>

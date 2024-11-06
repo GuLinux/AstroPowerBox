@@ -7,7 +7,7 @@ import Accordion from 'react-bootstrap/Accordion';
 import { useId, useState } from 'react';
 import { selectPowerSourceType } from '../../app/configSlice';
 
-const PowerChart= ({}) => {
+const PowerChart= () => {
     const id = useId();
     const history = useSelector(selectPowerHistory)
     const [selected, setSelected] = useState(null);

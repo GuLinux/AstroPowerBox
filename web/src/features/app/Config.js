@@ -11,7 +11,11 @@ import {
     saveStationConfigAsync,
     selectWiFiAccessPointConfig,
     selectConfig,
-    selectWiFiStationsConfig
+    selectWiFiStationsConfig,
+    selectPowerSourceType,
+    selectStatusLedDuty,
+    setStatusLedDutyAsync,
+    setPowerSourceTypeAsync
 } from './configSlice';
 import Spinner from 'react-bootstrap/Spinner';
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
@@ -22,6 +26,9 @@ import { ConfirmModal } from '../../ConfirmModal';
 import { reconnectWiFiAsync } from './appSlice';
 import { RestartModalButton } from './RestartModalButton';
 import { SaveConfigModalButton } from './SaveConfigModalButton';
+import { Number } from '../Number';
+import Badge from 'react-bootstrap/Badge';
+import { setPowerSourceType } from './api';
 
 const WiFiPasswordControl = ({ label, ...props }) => {
     const [show, setShow] = useState(false);
@@ -105,7 +112,43 @@ const WiFiStations = () => {
     </Form>
 }
 
-export const WiFi = () => {
+const AppSettings = () => {
+    const dispatch = useDispatch();
+    const upstreamPowerSourceType = useSelector(selectPowerSourceType);
+    const upstreamLedBrightness = useSelector(selectStatusLedDuty);
+
+    const [ledBrightness, setLedBrightness] = useState(upstreamLedBrightness);
+    const [powerSupply, setPowerSupply] = useState(upstreamPowerSourceType);
+    useEffect(() => {
+        setLedBrightness(upstreamLedBrightness);
+        setPowerSupply(upstreamPowerSourceType);
+    }, [setLedBrightness, setPowerSupply, upstreamLedBrightness, upstreamPowerSourceType]);
+
+    const updateLedBrightness = duty => {
+        setLedBrightness(duty)
+        dispatch(setStatusLedDutyAsync({duty}))
+    }
+    const updatePowerSourceType = powerSourceType => {
+        setPowerSupply(powerSourceType);
+        dispatch(setPowerSourceTypeAsync({powerSourceType}))
+    }
+    return <Form>
+        <Form.Group className='mb-3'>
+            <Form.Label>Status led brightness</Form.Label>
+            <Badge className='float-end'><Number value={ledBrightness*100} decimals={0} unit='%' /></Badge>
+            <Form.Range min={0.0} max={1.0} step={0.01} value={ledBrightness} onChange={e => updateLedBrightness(parseFloat(e.target.value))}/>
+        </Form.Group>
+        <Form.Group className='mb-3'>
+            <Form.Label>Power supply</Form.Label>
+            <Form.Select value={powerSupply} onChange={e => updatePowerSourceType(e.target.value)}>
+                <option value="AC">AC</option>
+                <option value="lipo_3c">LiPo Battery 3 cells (12v)</option>
+            </Form.Select>
+        </Form.Group>
+    </Form>
+}
+
+export const Config = () => {
     const dispatch = useDispatch();
     useEffect(() => { dispatch(getConfigAsync()) }, [dispatch])
     const wifiConfig = useSelector(selectConfig)
@@ -121,6 +164,9 @@ export const WiFi = () => {
         </Row>
         <Row className='mt-5'>
             <WiFiStations />
+        </Row>
+        <Row className='mt-5'>
+            <AppSettings />
         </Row>
         <Row className='mt-5'>
             <Col sm={10}>Unsaved changes will be lost after restart. Save configuration to flash storage to persist them.</Col>
