@@ -119,6 +119,7 @@ const AppSettings = () => {
 
     const [ledBrightness, setLedBrightness] = useState(upstreamLedBrightness);
     const [powerSupply, setPowerSupply] = useState(upstreamPowerSourceType);
+    const [updateBrightnessTimer, setUpdateBrightnessTimer] = useState()
     useEffect(() => {
         setLedBrightness(upstreamLedBrightness);
         setPowerSupply(upstreamPowerSourceType);
@@ -126,7 +127,13 @@ const AppSettings = () => {
 
     const updateLedBrightness = duty => {
         setLedBrightness(duty)
-        dispatch(setStatusLedDutyAsync({duty}))
+        if(updateBrightnessTimer) {
+            clearTimeout(updateBrightnessTimer)
+        }
+        setUpdateBrightnessTimer(setTimeout(() => {
+            dispatch(setStatusLedDutyAsync({duty}))
+        }, 1000))
+        
     }
     const updatePowerSourceType = powerSourceType => {
         setPowerSupply(powerSourceType);
