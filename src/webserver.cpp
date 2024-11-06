@@ -296,17 +296,29 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         heater.setDuty(json["duty"]);
     }
     if(mode == Heater::Mode::dewpoint) {
-        if(validation.range("dewpoint_offset", {-30}, {30}).required<float>("dewpoint_offset").invalid()) return;
+        if(validation
+            .range("dewpoint_offset", {-30}, {30})
+            .required<float>("dewpoint_offset")
+            .range("ramp_offset", 0, 20)
+            .invalid()
+        ) return;
         float dewpointOffset = json["dewpoint_offset"];
-        if(!heater.setDewpoint(dewpointOffset, duty)) {
+        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0;
+        if(!heater.setDewpoint(dewpointOffset, duty, rampOffset)) {
             JsonResponse::error(500, dewpointTemperatureErrorMessage, request);
             return;
         }
     }
     if(mode == Heater::Mode::target_temperature) {
-        if(validation.range("target_temperature", {-50}, {50}).required<float>("target_temperature").invalid()) return;
+        if(validation
+            .range("target_temperature", {-50}, {50})
+            .required<float>("target_temperature")
+            .range("ramp_offset", 0, 20)
+            .invalid()
+        ) return;
         float targetTemperature = json["target_temperature"];
-        if(!heater.setTemperature(targetTemperature, duty)) {
+        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0;
+        if(!heater.setTemperature(targetTemperature, duty, rampOffset)) {
             JsonResponse::error(500, temperatureErrorMessage, request);
             return;
         }

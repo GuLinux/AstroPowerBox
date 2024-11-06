@@ -22,16 +22,17 @@ struct APB::Heater::Private {
     std::optional<float> temperature;
     float targetTemperature;
     float dewpointOffset;
+    float rampOffset = 0;
 
     Task loopTask;
     char log_scope[20];
     uint8_t index;
     Heater::GetTargetTemperature getTargetTemperature;
     
-    void setup();
+    void privateSetup();
     void loop();
     void readTemperature();
-    void setDuty(float pwm);
+    void writePinDuty(float pwm);
     float getDuty() const;
 
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
@@ -69,7 +70,7 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     d->index = index;
     sprintf(d->log_scope, "Heater[%d] -", index);
 
-    d->setup();
+    d->privateSetup();
 
     d->loopTask.set(APB_HEATER_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Heater::Private::loop, d));
     scheduler.addTask(d->loopTask);
@@ -121,7 +122,7 @@ uint8_t APB::Heater::index() const {
 }
 
 
-bool APB::Heater::setTemperature(float targetTemperature, float maxDuty) {
+bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
@@ -129,11 +130,12 @@ bool APB::Heater::setTemperature(float targetTemperature, float maxDuty) {
     d->targetTemperature = targetTemperature;
     d->pwm = maxDuty;
     d->mode = Heater::Mode::target_temperature;
+    d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->loop();
     return true;
 }
 
-bool APB::Heater::setDewpoint(float offset, float maxDuty) {
+bool APB::Heater::setDewpoint(float offset, float maxDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
@@ -143,11 +145,13 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty) {
         return false;
     }
     d->dewpointOffset = offset;
+    d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->pwm = maxDuty;
     d->mode = Heater::Mode::dewpoint;
     d->loop();
     return true;
 }
+
 
 std::optional<float> APB::Heater::targetTemperature() const {
     if(d->mode != Heater::Mode::target_temperature) {
@@ -161,6 +165,13 @@ std::optional<float> APB::Heater::dewpointOffset() const {
         return {};
     }
     return {d->dewpointOffset};
+}
+
+std::optional<float> APB::Heater::rampOffset() const {
+    if(d->mode != Mode::dewpoint && d->mode != Mode::target_temperature) {
+        return {};
+    }
+    return {d->rampOffset};
 }
 
 std::optional<float> APB::Heater::temperature() const {
@@ -187,11 +198,11 @@ void APB::Heater::Private::loop()
     }
 
     if(mode == Heater::Mode::fixed) {
-        setDuty(pwm);
+        writePinDuty(pwm);
         return;
     }
     if(mode == Heater::Mode::off) {
-        setDuty(0);
+        writePinDuty(0);
         return;
     }
     // From nmow on we require a temperature sensor on the heater
@@ -201,9 +212,9 @@ void APB::Heater::Private::loop()
         return;
     }
 
-    float targetTemperature;
+    float dynamicTargetTemperature;
     if(mode == Heater::Mode::target_temperature) {
-        targetTemperature = this->targetTemperature;
+        dynamicTargetTemperature = this->targetTemperature;
     }
     if(mode == Heater::Mode::dewpoint) {
         if(!Ambient::Instance.reading()) {
@@ -211,30 +222,40 @@ void APB::Heater::Private::loop()
             q->setDuty(0);
             return;
         }
-        targetTemperature = dewpointOffset + Ambient::Instance.reading()->dewpoint();
+        dynamicTargetTemperature = dewpointOffset + Ambient::Instance.reading()->dewpoint();
     }
 
     float currentTemperature = temperature.value();
-    Log.traceln("%s Got target temperature=`%F`", log_scope, targetTemperature);
+    Log.traceln("%s Got target temperature=`%F`", log_scope, dynamicTargetTemperature);
     Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
-    if(currentTemperature < targetTemperature) {
-        Log.infoln("%s - temperature `%F` lower than target temperature `%F`, setting PWM to `%F`", log_scope, currentTemperature, targetTemperature, pwm);
-        setDuty(pwm);
+    if(currentTemperature < dynamicTargetTemperature) {
+        float rampFactor = rampOffset > 0 ? (dynamicTargetTemperature - currentTemperature)/rampOffset : 1;
+        float targetPWM = std::max(0.f, std::min(1.f, rampFactor));
+        Log.infoln("%s - temperature `%F` lower than target temperature `%F`, ramp=`%F` and max PWM is `%F`, ramp factor=`%F`, setting PWM to `%F`",
+            log_scope,
+            currentTemperature,
+            dynamicTargetTemperature,
+            rampOffset,
+            pwm,
+            rampFactor,
+            targetPWM
+        );
+        writePinDuty(targetPWM);
     } else {
-        Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, targetTemperature);
-        setDuty(0);
+        Log.infoln("%s - temperature `%F` reached target temperature `%F`, setting PWM to 0", log_scope, currentTemperature, dynamicTargetTemperature);
+        writePinDuty(0);
     }
 }
 
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
 #define ANALOG_READ_RES 12
 #define MAX_PWM 255.0
-void APB::Heater::Private::setup() {
+void APB::Heater::Private::privateSetup() {
     static const float analogReadMax = std::pow(2, ANALOG_READ_RES) - 1;
     pinout = &heaters_pinout[index];
     Log.traceln("%s Configuring PWM thermistor heater: Thermistor pin=%d, PWM pin=%d, analogReadMax=%F", log_scope, pinout->thermistor, pinout->pwm, analogReadMax);
     analogReadResolution(ANALOG_READ_RES);
-    setDuty(0);
+    writePinDuty(0);
     if(pinout->thermistor != -1) {
         smoothThermistor = std::make_unique<SmoothThermistor>(
             pinout->thermistor,
@@ -263,7 +284,7 @@ float APB::Heater::Private::getDuty() const {
     return this->pwmValue/MAX_PWM;
 }
 
-void APB::Heater::Private::setDuty(float pwm) {
+void APB::Heater::Private::writePinDuty(float pwm) {
     int16_t newPWMValue = MAX_PWM * pwm;
     if(newPWMValue != pwmValue) {
         pwmValue = newPWMValue;
