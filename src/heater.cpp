@@ -234,7 +234,7 @@ void APB::Heater::Private::loop()
     Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
     if(currentTemperature < dynamicTargetTemperature) {
         float rampFactor = rampOffset > 0 ? (dynamicTargetTemperature - currentTemperature)/rampOffset : 1;
-        float targetPWM = std::max(0.f, std::min(1.f, rampFactor));
+        float targetPWM = std::max(0.f, std::min(1.f, rampFactor * maxDuty));
         Log.infoln("%s - temperature `%F` lower than target temperature `%F`, ramp=`%F` and max PWM is `%F`, ramp factor=`%F`, setting PWM to `%F`",
             log_scope,
             currentTemperature,
