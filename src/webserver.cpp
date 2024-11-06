@@ -153,6 +153,7 @@ void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
 void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
     std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
         heatersStatus[heater.index()]["mode"] = heater.modeAsString(),
+        heatersStatus[heater.index()]["maxDuty"] = heater.maxDuty();
         heatersStatus[heater.index()]["duty"] = heater.duty();
         heatersStatus[heater.index()]["active"] = heater.active();
         heatersStatus[heater.index()]["has_temperature"] = heater.temperature().has_value();
@@ -206,11 +207,18 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
             .gauge("ambient", ambientReading->dewpoint(), MetricsResponse::Labels().unit("°C").field("dewpoint"), nullptr, false);
     }
     std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+        metricsResponse.gauge("heater", heater.maxDuty(), MetricsResponse::Labels()
+            .add("index", String(heater.index()).c_str())
+            .field("maxDuty")
+            .add("mode", heater.modeAsString().c_str()), nullptr, index++==0);
+    });
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
         metricsResponse.gauge("heater", heater.duty(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("duty")
             .add("mode", heater.modeAsString().c_str()), nullptr, index++==0);
     });
+
     std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
         metricsResponse.gauge("heater", heater.active(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())

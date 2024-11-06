@@ -56,6 +56,7 @@ export const heatersSlice = createSlice({
     builder
       .addCase(getHeatersAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
       .addCase(setHeaterAsync.fulfilled, (state, action) => onHeatersReceived(state, action.payload))
+      .addCase(setHeaterAsync.rejected, (state, action) => console.log(action.error.response))
       .addCase(getHistoryAsync.fulfilled, (state, { payload }) => {
         if(!payload) {
           return;

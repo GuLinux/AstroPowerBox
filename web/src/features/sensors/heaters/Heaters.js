@@ -106,6 +106,9 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                         <Form.Label>Duty</Form.Label>
                         <Badge className='float-end'><Number value={heater.duty} formatFunction={formatPercentage} decimals={1} /></Badge>
                         <Form.Range min={0} max={1} step={0.001} value={heater.duty} onChange={updateHeater('duty', parseFloat)} />
+                        { ['target_temperature', 'dewpoint'].includes(heater.mode) && 
+                        <Form.Text>When ramp is set to a non zero value, and mode is either <code>Dewpoint offset</code> or <code>Target temperature</code>,
+                        this will be a maximum value rather than the real duty.</Form.Text> }
                     </Form.Group>
                 </Collapse>
                 <Collapse in={heater.mode === 'target_temperature' && originalHeater.has_temperature}>
@@ -113,6 +116,7 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                         <Form.Label>Target Temperature</Form.Label>
                         <Badge className='float-end'><Number value={heater.target_temperature} unit='°C'/></Badge>
                         <Form.Range min={-20} max={50} value={heater.target_temperature} onChange={updateHeater('target_temperature', parseFloat)}/>
+                        <Form.Text>When the temperature sensor will reach this temperature, the heater will turn off.</Form.Text>
                     </Form.Group>
                 </Collapse>
                 <Collapse in={heater.mode === 'dewpoint' && originalHeater.has_temperature}>
@@ -120,7 +124,24 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                         <Form.Label>Dewpoint Offset</Form.Label>
                         <Badge className='float-end'><Number value={heater.dewpoint_offset} unit='°C' /></Badge>
                         <Form.Range min={-20} max={20} value={heater.dewpoint_offset} onChange={updateHeater('dewpoint_offset', parseFloat)}/>
+                        <Form.Text>
+                            Offset to the dewpoint temperature (either positive or negative).
+                            For instance, if the dewpoint is <code>10°C</code>, and the offset is set to <code>5°C</code>, the target temperature will be <code>15°C</code>.
+                        </Form.Text>
                     </Form.Group>
+                </Collapse>
+                <Collapse in={['dewpoint', 'target_temperature'].includes(heater.mode) && originalHeater.has_temperature}>
+                    <Form.Group className='mb-3'>
+                        <Form.Label>Ramp Offset</Form.Label>
+                        <Badge className='float-end'><Number value={heater.ramp_offset || 0} unit='°C' /></Badge>
+                        <Form.Range min={0} max={20} value={heater.ramp_offset || 0} onChange={updateHeater('ramp_offset', parseFloat)}/>
+                        <Form.Text>
+                            Set this to a number greater than <code>0</code> to start ramping down the duty proportionally to the difference with the target temperature.
+                            For instance, if set to <code>3°C</code>, with a target temperature of <code>25°C</code>, a current temperature of <code>24°C</code>
+                            and a maximum duty of <code>100%</code>, the actual duty will be <code>(25-24)/3 = 33%</code>.
+                        </Form.Text>
+                    </Form.Group>
+
                 </Collapse>
             </Form>
         </Modal.Body>

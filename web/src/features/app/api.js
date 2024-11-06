@@ -1,3 +1,10 @@
+class FetchError extends Error {
+    constructor(message, request, response, options) {
+        super(message, options);
+        this.request = request;
+        this.response = response;
+    }
+}
 const fetchJson = async (path, init) => {
     let url = path;
     // console.log(process.env)
@@ -5,6 +12,9 @@ const fetchJson = async (path, init) => {
         url = `${process.env.REACT_APP_ASTROPOWERBOX_API_HOST}${path}`;
     }
     const response = await fetch(url, init)
+    if(!response.ok) {
+        throw new FetchError(`Response failed for ${path}`, { path, init}, response)
+    }
     return await response.json();
 }
 const payloadJson = async (path, method, payload) => {

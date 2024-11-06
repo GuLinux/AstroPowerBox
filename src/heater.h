@@ -27,6 +27,7 @@ public:
     enum Mode { off, fixed, target_temperature, dewpoint };
     void setup(uint8_t index, Scheduler &scheduler);
     
+    float maxDuty() const;
     float duty() const;
     void setDuty(float duty);
     bool setTemperature(float targetTemperature, float maxDuty=1, float rampOffset=0);
