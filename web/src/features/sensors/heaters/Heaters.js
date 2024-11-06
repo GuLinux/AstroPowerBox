@@ -134,15 +134,27 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                     <Form.Group className='mb-3'>
                         <Form.Label>Ramp Offset</Form.Label>
                         <Badge className='float-end'><Number value={heater.ramp_offset || 0} unit='°C' /></Badge>
-                        <Form.Range min={0} max={20} value={heater.ramp_offset || 0} onChange={updateHeater('ramp_offset', parseFloat)}/>
+                        <Form.Range min={0} max={20} step={.1} value={heater.ramp_offset || 0} onChange={updateHeater('ramp_offset', parseFloat)}/>
                         <Form.Text>
                             Set this to a number greater than <code>0</code> to start ramping down the duty proportionally to the difference with the target temperature.
                             For instance, if set to <code>3°C</code>, with a target temperature of <code>25°C</code>, a current temperature of <code>24°C</code>
                             and a maximum duty of <code>100%</code>, the actual duty will be <code>(25-24)/3 = 33%</code>.
                         </Form.Text>
                     </Form.Group>
+                </Collapse>
+                <Collapse in={heater.ramp_offset>0 && ['dewpoint', 'target_temperature'].includes(heater.mode) && originalHeater.has_temperature}>
+                    <Form.Group className='mb-3'>
+                        <Form.Label>Mimimum duty</Form.Label>
+                        <Badge className='float-end'><Number value={heater.min_duty*100|| 0} unit='°%' /></Badge>
+                        <Form.Range min={0.0} max={1.0} step={.01} value={heater.min_duty|| 0} onChange={updateHeater('min_duty', parseFloat)}/>
+                        <Form.Text>
+                            Minimum duty for PWM ramping.<br />
+                            Note: the heater will set to <code>0</code> regardless of minimum duty when target temperature is reached.
+                        </Form.Text>
+                    </Form.Group>
 
                 </Collapse>
+
             </Form>
         </Modal.Body>
         <Modal.Footer>

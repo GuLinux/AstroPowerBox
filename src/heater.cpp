@@ -19,6 +19,7 @@ struct APB::Heater::Private {
     APB::Heater *q;
     Heater::Mode mode{Heater::Mode::off};
     float maxDuty;
+    float minDuty = 0;
     std::optional<float> temperature;
     float targetTemperature;
     float dewpointOffset;
@@ -126,20 +127,21 @@ uint8_t APB::Heater::index() const {
 }
 
 
-bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float rampOffset) {
+bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float minDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
     }
     d->targetTemperature = targetTemperature;
     d->maxDuty = maxDuty;
+    d->minDuty = minDuty;
     d->mode = Heater::Mode::target_temperature;
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->loop();
     return true;
 }
 
-bool APB::Heater::setDewpoint(float offset, float maxDuty, float rampOffset) {
+bool APB::Heater::setDewpoint(float offset, float maxDuty, float minDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
@@ -150,6 +152,7 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty, float rampOffset) {
     }
     d->dewpointOffset = offset;
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
+    d->minDuty = minDuty;
     d->maxDuty = maxDuty;
     d->mode = Heater::Mode::dewpoint;
     d->loop();
@@ -176,6 +179,13 @@ std::optional<float> APB::Heater::rampOffset() const {
         return {};
     }
     return {d->rampOffset};
+}
+
+std::optional<float> APB::Heater::minDuty() const {
+    if(d->mode != Mode::dewpoint && d->mode != Mode::target_temperature) {
+        return {};
+    }
+    return {d->minDuty};
 }
 
 std::optional<float> APB::Heater::temperature() const {
@@ -234,12 +244,13 @@ void APB::Heater::Private::loop()
     Log.traceln("%s current temperature=`%F`", log_scope, currentTemperature);
     if(currentTemperature < dynamicTargetTemperature) {
         float rampFactor = rampOffset > 0 ? (dynamicTargetTemperature - currentTemperature)/rampOffset : 1;
-        float targetPWM = std::max(0.f, std::min(1.f, rampFactor * maxDuty));
-        Log.infoln("%s - temperature `%F` lower than target temperature `%F`, ramp=`%F` and max PWM is `%F`, ramp factor=`%F`, setting PWM to `%F`",
+        float targetPWM = std::max(0.f, std::min(1.f, rampFactor * (maxDuty-minDuty) + minDuty));
+        Log.infoln("%s - temperature `%F` lower than target temperature `%F`, ramp=`%F` and PWM range is `%F-%F`, ramp factor=`%F`, setting PWM to `%F`",
             log_scope,
             currentTemperature,
             dynamicTargetTemperature,
             rampOffset,
+            minDuty,
             maxDuty,
             rampFactor,
             targetPWM
@@ -289,7 +300,7 @@ float APB::Heater::Private::getDuty() const {
 }
 
 void APB::Heater::Private::writePinDuty(float pwm) {
-    int16_t newPWMValue = MAX_PWM * pwm;
+    int16_t newPWMValue = std::max(int16_t{0}, static_cast<int16_t>(std::min(MAX_PWM, MAX_PWM * pwm)));
     if(newPWMValue != pwmValue) {
         pwmValue = newPWMValue;
         Log.traceln("%s setting PWM=%d for pin %d", log_scope, pwmValue, pinout->pwm);
