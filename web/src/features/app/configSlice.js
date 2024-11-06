@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
-import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointConfig, saveWiFiStationConfig } from './api';
+import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointConfig, saveWiFiStationConfig, setPowerSourceType, setStatusLedDuty } from './api';
 
 const initialState = {
     ready: false,
@@ -8,6 +8,8 @@ const initialState = {
         psk: '',
     },
     stations: [],
+    ledDuty: 1,
+    powerSourceType: 'AC',
 };
 
 export const getConfigAsync = createAsyncThunk(
@@ -36,11 +38,23 @@ export const saveConfigAsync = createAsyncThunk(
   async () => await saveConfig()
 );
 
+export const setStatusLedDutyAsync = createAsyncThunk(
+  'config/setStatusLedDuty',
+  async ({duty}) => await setStatusLedDuty({ duty })
+)
+
+export const setPowerSourceTypeAsync = createAsyncThunk(
+  'config/setPowerSourceType',
+  async ({powerSourceType}) => await setPowerSourceType({ powerSourceType })
+)
+
+
 
 
 export const selectConfig = state => state.config;
 export const selectConfigReady = createSelector([selectConfig], config => config.ready)
 export const selectPowerSourceType = createSelector([selectConfig], config => config.powerSourceType)
+export const selectStatusLedDuty = createSelector([selectConfig], config => config.ledDuty)
 export const selectWiFiAccessPointConfig = createSelector([selectConfig], config => config.accessPoint)
 export const selectWiFiStationsConfig = createSelector([selectConfig], config => config.stations)
 
@@ -61,6 +75,13 @@ export const wifiSlice = createSlice({
       .addCase(saveConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
       .addCase(saveStationConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
       .addCase(removeStationConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
+      .addCase(setPowerSourceTypeAsync.fulfilled, (state, {payload: {powerSourceType}}) => {
+        state.powerSourceType = powerSourceType
+      })
+      .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {duty}}) => {
+        state.ledDuty = duty;
+      })
+
   },
 });
  

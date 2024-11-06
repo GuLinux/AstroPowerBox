@@ -24,7 +24,7 @@ export const AppNavbar = () => {
         <Navbar.Collapse>
             <Nav variant='tabs' className='me-auto'>
                 <NavTabItem eventKey='home' text='Home' />
-                <NavTabItem eventKey='wifi' text='WiFi' />
+                <NavTabItem eventKey='config' text='Configuration' />
                 <NavTabItem eventKey='system' text='System' />
                 <Nav.Item><Nav.Link href="/update" target="_blank">Update</Nav.Link></Nav.Item>
             </Nav>
