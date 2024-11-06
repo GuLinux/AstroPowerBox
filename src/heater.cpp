@@ -18,7 +18,7 @@ APB::Heaters::Array &APB::Heaters::Instance = *new APB::Heaters::Array();
 struct APB::Heater::Private {
     APB::Heater *q;
     Heater::Mode mode{Heater::Mode::off};
-    float pwm;
+    float maxDuty;
     std::optional<float> temperature;
     float targetTemperature;
     float dewpointOffset;
@@ -99,8 +99,12 @@ const String APB::Heater::modeAsString() const
     return Private::modesToString[mode()];
 }
 
+float APB::Heater::maxDuty() const {
+    return d->maxDuty;
+}
+
 float APB::Heater::duty() const {
-    return d->pwm;
+    return d->getDuty();
 }
 
 bool APB::Heater::active() const {
@@ -109,7 +113,7 @@ bool APB::Heater::active() const {
 
 void APB::Heater::setDuty(float duty) {
     if(duty > 0) {
-        d->pwm = duty;
+        d->maxDuty = duty;
         d->mode = Heater::Mode::fixed;
     } else {
         d->mode = Heater::Mode::off;
@@ -128,7 +132,7 @@ bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float r
         return false;
     }
     d->targetTemperature = targetTemperature;
-    d->pwm = maxDuty;
+    d->maxDuty = maxDuty;
     d->mode = Heater::Mode::target_temperature;
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->loop();
@@ -146,7 +150,7 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty, float rampOffset) {
     }
     d->dewpointOffset = offset;
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
-    d->pwm = maxDuty;
+    d->maxDuty = maxDuty;
     d->mode = Heater::Mode::dewpoint;
     d->loop();
     return true;
@@ -198,7 +202,7 @@ void APB::Heater::Private::loop()
     }
 
     if(mode == Heater::Mode::fixed) {
-        writePinDuty(pwm);
+        writePinDuty(maxDuty);
         return;
     }
     if(mode == Heater::Mode::off) {
@@ -236,7 +240,7 @@ void APB::Heater::Private::loop()
             currentTemperature,
             dynamicTargetTemperature,
             rampOffset,
-            pwm,
+            maxDuty,
             rampFactor,
             targetPWM
         );
