@@ -287,23 +287,23 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     Validation validation{request, json};
     if(validation.required<int>("index").required<const char*>("mode")
         .range("index", {0}, {Heaters::Instance.size()-1})
-        .range("duty", {0}, {1})
+        .range("max_duty", {0}, {1})
         .choice("mode", Heater::validModes()).invalid()) return;
     Heater &heater = Heaters::Instance[json["index"]];
     Heater::Mode mode = Heater::modeFromString(json["mode"]);
     if(mode == Heater::Mode::off) {
-        heater.setDuty(0);
+        heater.setMaxDuty(0);
         onGetHeaters(request);
         return;
     }
     
-    if(validation.range("duty", {0}, {1}).required<float>("duty").invalid()) return;
-    float duty = json["duty"];
+    if(validation.range("max_duty", {0}, {1}).required<float>("max_duty").invalid()) return;
+    float duty = json["max_duty"];
     static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
     static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
 
     if(mode == Heater::Mode::fixed) {
-        heater.setDuty(json["duty"]);
+        heater.setMaxDuty(json["max_duty"]);
     }
     if(mode == Heater::Mode::dewpoint) {
         if(validation
