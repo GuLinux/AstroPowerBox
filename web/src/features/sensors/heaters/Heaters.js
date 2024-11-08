@@ -104,8 +104,8 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                 <Collapse in={heater.mode !== 'off'}>
                     <Form.Group className='mb-3'>
                         <Form.Label>Duty</Form.Label>
-                        <Badge className='float-end'><Number value={heater.duty} formatFunction={formatPercentage} decimals={1} /></Badge>
-                        <Form.Range min={0} max={1} step={0.001} value={heater.duty} onChange={updateHeater('duty', parseFloat)} />
+                        <Badge className='float-end'><Number value={heater.max_duty} formatFunction={formatPercentage} decimals={1} /></Badge>
+                        <Form.Range min={0} max={1} step={0.001} value={heater.max_duty} onChange={updateHeater('max_duty', parseFloat)} />
                         { ['target_temperature', 'dewpoint'].includes(heater.mode) && 
                         <Form.Text>When ramp is set to a non zero value, and mode is either <code>Dewpoint offset</code> or <code>Target temperature</code>,
                         this will be a maximum value rather than the real duty.</Form.Text> }

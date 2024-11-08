@@ -112,7 +112,7 @@ bool APB::Heater::active() const {
     return d->getDuty() > 0;
 }
 
-void APB::Heater::setDuty(float duty) {
+void APB::Heater::setMaxDuty(float duty) {
     if(duty > 0) {
         d->maxDuty = duty;
         d->mode = Heater::Mode::fixed;
@@ -222,7 +222,7 @@ void APB::Heater::Private::loop()
     // From nmow on we require a temperature sensor on the heater
     if(!temperature) {
         Log.warningln("%s Unable to set target temperature, sensor not found.", log_scope);
-        q->setDuty(0);
+        q->setMaxDuty(0);
         return;
     }
 
@@ -233,7 +233,7 @@ void APB::Heater::Private::loop()
     if(mode == Heater::Mode::dewpoint) {
         if(!Ambient::Instance.reading()) {
             Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
-            q->setDuty(0);
+            q->setMaxDuty(0);
             return;
         }
         dynamicTargetTemperature = dewpointOffset + Ambient::Instance.reading()->dewpoint();
