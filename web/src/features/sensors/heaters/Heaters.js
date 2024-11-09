@@ -134,7 +134,7 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                     <Form.Group className='mb-3'>
                         <Form.Label>Ramp Offset</Form.Label>
                         <Badge className='float-end'><Number value={heater.ramp_offset || 0} unit='°C' /></Badge>
-                        <Form.Range min={0} max={20} step={.1} value={heater.ramp_offset || 0} onChange={updateHeater('ramp_offset', parseFloat)}/>
+                        <Form.Range min={0} max={5} step={.1} value={heater.ramp_offset || 0} onChange={updateHeater('ramp_offset', parseFloat)}/>
                         <Form.Text>
                             Set this to a number greater than <code>0</code> to start ramping down the duty proportionally to the difference with the target temperature.
                             For instance, if set to <code>3°C</code>, with a target temperature of <code>25°C</code>, a current temperature of <code>24°C</code>
