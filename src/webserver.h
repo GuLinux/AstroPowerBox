@@ -3,7 +3,6 @@
 
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
-#include <AsyncJson.h>
 
 #include "settings.h"
 #include <wifimanager.h>
@@ -14,14 +13,15 @@
 #include "statusled.h"
 #include "history.h"
 
+#include <AsyncWebServerBase.h>
+
 namespace APB {
 
-class WebServer {
+class WebServer : public AsyncWebServerBase {
 public:
     WebServer(Scheduler &scheduler);
     void setup();
 private:
-    AsyncWebServer server;
     AsyncEventSource events;
     Scheduler &scheduler;
     JsonDocument eventsDocument;
@@ -47,7 +47,6 @@ private:
     void populateAmbientStatus(JsonObject ambientStatus);
     void populatePowerStatus(JsonObject powerStatus);
 
-    void onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite = HTTP_POST | HTTP_PUT | HTTP_PATCH);
 };
 }
 

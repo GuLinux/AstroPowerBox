@@ -14,41 +14,40 @@
 
 #define LOG_SCOPE "APB::WebServer "
 
+#ifdef ALLOW_ALL_CORS
+#define ALLOW_CORS_VALUE true
+#else
+#define ALLOW_CORS_VALUE false
+#endif
+
 using namespace std::placeholders;
 using namespace GuLinux;
 
-APB::WebServer::WebServer(Scheduler &scheduler) : server(80),
+APB::WebServer::WebServer(Scheduler &scheduler) : AsyncWebServerBase{},
     events("/api/events"),
     scheduler(scheduler)
 {
 }
 
 
+
 void APB::WebServer::setup() {
     Log.traceln(LOG_SCOPE "Setup");
-    ElegantOTA.begin(&server);
-    #ifdef ALLOW_ALL_CORS
-    #warning "Adding Access-Control-Allow-Origin:* header to all requests (CORS)"
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-    #endif
-    ElegantOTA.onStart([this](){ Log.infoln(LOG_SCOPE "OTA Started"); });
-    ElegantOTA.onProgress([this](size_t current, size_t total){
-        Log.infoln(LOG_SCOPE "OTA progress: %d%%(%d/%d)", int(current * 100.0 /total), current, total);
-    });
-    ElegantOTA.onEnd([this](bool success){ Log.infoln(LOG_SCOPE "OTA Finished, success=%d", success); });
-    Log.traceln(LOG_SCOPE "ElegantOTA setup");
+
+    setupBase(true, ALLOW_CORS_VALUE);
+
    
     onJsonRequest("/api/config/accessPoint", std::bind(&WiFiManager::onConfigAccessPoint, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&WiFiManager::onConfigStation, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
     onJsonRequest("/api/config/powerSourceType", std::bind(&WebServer::onConfigPowerSourceType, this, _1, _2), HTTP_POST);
-    server.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
-    server.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
-    server.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1));
-    server.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1));
-    server.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1));
-    server.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1));
-    server.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1));
+    webserver.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
+    webserver.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
+    webserver.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1));
+    webserver.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1));
+    webserver.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1));
+    webserver.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1));
+    webserver.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1));
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
@@ -56,20 +55,20 @@ void APB::WebServer::setup() {
         response.root()["status"] = "Dropping WiFi";
     });
     #endif
-    server.on("/api/wifi", HTTP_GET, std::bind(&WiFiManager::onGetWiFiStatus, &WiFiManager::Instance, _1));
-    server.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1));
+    webserver.on("/api/wifi", HTTP_GET, std::bind(&WiFiManager::onGetWiFiStatus, &WiFiManager::Instance, _1));
+    webserver.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1));
     
-    server.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
-    server.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1));
-    server.on("/api/heaters", HTTP_GET, std::bind(&WebServer::onGetHeaters, this, _1));
-    server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
-    server.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
-    server.addHandler(&events);
-    server.onNotFound(std::bind(&APB::WebServer::onNotFound, this, _1));
+    webserver.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
+    webserver.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1));
+    webserver.on("/api/heaters", HTTP_GET, std::bind(&WebServer::onGetHeaters, this, _1));
+    webserver.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
+    webserver.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
+    webserver.addHandler(&events);
+    webserver.onNotFound(std::bind(&APB::WebServer::onNotFound, this, _1));
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
-    server.begin();
+    webserver.begin();
 
     new Task(1000, TASK_FOREVER, [this](){
         eventsDocument.clear();
@@ -370,8 +369,4 @@ void APB::WebServer::onConfigPowerSourceType(AsyncWebServerRequest *request, Jso
     response.root()["powerSourceType"] = Settings::PowerSourcesNames.at(Settings::Instance.powerSource());
 }
 
-void APB::WebServer::onJsonRequest(const char *path, ArJsonRequestHandlerFunction f, WebRequestMethodComposite method) {
-    auto handler = new AsyncCallbackJsonWebHandler(path, f);
-    handler->setMethod(method);
-    server.addHandler(handler);
-}
+
