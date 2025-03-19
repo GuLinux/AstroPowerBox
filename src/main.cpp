@@ -61,6 +61,13 @@ void setup() {
   APB::InfluxDb::Instance.setup(scheduler);
   
   APB::StatusLed::Instance.setup();
+  #ifdef WIFI_POWER_TX
+  WiFi.setTxPower(WIFI_POWER_TX);
+  #endif
+  #ifdef WIFI_POWER_RX
+  WiFi.setTxPower(WIFI_POWER_RX);
+  #endif
+
   
   WiFiManager::Instance.setOnConnectedCallback(std::bind(&APB::StatusLed::okPattern, &APB::StatusLed::Instance));
   WiFiManager::Instance.setOnConnectionFailedCallback(std::bind(&APB::StatusLed::wifiConnectionFailedPattern, &APB::StatusLed::Instance));
@@ -73,7 +80,7 @@ void setup() {
   std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
   
   webServer.setup();
-  ArduinoOTAManager::Instance.setup(&LittleFS);
+  ArduinoOTAManager::Instance.setup([](const char*s) { Log.warning(s); }, std::bind(&fs::LittleFSFS::end, &LittleFS));
   APB::History::Instance.setup(scheduler);
 
 #ifdef ONEBUTTON_USER_BUTTON_1
