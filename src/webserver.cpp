@@ -14,12 +14,6 @@
 
 #define LOG_SCOPE "APB::WebServer "
 
-#ifdef ALLOW_ALL_CORS
-#define ALLOW_CORS_VALUE true
-#else
-#define ALLOW_CORS_VALUE false
-#endif
-
 using namespace std::placeholders;
 using namespace GuLinux;
 
@@ -33,10 +27,13 @@ APB::WebServer::WebServer(Scheduler &scheduler) : AsyncWebServerBase{},
 
 void APB::WebServer::setup() {
     Log.traceln(LOG_SCOPE "Setup");
+    setupCors();
+    setupElegantOTA();
+    setupJsonNotFoundPage();
+#ifdef ALLOW_ALL_CORS
+    setupCors();
+#endif
 
-    setupBase(true, ALLOW_CORS_VALUE);
-
-   
     onJsonRequest("/api/config/accessPoint", std::bind(&WiFiManager::onConfigAccessPoint, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", std::bind(&WiFiManager::onConfigStation, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
@@ -64,7 +61,6 @@ void APB::WebServer::setup() {
     webserver.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
     webserver.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
     webserver.addHandler(&events);
-    webserver.onNotFound(std::bind(&APB::WebServer::onNotFound, this, _1));
     onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
  
     Log.infoln(LOG_SCOPE "Setup finished");
@@ -206,26 +202,26 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
             .gauge("ambient", ambientReading->humidity, MetricsResponse::Labels().unit("%").field("humidity"), nullptr, false)
             .gauge("ambient", ambientReading->dewpoint(), MetricsResponse::Labels().unit("°C").field("dewpoint"), nullptr, false);
     }
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
         metricsResponse.gauge("heater", heater.maxDuty(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("maxDuty")
-            .add("mode", heater.modeAsString().c_str()), nullptr, index++==0);
+            .add("mode", heater.modeAsString().c_str()), nullptr, heater.index() ==0);
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
         metricsResponse.gauge("heater", heater.duty(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("duty")
-            .add("mode", heater.modeAsString().c_str()), nullptr, index++==0);
+            .add("mode", heater.modeAsString().c_str()), nullptr, false);
     });
 
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
         metricsResponse.gauge("heater", heater.active(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("active")
             .add("mode", heater.modeAsString().c_str()), nullptr, false);
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
         if(heater.temperature().has_value()) {
             metricsResponse.gauge("heater", heater.temperature().value(), MetricsResponse::Labels()
                 .add("index", String(heater.index()).c_str())
@@ -234,7 +230,7 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
                 .add("mode", heater.modeAsString().c_str()), nullptr, false);
         }
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
         if(heater.targetTemperature().has_value()) {
             metricsResponse.gauge("heater_target_temperature", heater.targetTemperature().value(), MetricsResponse::Labels()
                 .add("index", String(heater.index()).c_str())
