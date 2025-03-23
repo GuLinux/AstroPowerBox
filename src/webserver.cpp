@@ -19,8 +19,7 @@ using namespace GuLinux;
 
 APB::WebServer::WebServer(Scheduler &scheduler) : AsyncWebServerBase{},
     events("/api/events"),
-    scheduler(scheduler)
-{
+    scheduler(scheduler) {
 }
 
 
@@ -69,13 +68,13 @@ void APB::WebServer::setup() {
     new Task(1000, TASK_FOREVER, [this](){
         eventsDocument.clear();
         if(Ambient::Instance.reading().has_value()) {
-            populateAmbientStatus(eventsDocument["ambient"].to<JsonObject>());
+            Ambient::Instance.toJson(eventsDocument["ambient"].to<JsonObject>());
         } else {
             eventsDocument["ambient"] = static_cast<char*>(0);
         }
         
-        populatePowerStatus(eventsDocument["power"].to<JsonObject>());
-        populateHeatersStatus(eventsDocument["heaters"].to<JsonArray>());
+        PowerMonitor::Instance.toJson(eventsDocument["power"].to<JsonObject>());
+        Heaters::toJson(eventsDocument["heaters"].to<JsonArray>());
         eventsDocument["app"]["uptime"] = esp_timer_get_time() / 1000'000.0;
         serializeJson(eventsDocument, eventsString.data(), eventsString.size());
         this->events.send(eventsString.data(), "status", millis(), 5000);
@@ -135,47 +134,15 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request);
-    populateAmbientStatus(response.root().to<JsonObject>());
+    Ambient::Instance.toJson(response.root().to<JsonObject>());
 }
 
 
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    populateHeatersStatus(response.root().to<JsonArray>());
+    Heaters::toJson(response.root().to<JsonArray>());
 }
-
-void APB::WebServer::populateHeatersStatus(JsonArray heatersStatus) {
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
-        heatersStatus[heater.index()]["mode"] = heater.modeAsString(),
-        heatersStatus[heater.index()]["max_duty"] = heater.maxDuty();
-        heatersStatus[heater.index()]["duty"] = heater.duty();
-        heatersStatus[heater.index()]["active"] = heater.active();
-        heatersStatus[heater.index()]["has_temperature"] = heater.temperature().has_value();
-        optional::if_present(heater.rampOffset(), [&](float v){ heatersStatus[heater.index()]["ramp_offset"] = v; });
-        optional::if_present(heater.minDuty(), [&](float v){ heatersStatus[heater.index()]["min_duty"] = v; });
-        optional::if_present(heater.temperature(), [&](float v){ heatersStatus[heater.index()]["temperature"] = v; });
-        optional::if_present(heater.targetTemperature(), [&](float v){ heatersStatus[heater.index()]["target_temperature"] = v; });
-        optional::if_present(heater.dewpointOffset(), [&](float v){ heatersStatus[heater.index()]["dewpoint_offset"] = v; });
-    });
-}
-
-void APB::WebServer::populateAmbientStatus(JsonObject ambientStatus) {
-    ambientStatus["temperature"] = Ambient::Instance.reading()->temperature;
-    ambientStatus["humidity"] = Ambient::Instance.reading()->humidity;
-    ambientStatus["dewpoint"] = Ambient::Instance.reading()->dewpoint();
-}
-
-
-void APB::WebServer::populatePowerStatus(JsonObject powerStatus) {
-    powerStatus["busVoltage"] = PowerMonitor::Instance.status().busVoltage;
-    powerStatus["current"] = PowerMonitor::Instance.status().current;
-    powerStatus["power"] = PowerMonitor::Instance.status().power;
-    powerStatus["shuntVoltage"] = PowerMonitor::Instance.status().shuntVoltage;
-    powerStatus["charge"] = PowerMonitor::Instance.status().charge;
-}
-
-
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
     if(!PowerMonitor::Instance.status().initialised) {
@@ -183,7 +150,7 @@ void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
         return;
     }
     JsonResponse response(request);
-    populatePowerStatus(response.root().to<JsonObject>());
+    PowerMonitor::Instance.toJson(response.root().to<JsonObject>());
 }
 
 void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {

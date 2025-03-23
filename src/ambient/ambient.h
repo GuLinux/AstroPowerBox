@@ -3,6 +3,7 @@
 
 #include <TaskSchedulerDeclarations.h>
 #include <optional>
+#include <ArduinoJson.h>
 
 #include "configuration.h"
 
@@ -28,6 +29,7 @@ public:
     void readSensor();
     std::optional<Reading> _reading;
     static float calculateDewpoint(float temperature, float humidity);
+    void toJson(JsonObject ambientStatus);
 };
 
 }

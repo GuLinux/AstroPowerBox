@@ -50,7 +50,16 @@ void APB::PowerMonitor::setup(Scheduler &scheduler) {
     }
 }
 
-void APB::PowerMonitor::setCharge() {
+void APB::PowerMonitor::toJson(JsonObject powerStatus) {
+    powerStatus["busVoltage"] = _status.busVoltage;
+    powerStatus["current"] = _status.current;
+    powerStatus["power"] = _status.power;
+    powerStatus["shuntVoltage"] = _status.shuntVoltage;
+    powerStatus["charge"] = _status.charge;
+}
+
+void APB::PowerMonitor::setCharge()
+{
     switch (Settings::Instance.powerSource()) {
     case LipoBattery3C:
         _status.charge = lipoBatteryCharge(3, _status.busVoltage);
@@ -59,7 +68,6 @@ void APB::PowerMonitor::setCharge() {
         _status.charge = 100.0f;
     }
 }
-
 
 float lipoBatteryCharge(uint8_t cells, float voltage) {
     float singleCellVoltage = voltage / static_cast<float>(cells);

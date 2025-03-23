@@ -9,6 +9,8 @@
 #include <SmoothThermistor.h>
 #endif
 
+#include "utils.h"
+
 
 static const char *TEMPERATURE_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without temperature sensor";
 static const char *AMBIENT_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without ambient sensor";
@@ -80,7 +82,21 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     Log.infoln("%s Heater initialised", d->log_scope);
 
 }
-std::forward_list<String> APB::Heater::validModes() {
+void APB::Heater::toJson(JsonObject heaterStatus) {
+    heaterStatus["mode"] = modeAsString(),
+    heaterStatus["max_duty"] = maxDuty();
+    heaterStatus["duty"] = duty();
+    heaterStatus["active"] = active();
+    heaterStatus["has_temperature"] = temperature().has_value();
+    optional::if_present(rampOffset(), [&](float v){ heaterStatus["ramp_offset"] = v; });
+    optional::if_present(minDuty(), [&](float v){ heaterStatus["min_duty"] = v; });
+    optional::if_present(temperature(), [&](float v){ heaterStatus["temperature"] = v; });
+    optional::if_present(targetTemperature(), [&](float v){ heaterStatus["target_temperature"] = v; });
+    optional::if_present(dewpointOffset(), [&](float v){ heaterStatus["dewpoint_offset"] = v; });
+}
+
+std::forward_list<String> APB::Heater::validModes()
+{
     static std::forward_list<String> keys;
     if(keys.empty())
         std::transform(Private::modesToString.begin(), Private::modesToString.end(), std::front_inserter(keys), [](const auto &i) { return i.second; });
@@ -309,3 +325,9 @@ void APB::Heater::Private::writePinDuty(float pwm) {
 }
 
 #endif
+
+void APB::Heaters::toJson(JsonArray heatersStatus) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
+        heater.toJson(heatersStatus[heater.index()]);
+    });
+}

@@ -6,6 +6,7 @@
 #include <TaskSchedulerDeclarations.h>
 #include <forward_list>
 #include <unordered_map>
+#include <ArduinoJson.h>
 
 #include "configuration.h"
 #include "ambient/ambient.h"
@@ -16,6 +17,7 @@ class Heater;
 namespace Heaters {
     using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
     extern Array &Instance;
+    void toJson(JsonArray heatersStatus);
 }
 
 
@@ -26,6 +28,8 @@ public:
     ~Heater();
     enum Mode { off, fixed, target_temperature, dewpoint };
     void setup(uint8_t index, Scheduler &scheduler);
+
+    void toJson(JsonObject heaterStatus);
     
     float maxDuty() const;
     float duty() const;

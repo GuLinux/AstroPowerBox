@@ -1,4 +1,5 @@
 #include "ambient-p.h"
+#include "ambient.h"
 
 APB::Ambient &APB::Ambient::Instance = *new APB::Ambient();
 
@@ -35,5 +36,10 @@ float APB::Ambient::calculateDewpoint(float temperature, float humidity) {
   static const float dewpointB = 243.12;
   const float a_t_rh = log(humidity / 100.0) + (dewpointA * temperature / (dewpointB + temperature));
   return (dewpointB * a_t_rh) / (dewpointA - a_t_rh);
+}
 
+void APB::Ambient::toJson(JsonObject ambientStatus) {
+    ambientStatus["temperature"] = _reading->temperature;
+    ambientStatus["humidity"] = _reading->humidity;
+    ambientStatus["dewpoint"] = _reading->dewpoint();
 }
