@@ -41,6 +41,9 @@ void APB::Ambient::readSensor() {
   if(sht.read()) {
     _reading = { sht.getTemperature(), sht.getHumidity() };
     // Log.traceln("reading values: %d degrees, %d humidity", _reading->temperature, _reading->humidity);
+    #ifdef DEBUG_AMBIENT_STATUS
+    Log.infoln(LOG_SCOPE "Ambient reading SHT4x: T=%F, H=%F, D=%F", reading.temperature, reading.humidity, reading.dewpoint());
+    #endif
   } else {
     logSHT30Error("reading values");
     _reading.reset();

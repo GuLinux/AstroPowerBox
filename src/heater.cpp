@@ -219,7 +219,9 @@ void APB::Heater::Private::loop()
     }
     
     if(temperature.has_value() && temperature.value() < -50) {
+        #ifdef DEBUG_HEATER_STATUS
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
+        #endif
         temperature = {};
         if(mode == Heater::Mode::dewpoint || mode == Heater::Mode::target_temperature) {
             Log.warningln("%s Lost temperature sensor, switching off.", log_scope);
@@ -303,9 +305,10 @@ void APB::Heater::Private::privateSetup() {
 
 void APB::Heater::Private::readTemperature() {
     auto rawValue = analogRead(pinout->thermistor);
-    // Log.infoln("Thermistor %d raw value for pin %d: %d", index, pinout->thermistor, rawValue);
     temperature = smoothThermistor->temperature();
-    // Log.traceln("%s readThemperature from smoothThermistor: %F", log_scope, *temperature);
+    #ifdef DEBUG_HEATER_STATUS
+    Log.infoln("%s readThemperature: raw=%F, from smoothThermistor: %F", log_scope, rawValue, *temperature);
+    #endif
 }
 
 float APB::Heater::Private::getDuty() const {
@@ -328,6 +331,13 @@ void APB::Heater::Private::writePinDuty(float pwm) {
 
 void APB::Heaters::toJson(JsonArray heatersStatus) {
     std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
-        heater.toJson(heatersStatus[heater.index()]);
+        JsonObject heaterObject = heatersStatus[heater.index()].to<JsonObject>();
+        heater.toJson(heaterObject);
     });
+}
+
+void APB::Heaters::load() {
+}
+
+void APB::Heaters::save() {
 }

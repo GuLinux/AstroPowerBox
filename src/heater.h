@@ -18,6 +18,8 @@ namespace Heaters {
     using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
     extern Array &Instance;
     void toJson(JsonArray heatersStatus);
+    void load();
+    void save();
 }
 
 

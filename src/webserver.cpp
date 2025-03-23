@@ -57,10 +57,20 @@ void APB::WebServer::setup() {
     webserver.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
     webserver.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1));
     webserver.on("/api/heaters", HTTP_GET, std::bind(&WebServer::onGetHeaters, this, _1));
+    onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
+
+    events.onConnect([](AsyncEventSourceClient *client){
+        Log.infoln(LOG_SCOPE "[SSE] Client connected: lastId=%d, %s", client->lastId(), client->client()->remoteIP().toString().c_str());
+    });
+    events.onDisconnect([](AsyncEventSourceClient *client){
+        Log.infoln(LOG_SCOPE "[SSE] Client disconnected");
+    });
+    webserver.addHandler(&events);
+    
     webserver.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
     webserver.serveStatic("/static", LittleFS, "/web/static").setDefaultFile("index.html");
-    webserver.addHandler(&events);
-    onJsonRequest("/api/heater", std::bind(&APB::WebServer::onPostSetHeater, this, _1, _2), HTTP_POST);
+    
+    
  
     Log.infoln(LOG_SCOPE "Setup finished");
     webserver.begin();
@@ -116,13 +126,6 @@ void APB::WebServer::onGetHistory(AsyncWebServerRequest *request) {
     request->send(response);
 }
 
-void APB::WebServer::onNotFound(AsyncWebServerRequest *request) {
-    JsonResponse response(request, 404);
-    response.root()["error"] = "NotFound";
-    response.root()["url"] = request->url();
-}
-
-
 void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
     Settings::Instance.save();
     onGetConfig(request);
@@ -141,7 +144,9 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    Heaters::toJson(response.root().to<JsonArray>());
+    Log.infoln(LOG_SCOPE "onGetHeaters: %d", Heaters::Instance.size());
+    JsonArray responseArray = response.root().to<JsonArray>();
+    Heaters::toJson(responseArray);
 }
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
@@ -251,15 +256,38 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         .range("index", {0}, {Heaters::Instance.size()-1})
         .range("max_duty", {0}, {1})
         .choice("mode", Heater::validModes()).invalid()) return;
-    Heater &heater = Heaters::Instance[json["index"]];
+
     Heater::Mode mode = Heater::modeFromString(json["mode"]);
+    if(mode != Heater::Mode::off) {
+        if(validation.range("max_duty", {0}, {1}).required<float>("max_duty").invalid()) return;
+        if(mode == Heater::Mode::dewpoint) {
+            if(validation
+                .range("dewpoint_offset", {-30}, {30})
+                .required<float>("dewpoint_offset")
+                .range("min_duty", 0, 1)
+                .range("ramp_offset", 0, 20)
+                .invalid()
+            ) return;
+        }
+        if(mode == Heater::Mode::target_temperature) {
+            if(validation
+                .range("target_temperature", {-50}, {50})
+                .required<float>("target_temperature")
+                .range("min_duty", 0, 1)
+                .range("ramp_offset", 0, 20)
+                .invalid()
+            ) return;
+        }
+    }
+
+    Heater &heater = Heaters::Instance[json["index"]];
+    
     if(mode == Heater::Mode::off) {
         heater.setMaxDuty(0);
         onGetHeaters(request);
         return;
     }
     
-    if(validation.range("max_duty", {0}, {1}).required<float>("max_duty").invalid()) return;
     float duty = json["max_duty"];
     static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
     static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
@@ -268,13 +296,6 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         heater.setMaxDuty(json["max_duty"]);
     }
     if(mode == Heater::Mode::dewpoint) {
-        if(validation
-            .range("dewpoint_offset", {-30}, {30})
-            .required<float>("dewpoint_offset")
-            .range("min_duty", 0, 1)
-            .range("ramp_offset", 0, 20)
-            .invalid()
-        ) return;
         float dewpointOffset = json["dewpoint_offset"];
         float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
         float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
@@ -284,13 +305,6 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         }
     }
     if(mode == Heater::Mode::target_temperature) {
-        if(validation
-            .range("target_temperature", {-50}, {50})
-            .required<float>("target_temperature")
-            .range("min_duty", 0, 1)
-            .range("ramp_offset", 0, 20)
-            .invalid()
-        ) return;
         float targetTemperature = json["target_temperature"];
         float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
         float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;

@@ -40,7 +40,9 @@ void APB::PowerMonitor::setup(Scheduler &scheduler) {
             _status.shuntVoltage = _ina219.getShuntVoltage();
             setCharge();
             if(_status.power == 0 && _status.current == 0) {
+                #ifdef DEBUG_POWERMONITOR_STATUS
                 Log.warningln("Powermonitor: Reporting power as 0. INA status: %d", _ina219.isConnected());
+                #endif
             }
         });
         scheduler.addTask(_loopTask);
