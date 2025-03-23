@@ -13,6 +13,7 @@ void APB::Ambient::setup(Scheduler &scheduler) {
   if(initialised) {
     readValuesTask.set(APB_AMBIENT_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Ambient::readSensor, this));
     scheduler.addTask(readValuesTask);
+    readSensor();
     readValuesTask.enable();
     Log.infoln(LOG_SCOPE "Ambient initialised");
   } else {

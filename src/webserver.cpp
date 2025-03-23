@@ -95,7 +95,7 @@ void APB::WebServer::setup() {
 void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
     JsonResponse response(request);
     response.root()["status"] = "restarting";
-    new Task(1000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
+    new Task(3000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
 }
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
@@ -281,37 +281,13 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     }
 
     Heater &heater = Heaters::Instance[json["index"]];
-    
-    if(mode == Heater::Mode::off) {
-        heater.setMaxDuty(0);
-        onGetHeaters(request);
+    const char *errorMessage =  heater.setState(json);
+    if(errorMessage) {
+        JsonResponse::error(500, errorMessage, request);
         return;
     }
-    
-    float duty = json["max_duty"];
-    static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
-    static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
-
-    if(mode == Heater::Mode::fixed) {
-        heater.setMaxDuty(json["max_duty"]);
-    }
-    if(mode == Heater::Mode::dewpoint) {
-        float dewpointOffset = json["dewpoint_offset"];
-        float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
-        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
-        if(!heater.setDewpoint(dewpointOffset, duty, minDuty, rampOffset)) {
-            JsonResponse::error(500, dewpointTemperatureErrorMessage, request);
-            return;
-        }
-    }
-    if(mode == Heater::Mode::target_temperature) {
-        float targetTemperature = json["target_temperature"];
-        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
-        float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
-        if(!heater.setTemperature(targetTemperature, duty, minDuty, rampOffset)) {
-            JsonResponse::error(500, temperatureErrorMessage, request);
-            return;
-        }
+    if(heater.applyAtStartup()) {
+        Heaters::saveConfig();
     }
     onGetHeaters(request);
 }

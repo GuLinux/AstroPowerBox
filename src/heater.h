@@ -18,8 +18,7 @@ namespace Heaters {
     using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
     extern Array &Instance;
     void toJson(JsonArray heatersStatus);
-    void load();
-    void save();
+    void saveConfig();
 }
 
 
@@ -35,15 +34,16 @@ public:
     
     float maxDuty() const;
     float duty() const;
-    void setMaxDuty(float duty);
-    bool setTemperature(float targetTemperature, float maxDuty=1, float minDuty=0, float rampOffset=0);
-    bool setDewpoint(float offset, float maxDuty=1, float minDuty=0, float rampOffset=0);
+    
+    const char *setState(JsonObject jsonObject);
+
     std::optional<float> temperature() const;
     std::optional<float> targetTemperature() const;
     std::optional<float> dewpointOffset() const;
     std::optional<float> rampOffset() const;
     std::optional<float> minDuty() const;
     bool active() const;
+    bool applyAtStartup() const;
 
     Mode mode() const;
     static std::forward_list<String> validModes();
@@ -51,6 +51,12 @@ public:
     const String modeAsString() const;
     uint8_t index() const;
 private:
+    bool setTemperature(float targetTemperature, float maxDuty=1, float minDuty=0, float rampOffset=0);
+    bool setDewpoint(float offset, float maxDuty=1, float minDuty=0, float rampOffset=0);
+    void setMaxDuty(float duty);
+    void loadFromJson();
+
+
     struct Private;
     friend struct Private;
     std::shared_ptr<Private> d;

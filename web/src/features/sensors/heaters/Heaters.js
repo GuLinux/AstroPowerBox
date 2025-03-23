@@ -154,7 +154,7 @@ const SetHeaterModal = ({heater: originalHeater, show, onClose, index}) => {
                     </Form.Group>
 
                 </Collapse>
-
+                <Form.Check id={`applyAtStartup-${index}`} label='Apply at startup' checked={heater.apply_at_startup} onChange={e => setHeater({...heater, 'apply_at_startup': e.target.checked})} />
             </Form>
         </Modal.Body>
         <Modal.Footer>

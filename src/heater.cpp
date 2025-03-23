@@ -1,4 +1,5 @@
 #include <ArduinoLog.h>
+#include <LittleFS.h>
 #include <array>
 
 #include "heater.h"
@@ -9,7 +10,9 @@
 #include <SmoothThermistor.h>
 #endif
 
+#include "settings.h"
 #include "utils.h"
+#define HEATERS_CONF_FILENAME APB_CONFIG_DIRECTORY "/heaters.json"
 
 
 static const char *TEMPERATURE_NOT_FOUND_WARNING_LOG = "%s Cannot set heater temperature without temperature sensor";
@@ -26,6 +29,8 @@ struct APB::Heater::Private {
     float targetTemperature;
     float dewpointOffset;
     float rampOffset = 0;
+
+    bool applyAtStartup = false;
 
     Task loopTask;
     char log_scope[20];
@@ -78,16 +83,51 @@ void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
     d->loopTask.set(APB_HEATER_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Heater::Private::loop, d));
     scheduler.addTask(d->loopTask);
     d->loopTask.enable();
-    
+    loadFromJson(); 
     Log.infoln("%s Heater initialised", d->log_scope);
-
 }
+
+
+void APB::Heater::loadFromJson() {
+    if(LittleFS.exists(HEATERS_CONF_FILENAME)) {
+        File file = LittleFS.open(HEATERS_CONF_FILENAME, "r");
+        if(!file) {
+            Log.errorln("%s Error opening heaters configuration file", d->log_scope);
+            return;
+        } else {
+            Log.infoln("%s Heaters configuration file opened", d->log_scope);
+        }
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, file);
+        if(error) {
+            Log.errorln("%s Error parsing heaters configuration file: %s", d->log_scope, error.c_str());
+            return;
+        }
+        JsonArray heaters = doc.as<JsonArray>();
+        if(heaters.size() <= d->index) {
+            Log.errorln("%s Heaters configuration file doesn't have enough heaters", d->log_scope);
+            return;
+        }
+        bool applyAtStartup = heaters[d->index]["apply_at_startup"].as<bool>();
+        Log.infoln("%s Heaters configuration file loaded, applyAtStartup=%T", d->log_scope, applyAtStartup);
+        if(applyAtStartup) {
+            d->readTemperature();
+            const char *error = setState(heaters[d->index].as<JsonObject>());
+            if(error) {
+                Log.errorln("%s Error setting heater state from configuration: %s", d->log_scope, error);
+            }
+        }
+    }
+}
+
+
 void APB::Heater::toJson(JsonObject heaterStatus) {
     heaterStatus["mode"] = modeAsString(),
     heaterStatus["max_duty"] = maxDuty();
     heaterStatus["duty"] = duty();
     heaterStatus["active"] = active();
     heaterStatus["has_temperature"] = temperature().has_value();
+    heaterStatus["apply_at_startup"] = d->applyAtStartup;
     optional::if_present(rampOffset(), [&](float v){ heaterStatus["ramp_offset"] = v; });
     optional::if_present(minDuty(), [&](float v){ heaterStatus["min_duty"] = v; });
     optional::if_present(temperature(), [&](float v){ heaterStatus["temperature"] = v; });
@@ -128,6 +168,10 @@ bool APB::Heater::active() const {
     return d->getDuty() > 0;
 }
 
+bool APB::Heater::applyAtStartup() const {
+    return d->applyAtStartup;
+}
+
 void APB::Heater::setMaxDuty(float duty) {
     if(duty > 0) {
         d->maxDuty = duty;
@@ -136,6 +180,40 @@ void APB::Heater::setMaxDuty(float duty) {
         d->mode = Heater::Mode::off;
     }
     d->loop();
+}
+
+const char *APB::Heater::setState(JsonObject json) {
+    Heater::Mode mode = Heater::modeFromString(json["mode"]);
+    d->applyAtStartup = json["apply_at_startup"].as<bool>();
+    if(mode == Heater::Mode::off) {
+        setMaxDuty(0);
+        return nullptr;
+    }
+    
+    float duty = json["max_duty"];
+    static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
+    static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
+
+    if(mode == Heater::Mode::fixed) {
+        setMaxDuty(json["max_duty"]);
+    }
+    if(mode == Heater::Mode::dewpoint) {
+        float dewpointOffset = json["dewpoint_offset"];
+        float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
+        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
+        if(!setDewpoint(dewpointOffset, duty, minDuty, rampOffset)) {
+            return dewpointTemperatureErrorMessage;
+        }
+    }
+    if(mode == Heater::Mode::target_temperature) {
+        float targetTemperature = json["target_temperature"];
+        float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
+        float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
+        if(!setTemperature(targetTemperature, duty, minDuty, rampOffset)) {
+            return temperatureErrorMessage;
+        }
+    }
+    return nullptr;
 }
 
 uint8_t APB::Heater::index() const { 
@@ -336,8 +414,18 @@ void APB::Heaters::toJson(JsonArray heatersStatus) {
     });
 }
 
-void APB::Heaters::load() {
+void APB::Heaters::saveConfig() {
+    Log.infoln("[Heaters] Saving heaters configuration");
+    LittleFS.mkdir(APB_CONFIG_DIRECTORY);
+    File file = LittleFS.open(HEATERS_CONF_FILENAME, "w",true);
+    if(!file) {
+        Log.errorln("[Heaters] Error opening heaters configuration file" );
+        return;
+    }
+    JsonDocument doc;
+    toJson(doc.to<JsonArray>());
+    serializeJson(doc, file);
+    file.close();
+    Log.infoln("[Heaters] Heaters configuration saved");
 }
 
-void APB::Heaters::save() {
-}
