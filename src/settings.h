@@ -7,6 +7,8 @@
 #include "powermonitor.h"
 #include <unordered_map>
 
+#define APB_CONFIG_DIRECTORY "/config"
+
 namespace APB {
 class Settings {
 public:
