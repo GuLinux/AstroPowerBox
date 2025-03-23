@@ -34,6 +34,9 @@ bool APB::Ambient::initialiseSensor() {
 void APB::Ambient::readSensor() {
   Reading reading;
   if(!shtCheckForError(sht.measureHighPrecision(reading.temperature, reading.humidity), "Error reading temperature/humidity")) {
+    #ifdef DEBUG_AMBIENT_STATUS
+    Log.infoln(LOG_SCOPE "Ambient reading SHT4x: T=%F, H=%F, D=%F", reading.temperature, reading.humidity, reading.dewpoint());
+    #endif
     _reading = reading;
   } else {
     _reading.reset();
