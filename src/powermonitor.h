@@ -4,6 +4,7 @@
 #include <optional>
 #include <memory>
 #include <TaskSchedulerDeclarations.h>
+#include <ArduinoJson.h>
 
 #include "configuration.h"
 #include <INA219.h>
@@ -30,6 +31,7 @@ public:
         LipoBattery3C = 1,
     };
     Status status() const { return _status; }
+    void toJson(JsonObject powerStatus);
 private:
     INA219 _ina219{APB_INA1219_ADDRESS};
     PowerMonitor::Status _status;
