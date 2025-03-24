@@ -10,6 +10,7 @@ import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
 import { Config } from './features/app/Config';
 import { System } from './features/app/System';
+import { selectWiFiAccessPointConfig } from './features/app/configSlice';
 
 const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
@@ -39,6 +40,12 @@ function App() {
   useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
   useEffect(() => registerEventSource(dispatch), [dispatch]);
   const activeTab = useSelector(tabSelector);
+  const accessPoint = useSelector(selectWiFiAccessPointConfig)
+  useEffect(() => {
+    if(!!accessPoint.essid) {
+      document.title = accessPoint.essid;
+    }
+  });
   return (
     <>
       { darkMode ? <DarkMode /> : <LightMode /> }
