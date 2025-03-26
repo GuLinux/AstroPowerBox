@@ -292,9 +292,7 @@ APB::Heater::Mode APB::Heater::mode() const {
 
 void APB::Heater::Private::loop()
 {
-    if(smoothThermistor) {
-        readTemperature();
-    }
+    readTemperature();
     
     if(temperature.has_value() && temperature.value() < -50) {
         #ifdef DEBUG_HEATER_STATUS
@@ -382,6 +380,9 @@ void APB::Heater::Private::privateSetup() {
 }
 
 void APB::Heater::Private::readTemperature() {
+    if(!smoothThermistor) {
+        return;
+    }
     auto rawValue = analogRead(pinout->thermistor);
     temperature = smoothThermistor->temperature();
     #ifdef DEBUG_HEATER_STATUS
