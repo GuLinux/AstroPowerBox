@@ -4,7 +4,7 @@
 #include <AsyncJson.h>
 #include <ArduinoLog.h>
 #include <forward_list>
-#include <validation.h>
+#include <webvalidation.h>
 #include <jsonresponse.h>
 #include "metricsresponse.h"
 #include <esp_system.h>
@@ -251,7 +251,7 @@ void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json) {
-    Validation validation{request, json};
+    WebValidation validation{request, json};
     if(validation.required<int>("index").required<const char*>("mode")
         .range("index", {0}, {Heaters::Instance.size()-1})
         .range("max_duty", {0}, {1})
@@ -293,7 +293,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
 }
 
 void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json) {
-    Validation validation{request, json};
+    WebValidation validation{request, json};
     if(validation.required<float>("duty")
         .range("duty", {0}, {1})
         .invalid()) return;
@@ -303,7 +303,7 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
 }
 
 void APB::WebServer::onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json) {
-    Validation validation{request, json};
+    WebValidation validation{request, json};
     std::forward_list<String> choices;
     std::map<String, PowerMonitor::PowerSource> mapping;
     std::for_each(

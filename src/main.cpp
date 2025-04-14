@@ -49,6 +49,7 @@ void setup() {
   delay(BOOT_DELAY);
   #endif
 
+
   bufferedLogger.setup();
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
   Log.addHandler(&bufferedLogger);

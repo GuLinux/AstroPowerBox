@@ -33,6 +33,8 @@
 
 #define APB_INA1219_ADDRESS 0x40
 
+#define MAX_EVENTS_SIZE 800
+
 #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
 #endif

@@ -25,7 +25,7 @@ private:
     AsyncEventSource events;
     Scheduler &scheduler;
     JsonDocument eventsDocument;
-    std::array<char, 800> eventsString;
+    std::array<char, MAX_EVENTS_SIZE> eventsString;
 
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
