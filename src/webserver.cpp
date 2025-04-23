@@ -11,6 +11,7 @@
 #include <LittleFS.h>
 #include <map>
 #include "utils.h"
+#include "commandparser.h"
 
 #define LOG_SCOPE "APB::WebServer "
 
@@ -33,8 +34,8 @@ void APB::WebServer::setup() {
     setupCors();
 #endif
 
-    onJsonRequest("/api/config/accessPoint", std::bind(&WiFiManager::onConfigAccessPoint, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
-    onJsonRequest("/api/config/station", std::bind(&WiFiManager::onConfigStation, &WiFiManager::Instance, _1, _2), HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/accessPoint", [](AsyncWebServerRequest *request, JsonVariant &json){ WiFiManager::Instance.onConfigAccessPoint(request, json); }, HTTP_POST | HTTP_DELETE);
+    onJsonRequest("/api/config/station", [](AsyncWebServerRequest *request, JsonVariant &json){ WiFiManager::Instance.onConfigStation(request, json); }, HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
     onJsonRequest("/api/config/powerSourceType", std::bind(&WebServer::onConfigPowerSourceType, this, _1, _2), HTTP_POST);
     webserver.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
@@ -51,7 +52,7 @@ void APB::WebServer::setup() {
         response.root()["status"] = "Dropping WiFi";
     });
     #endif
-    webserver.on("/api/wifi", HTTP_GET, std::bind(&WiFiManager::onGetWiFiStatus, &WiFiManager::Instance, _1));
+    webserver.on("/api/wifi", HTTP_GET, [](AsyncWebServerRequest *request){ WiFiManager::Instance.onGetWiFiStatus(request); });
     webserver.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1));
     
     webserver.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
@@ -144,9 +145,7 @@ void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetHeaters(AsyncWebServerRequest *request) {
     JsonResponse response(request);
-    Log.infoln(LOG_SCOPE "onGetHeaters: %d", Heaters::Instance.size());
-    JsonArray responseArray = response.root().to<JsonArray>();
-    Heaters::toJson(responseArray);
+    CommandParser::Instance.getHeaters(response.root().to<JsonArray>());
 }
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
