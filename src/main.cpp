@@ -5,6 +5,7 @@
 #include <wifimanager.h>
 
 #include "configuration.h"
+#include "commandparser.h"
 
 #include "webserver.h"
 
