@@ -3,7 +3,7 @@
 #include <array>
 #include "configuration.h"
 #include <WString.h>
-#include "wifisettings.h"
+#include <wifisettings.h>
 #include "powermonitor.h"
 #include <unordered_map>
 
