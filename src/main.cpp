@@ -35,6 +35,8 @@ OneButton userButton;
 
 APB::WebServer webServer(scheduler);
 
+Task rescanTask;
+
 
 #define LOG_SCOPE "APB::Main - "
 
@@ -62,7 +64,7 @@ void setup() {
   APB::Settings::Instance.setup();
   APB::InfluxDb::Instance.setup(scheduler);
   
-  APB::StatusLed::Instance.setup();
+  APB::StatusLed::Instance.setup(&scheduler);
   #ifdef WIFI_POWER_TX
   WiFi.setTxPower(WIFI_POWER_TX);
   #endif
@@ -70,11 +72,25 @@ void setup() {
   WiFi.setTxPower(WIFI_POWER_RX);
   #endif
 
+  WiFi.onEvent([](arduino_event_id_t event, arduino_event_info_t){
+    Log.infoln(LOG_SCOPE "WiFi event: %s", WiFi.eventName(event));
+  });
   
-  WiFiManager::Instance.setOnConnectedCallback(std::bind(&APB::StatusLed::okPattern, &APB::StatusLed::Instance));
-  WiFiManager::Instance.setOnConnectionFailedCallback(std::bind(&APB::StatusLed::wifiConnectionFailedPattern, &APB::StatusLed::Instance));
-  WiFiManager::Instance.setOnNoStationsFoundCallback(std::bind(&APB::StatusLed::noWiFiStationsFoundPattern, &APB::StatusLed::Instance));
-  WiFiManager::Instance.setup(scheduler, &APB::Settings::Instance.wifi());
+  rescanTask.set(30'000, TASK_FOREVER, [](){
+    Log.infoln(LOG_SCOPE "Rescanning WiFi networks");
+    WiFiManager::Instance.rescan();
+  });
+  scheduler.addTask(rescanTask);
+  WiFiManager::Instance.setOnConnectedCallback([](const AsyncWiFiMulti::ApSettings &){
+    APB::StatusLed::Instance.okPattern();
+    rescanTask.disable();
+  });
+  WiFiManager::Instance.setOnConnectionFailedCallback([](){
+    APB::StatusLed::Instance.wifiConnectionFailedPattern();
+    rescanTask.enableDelayed(30'000);
+  });
+  WiFiManager::Instance.setOnDisconnectedCallback(std::bind(&APB::StatusLed::wifiConnectionFailedPattern, &APB::StatusLed::Instance));
+  WiFiManager::Instance.setup(&APB::Settings::Instance.wifi());
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);

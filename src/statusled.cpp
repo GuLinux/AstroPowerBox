@@ -6,8 +6,8 @@ APB::StatusLed &APB::StatusLed::Instance = *new APB::StatusLed();
 APB::StatusLed::StatusLed() : led{APB_STATUS_LED_PIN, APB_STATUS_LED_INVERT_LOGIC} {
 }
 
-void APB::StatusLed::setup() {
-    led.setup();
+void APB::StatusLed::setup(Scheduler *scheduler) {
+    led.setup(scheduler);
     setDuty(Settings::Instance.statusLedDuty());
     setupPattern();
 }

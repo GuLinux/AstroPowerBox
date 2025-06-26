@@ -4,34 +4,34 @@
 #include <Arduino.h>
 #include <list>
 #include <Ticker.h>
+#include <TaskSchedulerDeclarations.h>
 
 class AsyncLed {
 public:
     AsyncLed(uint8_t pin, bool invertLogic=false) : pin{pin}, invertLogic{invertLogic} {
    }
 
-    void setup() {
+    void setup(Scheduler *scheduler) {
         pinMode(pin, OUTPUT);
         writePin(false);
         leds.push_back(this);
-        AsyncLed::setupTicker();
+        AsyncLed::setupTask(scheduler);
     }
 
     float duty() const {
         return _duty;
     }
 
-    static void setupTicker() {
-        if(ticker) {
+    static void setupTask(Scheduler *scheduler) {
+        if(task) {
             return;
         }
-        ticker = new Ticker();
-        ticker->attach_ms(100, [](){
-            // Serial.println("Tick");
+        task = new Task(100, TASK_FOREVER, [](){
+            // Serial.println("Task running");
             for(auto led: leds) {
                 led->loop();
             }
-        });
+        }, scheduler, true);
         // Serial.printf("Ticker active: %d\n", ticker.active());  
     }
 
@@ -103,7 +103,7 @@ private:
         }
 
     }
-    static inline Ticker *ticker = nullptr;
+    static inline Task *task = nullptr;
     static inline std::list<AsyncLed*> leds;
 };
 
