@@ -9,7 +9,7 @@ class StatusLed {
 public:
     static StatusLed &Instance;
     StatusLed();
-    void setup();
+    void setup(Scheduler *scheduler);
     float duty() const;
     void setDuty(float duty);
 
