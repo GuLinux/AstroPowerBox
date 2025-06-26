@@ -11,7 +11,7 @@
 
 #include "settings.h"
 #include "ambient/ambient.h"
-#include "heater.h"
+#include "pwm_output.h"
 #include "powermonitor.h"
 #include <Wire.h>
 #include <LittleFS.h>
@@ -95,7 +95,7 @@ void setup() {
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);
   APB::PowerMonitor::Instance.setup(scheduler);
-  std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::Heater &heater) mutable { heater.setup(i++, scheduler); });
+  std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::PWMOutput &heater) mutable { heater.setup(i++, scheduler); });
   
   webServer.setup();
   ArduinoOTAManager::Instance.setup([](const char*s) { Log.warning(s); }, std::bind(&fs::LittleFSFS::end, &LittleFS));

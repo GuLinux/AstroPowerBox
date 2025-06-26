@@ -7,7 +7,7 @@
 #include "settings.h"
 #include <wifimanager.h>
 #include "ambient/ambient.h"
-#include "heater.h"
+#include "pwm_output.h"
 #include "powermonitor.h"
 #include <TaskSchedulerDeclarations.h>
 #include "statusled.h"
