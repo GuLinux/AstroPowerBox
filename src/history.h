@@ -10,7 +10,7 @@
 
 #include "ambient/ambient.h"
 #include "powermonitor.h"
-#include "heater.h"
+#include "pwm_output.h"
 #include "utils.h"
 
 #define HISTORY_ENTRY_SIZE 256
@@ -22,14 +22,14 @@ public:
     History();
     struct Entry {
         #if APB_HEATERS_SIZE > 0
-        struct Heater {
+        struct PWMOutput {
             int16_t temperatureHundredth;
             uint8_t duty;
-            void set(const APB::Heater &heater);
+            void set(const APB::PWMOutput &heater);
             float getTemperature() const { return static_cast<float>(temperatureHundredth) / 100.0; }
             float getDuty() const { return static_cast<float>(duty); }
         };
-        std::array<Heater, APB_HEATERS_TEMP_SENSORS> heaters;
+        std::array<PWMOutput, APB_HEATERS_TEMP_SENSORS> heaters;
         #endif
         uint32_t secondsFromBoot;
         #ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE

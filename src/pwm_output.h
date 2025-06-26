@@ -13,20 +13,22 @@
 
 namespace APB {
 
-class Heater;
+class PWMOutput;
 namespace Heaters {
-    using Array = std::array<APB::Heater, APB_HEATERS_SIZE>;
+    using Array = std::array<APB::PWMOutput, APB_HEATERS_SIZE>;
     extern Array &Instance;
     void toJson(JsonArray heatersStatus);
     void saveConfig();
 }
 
 
-class Heater {
+class PWMOutput {
 public:
     using GetTargetTemperature = std::function<std::optional<float>()>;
-    Heater();
-    ~Heater();
+    enum Type { Heater, Output, Fan };
+    PWMOutput(Type type=Heater);
+    ~PWMOutput();
+    
     enum Mode { off, fixed, target_temperature, dewpoint };
     void setup(uint8_t index, Scheduler &scheduler);
 
@@ -50,6 +52,7 @@ public:
     static Mode modeFromString(const String &mode);
     const String modeAsString() const;
     uint8_t index() const;
+    Type type() const;
 private:
     bool setTemperature(float targetTemperature, float maxDuty=1, float minDuty=0, float rampOffset=0);
     bool setDewpoint(float offset, float maxDuty=1, float minDuty=0, float rampOffset=0);

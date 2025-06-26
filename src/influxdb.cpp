@@ -7,7 +7,7 @@ APB::InfluxDb &APB::InfluxDb::Instance = *new APB::InfluxDb{};
 #include "settings.h"
 #include "wifimanager.h"
 #include "powermonitor.h"
-#include "heater.h"
+#include "pwm_output.h"
 #include "ambient/ambient.h"
 #include <StreamString.h>
 #include <ArduinoLog.h>
@@ -76,7 +76,7 @@ void APB::InfluxDb::sendData() {
     }
 #endif
 #if APB_HEATERS_SIZE > 0
-    for(Heater &heater : Heaters::Instance) {
+    for(PWMOutput &heater : Heaters::Instance) {
         heatersSensor.clearFields();
         heatersSensor.addField("index", heater.index());
         if(heater.temperature().has_value()) {

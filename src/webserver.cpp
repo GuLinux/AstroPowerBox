@@ -173,26 +173,26 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
             .gauge("ambient", ambientReading->humidity, MetricsResponse::Labels().unit("%").field("humidity"), nullptr, false)
             .gauge("ambient", ambientReading->dewpoint(), MetricsResponse::Labels().unit("°C").field("dewpoint"), nullptr, false);
     }
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const PWMOutput &heater) {
         metricsResponse.gauge("heater", heater.maxDuty(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("maxDuty")
             .add("mode", heater.modeAsString().c_str()), nullptr, heater.index() ==0);
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const PWMOutput &heater) {
         metricsResponse.gauge("heater", heater.duty(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("duty")
             .add("mode", heater.modeAsString().c_str()), nullptr, false);
     });
 
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const PWMOutput &heater) {
         metricsResponse.gauge("heater", heater.active(), MetricsResponse::Labels()
             .add("index", String(heater.index()).c_str())
             .field("active")
             .add("mode", heater.modeAsString().c_str()), nullptr, false);
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const PWMOutput &heater) {
         if(heater.temperature().has_value()) {
             metricsResponse.gauge("heater", heater.temperature().value(), MetricsResponse::Labels()
                 .add("index", String(heater.index()).c_str())
@@ -201,7 +201,7 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
                 .add("mode", heater.modeAsString().c_str()), nullptr, false);
         }
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [&metricsResponse](const PWMOutput &heater) {
         if(heater.targetTemperature().has_value()) {
             metricsResponse.gauge("heater_target_temperature", heater.targetTemperature().value(), MetricsResponse::Labels()
                 .add("index", String(heater.index()).c_str())
@@ -210,7 +210,7 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
                 .add("mode", heater.modeAsString().c_str()), nullptr, false);
         }
     });
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const Heater &heater) mutable {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [index=0, &metricsResponse](const PWMOutput &heater) mutable {
         if(heater.dewpointOffset().has_value()) {
             metricsResponse.gauge("heater_dewpoint_offset", heater.dewpointOffset().value(), MetricsResponse::Labels()
                 .add("index", String(heater.index()).c_str())
@@ -254,12 +254,12 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
     if(validation.required<int>("index").required<const char*>("mode")
         .range("index", {0}, {Heaters::Instance.size()-1})
         .range("max_duty", {0}, {1})
-        .choice("mode", Heater::validModes()).invalid()) return;
+        .choice("mode", PWMOutput::validModes()).invalid()) return;
 
-    Heater::Mode mode = Heater::modeFromString(json["mode"]);
-    if(mode != Heater::Mode::off) {
+    PWMOutput::Mode mode = PWMOutput::modeFromString(json["mode"]);
+    if(mode != PWMOutput::Mode::off) {
         if(validation.range("max_duty", {0}, {1}).required<float>("max_duty").invalid()) return;
-        if(mode == Heater::Mode::dewpoint) {
+        if(mode == PWMOutput::Mode::dewpoint) {
             if(validation
                 .range("dewpoint_offset", {-30}, {30})
                 .required<float>("dewpoint_offset")
@@ -268,7 +268,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
                 .invalid()
             ) return;
         }
-        if(mode == Heater::Mode::target_temperature) {
+        if(mode == PWMOutput::Mode::target_temperature) {
             if(validation
                 .range("target_temperature", {-50}, {50})
                 .required<float>("target_temperature")
@@ -279,7 +279,7 @@ void APB::WebServer::onPostSetHeater(AsyncWebServerRequest *request, JsonVariant
         }
     }
 
-    Heater &heater = Heaters::Instance[json["index"]];
+    PWMOutput &heater = Heaters::Instance[json["index"]];
     const char *errorMessage =  heater.setState(json);
     if(errorMessage) {
         JsonResponse::error(500, errorMessage, request);

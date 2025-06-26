@@ -2,7 +2,7 @@
 #include <LittleFS.h>
 #include <array>
 
-#include "heater.h"
+#include "pwm_output.h"
 #include "configuration.h"
 
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
@@ -20,9 +20,12 @@ static const char *AMBIENT_NOT_FOUND_WARNING_LOG = "%s Cannot set heater tempera
 
 APB::Heaters::Array &APB::Heaters::Instance = *new APB::Heaters::Array();
 
-struct APB::Heater::Private {
-    APB::Heater *q;
-    Heater::Mode mode{Heater::Mode::off};
+struct APB::PWMOutput::Private {
+    Private(PWMOutput *q, Type type) : q{q}, type{type} {}
+    APB::PWMOutput *q;
+    const Type type;
+    
+    PWMOutput::Mode mode{PWMOutput::Mode::off};
     float maxDuty;
     float minDuty = 0;
     std::optional<float> temperature;
@@ -35,7 +38,7 @@ struct APB::Heater::Private {
     Task loopTask;
     char log_scope[20];
     uint8_t index;
-    Heater::GetTargetTemperature getTargetTemperature;
+    PWMOutput::GetTargetTemperature getTargetTemperature;
     
     void privateSetup();
     void loop();
@@ -55,40 +58,43 @@ struct APB::Heater::Private {
     std::unique_ptr<SmoothThermistor> smoothThermistor;
 #endif
 
-    static std::unordered_map<Heater::Mode, String> modesToString;
+    static std::unordered_map<PWMOutput::Mode, String> modesToString;
 };
 
-std::unordered_map<APB::Heater::Mode, String> APB::Heater::Private::modesToString = {
-    { APB::Heater::Mode::off, "off" },
-    { APB::Heater::Mode::dewpoint, "dewpoint" },
-    { APB::Heater::Mode::fixed, "fixed" },
-    { APB::Heater::Mode::target_temperature, "target_temperature" },
+std::unordered_map<APB::PWMOutput::Mode, String> APB::PWMOutput::Private::modesToString = {
+    { APB::PWMOutput::Mode::off, "off" },
+    { APB::PWMOutput::Mode::dewpoint, "dewpoint" },
+    { APB::PWMOutput::Mode::fixed, "fixed" },
+    { APB::PWMOutput::Mode::target_temperature, "target_temperature" },
 };
 
 
 
-APB::Heater::Heater() : d{std::make_shared<Private>()} {
-    d->q = this;
+APB::PWMOutput::PWMOutput(Type type) : d{std::make_shared<Private>(this, type)} {
 }
 
-APB::Heater::~Heater() {
+APB::PWMOutput::~PWMOutput() {
 }
 
-void APB::Heater::setup(uint8_t index, Scheduler &scheduler) {
+APB::PWMOutput::Type APB::PWMOutput::type() const {
+    return d->type;
+}
+
+void APB::PWMOutput::setup(uint8_t index, Scheduler &scheduler) {
     d->index = index;
-    sprintf(d->log_scope, "Heater[%d] -", index);
+    sprintf(d->log_scope, "PWMOutput[%d] -", index);
 
     d->privateSetup();
 
-    d->loopTask.set(APB_HEATER_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&Heater::Private::loop, d));
+    d->loopTask.set(APB_HEATER_UPDATE_INTERVAL_SECONDS * 1000, TASK_FOREVER, std::bind(&PWMOutput::Private::loop, d));
     scheduler.addTask(d->loopTask);
     d->loopTask.enable();
     loadFromJson(); 
-    Log.infoln("%s Heater initialised", d->log_scope);
+    Log.infoln("%s PWMOutput initialised", d->log_scope);
 }
 
 
-void APB::Heater::loadFromJson() {
+void APB::PWMOutput::loadFromJson() {
     if(LittleFS.exists(HEATERS_CONF_FILENAME)) {
         File file = LittleFS.open(HEATERS_CONF_FILENAME, "r");
         if(!file) {
@@ -121,7 +127,7 @@ void APB::Heater::loadFromJson() {
 }
 
 
-void APB::Heater::toJson(JsonObject heaterStatus) {
+void APB::PWMOutput::toJson(JsonObject heaterStatus) {
     heaterStatus["mode"] = modeAsString(),
     heaterStatus["max_duty"] = maxDuty();
     heaterStatus["duty"] = duty();
@@ -135,7 +141,7 @@ void APB::Heater::toJson(JsonObject heaterStatus) {
     optional::if_present(dewpointOffset(), [&](float v){ heaterStatus["dewpoint_offset"] = v; });
 }
 
-std::forward_list<String> APB::Heater::validModes()
+std::forward_list<String> APB::PWMOutput::validModes()
 {
     static std::forward_list<String> keys;
     if(keys.empty())
@@ -143,7 +149,7 @@ std::forward_list<String> APB::Heater::validModes()
     return keys;
 }
 
-APB::Heater::Mode APB::Heater::modeFromString(const String &mode) {
+APB::PWMOutput::Mode APB::PWMOutput::modeFromString(const String &mode) {
     const auto found = std::find_if(Private::modesToString.begin(), Private::modesToString.end(), [&mode](const auto item){ return mode == item.second; });
     if(found == Private::modesToString.end()) {
         return Mode::off;
@@ -151,53 +157,53 @@ APB::Heater::Mode APB::Heater::modeFromString(const String &mode) {
     return found->first; 
 }
 
-const String APB::Heater::modeAsString() const
+const String APB::PWMOutput::modeAsString() const
 {
     return Private::modesToString[mode()];
 }
 
-float APB::Heater::maxDuty() const {
+float APB::PWMOutput::maxDuty() const {
     return d->maxDuty;
 }
 
-float APB::Heater::duty() const {
+float APB::PWMOutput::duty() const {
     return d->getDuty();
 }
 
-bool APB::Heater::active() const {
+bool APB::PWMOutput::active() const {
     return d->getDuty() > 0;
 }
 
-bool APB::Heater::applyAtStartup() const {
+bool APB::PWMOutput::applyAtStartup() const {
     return d->applyAtStartup;
 }
 
-void APB::Heater::setMaxDuty(float duty) {
+void APB::PWMOutput::setMaxDuty(float duty) {
     if(duty > 0) {
         d->maxDuty = duty;
-        d->mode = Heater::Mode::fixed;
+        d->mode = PWMOutput::Mode::fixed;
     } else {
-        d->mode = Heater::Mode::off;
+        d->mode = PWMOutput::Mode::off;
     }
     d->loop();
 }
 
-const char *APB::Heater::setState(JsonObject json) {
-    Heater::Mode mode = Heater::modeFromString(json["mode"]);
+const char *APB::PWMOutput::setState(JsonObject json) {
+    PWMOutput::Mode mode = PWMOutput::modeFromString(json["mode"]);
     d->applyAtStartup = json["apply_at_startup"].as<bool>();
-    if(mode == Heater::Mode::off) {
+    if(mode == PWMOutput::Mode::off) {
         setMaxDuty(0);
         return nullptr;
     }
     
     float duty = json["max_duty"];
-    static const char *temperatureErrorMessage = "Unable to set target temperature. Heater probably doesn't have a temperature sensor.";
+    static const char *temperatureErrorMessage = "Unable to set target temperature. PWMOutput probably doesn't have a temperature sensor.";
     static const char *dewpointTemperatureErrorMessage = "Unable to set target temperature. Either the heater doesn't have a temperature sensor, or you're missing an ambient sensor.";
 
-    if(mode == Heater::Mode::fixed) {
+    if(mode == PWMOutput::Mode::fixed) {
         setMaxDuty(json["max_duty"]);
     }
-    if(mode == Heater::Mode::dewpoint) {
+    if(mode == PWMOutput::Mode::dewpoint) {
         float dewpointOffset = json["dewpoint_offset"];
         float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
         float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
@@ -205,7 +211,7 @@ const char *APB::Heater::setState(JsonObject json) {
             return dewpointTemperatureErrorMessage;
         }
     }
-    if(mode == Heater::Mode::target_temperature) {
+    if(mode == PWMOutput::Mode::target_temperature) {
         float targetTemperature = json["target_temperature"];
         float rampOffset = json["ramp_offset"].is<float>() ? json["ramp_offset"] : 0.f;
         float minDuty = json["min_duty"].is<float>() ? json["min_duty"] : 0.f;
@@ -216,12 +222,12 @@ const char *APB::Heater::setState(JsonObject json) {
     return nullptr;
 }
 
-uint8_t APB::Heater::index() const { 
+uint8_t APB::PWMOutput::index() const { 
     return d->index;
 }
 
 
-bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float minDuty, float rampOffset) {
+bool APB::PWMOutput::setTemperature(float targetTemperature, float maxDuty, float minDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
@@ -229,13 +235,13 @@ bool APB::Heater::setTemperature(float targetTemperature, float maxDuty, float m
     d->targetTemperature = targetTemperature;
     d->maxDuty = maxDuty;
     d->minDuty = minDuty;
-    d->mode = Heater::Mode::target_temperature;
+    d->mode = PWMOutput::Mode::target_temperature;
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->loop();
     return true;
 }
 
-bool APB::Heater::setDewpoint(float offset, float maxDuty, float minDuty, float rampOffset) {
+bool APB::PWMOutput::setDewpoint(float offset, float maxDuty, float minDuty, float rampOffset) {
     if(!this->temperature().has_value()) {
         Log.warningln(TEMPERATURE_NOT_FOUND_WARNING_LOG, d->log_scope);
         return false;
@@ -248,49 +254,49 @@ bool APB::Heater::setDewpoint(float offset, float maxDuty, float minDuty, float 
     d->rampOffset = rampOffset >= 0 ? rampOffset : 0;
     d->minDuty = minDuty;
     d->maxDuty = maxDuty;
-    d->mode = Heater::Mode::dewpoint;
+    d->mode = PWMOutput::Mode::dewpoint;
     d->loop();
     return true;
 }
 
 
-std::optional<float> APB::Heater::targetTemperature() const {
-    if(d->mode != Heater::Mode::target_temperature) {
+std::optional<float> APB::PWMOutput::targetTemperature() const {
+    if(d->mode != PWMOutput::Mode::target_temperature) {
         return {};
     }
     return {d->targetTemperature};
 }
 
-std::optional<float> APB::Heater::dewpointOffset() const {
-    if(d->mode != Heater::Mode::dewpoint) {
+std::optional<float> APB::PWMOutput::dewpointOffset() const {
+    if(d->mode != PWMOutput::Mode::dewpoint) {
         return {};
     }
     return {d->dewpointOffset};
 }
 
-std::optional<float> APB::Heater::rampOffset() const {
+std::optional<float> APB::PWMOutput::rampOffset() const {
     if(d->mode != Mode::dewpoint && d->mode != Mode::target_temperature) {
         return {};
     }
     return {d->rampOffset};
 }
 
-std::optional<float> APB::Heater::minDuty() const {
+std::optional<float> APB::PWMOutput::minDuty() const {
     if(d->mode != Mode::dewpoint && d->mode != Mode::target_temperature) {
         return {};
     }
     return {d->minDuty};
 }
 
-std::optional<float> APB::Heater::temperature() const {
+std::optional<float> APB::PWMOutput::temperature() const {
     return d->temperature;
 }
 
-APB::Heater::Mode APB::Heater::mode() const {
+APB::PWMOutput::Mode APB::PWMOutput::mode() const {
     return d->mode;
 }
 
-void APB::Heater::Private::loop()
+void APB::PWMOutput::Private::loop()
 {
     readTemperature();
     
@@ -299,17 +305,17 @@ void APB::Heater::Private::loop()
         Log.traceln("%s invalid temperature detected, discarding temperature", log_scope);
         #endif
         temperature = {};
-        if(mode == Heater::Mode::dewpoint || mode == Heater::Mode::target_temperature) {
+        if(mode == PWMOutput::Mode::dewpoint || mode == PWMOutput::Mode::target_temperature) {
             Log.warningln("%s Lost temperature sensor, switching off.", log_scope);
-            mode = Heater::Mode::off;
+            mode = PWMOutput::Mode::off;
         }
     }
 
-    if(mode == Heater::Mode::fixed) {
+    if(mode == PWMOutput::Mode::fixed) {
         writePinDuty(maxDuty);
         return;
     }
-    if(mode == Heater::Mode::off) {
+    if(mode == PWMOutput::Mode::off) {
         writePinDuty(0);
         return;
     }
@@ -321,10 +327,10 @@ void APB::Heater::Private::loop()
     }
 
     float dynamicTargetTemperature;
-    if(mode == Heater::Mode::target_temperature) {
+    if(mode == PWMOutput::Mode::target_temperature) {
         dynamicTargetTemperature = this->targetTemperature;
     }
-    if(mode == Heater::Mode::dewpoint) {
+    if(mode == PWMOutput::Mode::dewpoint) {
         if(!Ambient::Instance.reading()) {
             Log.warningln("%s Unable to set target temperature, ambient sensor not found.", log_scope);
             q->setMaxDuty(0);
@@ -359,7 +365,7 @@ void APB::Heater::Private::loop()
 #ifdef APB_HEATER_TEMPERATURE_SENSOR_THERMISTOR
 #define ANALOG_READ_RES 12
 #define MAX_PWM 255.0
-void APB::Heater::Private::privateSetup() {
+void APB::PWMOutput::Private::privateSetup() {
     static const float analogReadMax = std::pow(2, ANALOG_READ_RES) - 1;
     pinout = &heaters_pinout[index];
     Log.traceln("%s Configuring PWM thermistor heater: Thermistor pin=%d, PWM pin=%d, analogReadMax=%F", log_scope, pinout->thermistor, pinout->pwm, analogReadMax);
@@ -379,7 +385,7 @@ void APB::Heater::Private::privateSetup() {
     }
 }
 
-void APB::Heater::Private::readTemperature() {
+void APB::PWMOutput::Private::readTemperature() {
     if(!smoothThermistor) {
         return;
     }
@@ -390,14 +396,14 @@ void APB::Heater::Private::readTemperature() {
     #endif
 }
 
-float APB::Heater::Private::getDuty() const {
+float APB::PWMOutput::Private::getDuty() const {
     int8_t pwmChannel = analogGetChannel(pinout->thermistor);
     float pwmValue = ledcRead(pwmChannel);
     // Log.traceln("%s PWM value from ADC channel %d: %F; stored PWM value: %d", log_scope, pwmChannel, pwmValue, this->pwmValue);
     return this->pwmValue/MAX_PWM;
 }
 
-void APB::Heater::Private::writePinDuty(float pwm) {
+void APB::PWMOutput::Private::writePinDuty(float pwm) {
     int16_t newPWMValue = std::max(int16_t{0}, static_cast<int16_t>(std::min(MAX_PWM, MAX_PWM * pwm)));
     if(newPWMValue != pwmValue) {
         pwmValue = newPWMValue;
@@ -409,7 +415,7 @@ void APB::Heater::Private::writePinDuty(float pwm) {
 #endif
 
 void APB::Heaters::toJson(JsonArray heatersStatus) {
-    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](Heater &heater) {
+    std::for_each(Heaters::Instance.begin(), Heaters::Instance.end(), [heatersStatus](PWMOutput &heater) {
         JsonObject heaterObject = heatersStatus[heater.index()].to<JsonObject>();
         heater.toJson(heaterObject);
     });

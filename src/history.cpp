@@ -13,7 +13,7 @@ APB::History::History() {
 
 
 #if APB_HEATERS_SIZE > 0
-void APB::History::Entry::Heater::set(const APB::Heater &heater) {
+void APB::History::Entry::PWMOutput::set(const APB::PWMOutput &heater) {
     temperatureHundredth = static_cast<int16_t>(heater.temperature().value_or(-100.0) * 100.0);
     duty = heater.active() ? heater.duty() : 0;
 }

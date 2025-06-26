@@ -1,5 +1,5 @@
 #include "commandparser.h"
-#include "heater.h"
+#include "pwm_output.h"
 #include <ArduinoLog.h>
 #define LOG_SCOPE "APB::CommandParser "
 
