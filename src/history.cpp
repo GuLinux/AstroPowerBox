@@ -12,10 +12,10 @@ APB::History::History() {
 }
 
 
-#if APB_HEATERS_SIZE > 0
-void APB::History::Entry::PWMOutput::set(const APB::PWMOutput &heater) {
-    temperatureHundredth = static_cast<int16_t>(heater.temperature().value_or(-100.0) * 100.0);
-    duty = heater.active() ? heater.duty() : 0;
+#if APB_PWM_OUTPUTS_SIZE > 0
+void APB::History::Entry::PWMOutput::set(const APB::PWMOutput &pwmOutput) {
+    temperatureHundredth = static_cast<int16_t>(pwmOutput.temperature().value_or(-100.0) * 100.0);
+    duty = pwmOutput.active() ? pwmOutput.duty() : 0;
 }
 #endif
 
@@ -45,14 +45,14 @@ void APB::History::Entry::populate(JsonObject object) {
     object["ambientDewpoint"] = static_cast<char*>(0);
 #endif
 
-#if APB_HEATERS_SIZE > 0
-    for(uint8_t i=0; i<heaters.size(); i++) {
-        JsonObject heaterObject = object["heaters"][i].to<JsonObject>();;
-        heaterObject["duty"] = heaters[i].getDuty();
-        setNullableFloat(heaterObject, "temperature", heaters[i].getTemperature());
+#if APB_PWM_OUTPUTS_SIZE > 0
+    for(uint8_t i=0; i<pwmOutputs.size(); i++) {
+        JsonObject pwmOutput = object["pwmOutputs"][i].to<JsonObject>();;
+        pwmOutput["duty"] = pwmOutputs[i].getDuty();
+        setNullableFloat(pwmOutput, "temperature", pwmOutputs[i].getTemperature());
     }
 #else
-    object["heaters"].to<JsonArray>();
+    object["pwmOutputs"].to<JsonArray>();
 #endif
     object["busVoltage"] = getBusVoltage();
     object["power"] = getPower();
@@ -75,16 +75,16 @@ void APB::History::add() {
   }
 
   APB::History::Entry entry {
-    esp_timer_get_time() / 1000'000
+    static_cast<uint32_t>(esp_timer_get_time() / 1000'000)
   };
 
 #ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
   entry.setAmbient(APB::Ambient::Instance.reading());
 #endif
   
-#if APB_HEATERS_SIZE > 0
-  for(uint8_t i=0; i<APB_HEATERS_TEMP_SENSORS; i++) {
-    entry.heaters[i].set(APB::Heaters::Instance[i]);
+#if APB_PWM_OUTPUTS_SIZE > 0
+  for(uint8_t i=0; i<APB_PWM_OUTPUTS_TEMP_SENSORS; i++) {
+    entry.pwmOutputs[i].set(APB::PWMOutputs::Instance[i]);
   }
 #endif
   entry.setPower(PowerMonitor::Instance.status());

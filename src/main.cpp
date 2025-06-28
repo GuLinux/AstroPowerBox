@@ -19,7 +19,6 @@
 #include "statusled.h"
 #include <AsyncTCP.h>
 #include <asyncbufferedtcplogger.h>
-#include "influxdb.h"
 #include <arduinoota-manager.h>
 #include <ArduinoOTA.h>
 
@@ -62,7 +61,6 @@ void setup() {
 
   LittleFS.begin();
   APB::Settings::Instance.setup();
-  APB::InfluxDb::Instance.setup(scheduler);
   
   APB::StatusLed::Instance.setup(&scheduler);
   #ifdef WIFI_POWER_TX
@@ -91,11 +89,14 @@ void setup() {
   });
   WiFiManager::Instance.setOnDisconnectedCallback(std::bind(&APB::StatusLed::wifiConnectionFailedPattern, &APB::StatusLed::Instance));
   WiFiManager::Instance.setup(&APB::Settings::Instance.wifi());
+
+  new Task(500, TASK_FOREVER, [](){ WiFiManager::Instance.loop(); }, &scheduler, true);
+
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(100000);
   APB::Ambient::Instance.setup(scheduler);
   APB::PowerMonitor::Instance.setup(scheduler);
-  std::for_each(APB::Heaters::Instance.begin(), APB::Heaters::Instance.end(), [i=0](APB::PWMOutput &heater) mutable { heater.setup(i++, scheduler); });
+  std::for_each(APB::PWMOutputs::Instance.begin(), APB::PWMOutputs::Instance.end(), [i=0](APB::PWMOutput &pwmOutput) mutable { pwmOutput.setup(i++, scheduler); });
   
   webServer.setup();
   ArduinoOTAManager::Instance.setup([](const char*s) { Log.warning(s); }, std::bind(&fs::LittleFSFS::end, &LittleFS));
@@ -108,15 +109,14 @@ void setup() {
   });
   userButton.setup(ONEBUTTON_USER_BUTTON_1, INPUT, false);
 #endif
+
+  new Task(100, TASK_FOREVER, [](){ ArduinoOTAManager::Instance.loop(); }, &scheduler, true);
 }
 
 void loop() {
-  WiFiManager::Instance.loop(); 
   scheduler.execute();
-  ElegantOTA.loop();
 
 #ifdef ONEBUTTON_USER_BUTTON_1
   userButton.tick();
 #endif
-  ArduinoOTAManager::Instance.loop();
 }

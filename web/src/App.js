@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { AppNavbar } from './AppNavbar';
 import { setAmbient } from './features/sensors/ambient/ambientSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { getHeatersAsync, updateHeaters } from './features/sensors/heaters/heatersSlice';
+import { getPWMOutputsAsync, updatePWMOutputs } from './features/sensors/pwmOutputs/pwmOutputsSlice';
 import { setPower } from './features/sensors/power/powerSlice';
 import { darkModeSelector, getAppStatusAsync, getHistoryAsync, setUptime, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
@@ -19,8 +19,8 @@ const registerEventSource = dispatch => {
     if(data.ambient) {
       dispatch(setAmbient(data.ambient));
     }
-    if(data.heaters.length > 0) {
-      dispatch(updateHeaters(data.heaters));
+    if(data.pwmOutputs.length > 0) {
+      dispatch(updatePWMOutputs(data.pwmOutputs));
     } 
     
     dispatch(setPower(data.power));
@@ -37,7 +37,7 @@ function App() {
   const darkMode = useSelector(darkModeSelector)
   useEffect(() => { dispatch(getAppStatusAsync()) }, [dispatch])
   useEffect(() => { dispatch(getHistoryAsync()) }, [dispatch])
-  useEffect(() => { dispatch(getHeatersAsync()) }, [dispatch])
+  useEffect(() => { dispatch(getPWMOutputsAsync()) }, [dispatch])
   useEffect(() => registerEventSource(dispatch), [dispatch]);
   const activeTab = useSelector(tabSelector);
   const accessPoint = useSelector(selectWiFiAccessPointConfig)

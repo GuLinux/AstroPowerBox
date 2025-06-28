@@ -1,24 +1,33 @@
 import { useSelector } from "react-redux"
 import { Ambient } from "./sensors/ambient/Ambient"
-import { Heaters } from "./sensors/heaters/Heaters"
+import { PWMOutputs } from "./sensors/pwmOutputs/PWMOutputs"
 import { Power } from "./sensors/power/Power"
-import { selectHeatersCount } from "./sensors/heaters/heatersSlice"
+import { selectPWMOutputsByType } from "./sensors/pwmOutputs/pwmOutputsSlice"
 import { appStatusSelector } from "./app/appSlice"
 
 export const Home = () => {
-    const heatersCount = useSelector(selectHeatersCount);
     const hasAmbient = useSelector(appStatusSelector).hasAmbientSensor
+
+    const heaters = useSelector(state => selectPWMOutputsByType(state, 'heater'))
+    const outputs = useSelector(state => selectPWMOutputsByType(state, 'output'))
+
     return <>
         { hasAmbient && <>
             <h2 className="mb-5">Environment</h2>
             <Ambient />
         </> }
-        { heatersCount > 0 && <>
-            <h2 className="mb-5">Heaters</h2>
-            <Heaters />
+        { heaters.length > 0 && <>
+            <h2 className="mb-5 mt-5">Dew Heaters</h2>
+            <PWMOutputs type='heater' />
         </>
         }
-        <h2 className="mb-5">Power</h2>
+        { outputs.length > 0 && <>
+            <h2 className="mb-5 mt-5">Outputs</h2>
+            <PWMOutputs type='output' />
+        </>
+        }
+
+        <h2 className="mb-5 mt-5">Power</h2>
         <Power />
     </>
 }

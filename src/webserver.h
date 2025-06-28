@@ -34,11 +34,11 @@ private:
     void onPostWriteConfig(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetPower(AsyncWebServerRequest *request);
-    void onGetHeaters(AsyncWebServerRequest *request);
+    void onGetPWMOutputs(AsyncWebServerRequest *request);
     void onGetESPInfo(AsyncWebServerRequest *request);
     void onGetMetrics(AsyncWebServerRequest *request);
     void onRestart(AsyncWebServerRequest *request);
-    void onPostSetHeater(AsyncWebServerRequest *request, JsonVariant &json);
+    void onPostSetPWMOutputs(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json);
 };

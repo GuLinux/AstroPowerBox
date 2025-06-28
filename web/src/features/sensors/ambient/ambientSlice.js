@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, createSelector } from '@reduxjs/toolkit';
 import { getHistoryAsync } from '../../app/appSlice';
 import { historyEntryTimestamp } from '../../../utils';
 
@@ -10,7 +10,7 @@ const initialState = {
 };
 
 export const selectAmbient = state => state.ambient;
-export const selectAmbientHistory = state => state.ambient.history.map(entry => ({...entry, name: new Date(entry.timestamp).toLocaleTimeString()}))
+export const selectAmbientHistory = createSelector([selectAmbient], ambient => ambient.history.map(entry => ({...entry, name: new Date(entry.timestamp).toLocaleTimeString()})));
 
 export const ambientSlice = createSlice({
   name: 'ambient',
