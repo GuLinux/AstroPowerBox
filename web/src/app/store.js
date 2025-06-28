@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import ambientReducer from '../features/sensors/ambient/ambientSlice';
-import heatersReducer from '../features/sensors/heaters/heatersSlice';
+import pwmOutputsReducer from '../features/sensors/pwmOutputs/pwmOutputsSlice';
 import powerReducer from '../features/sensors/power/powerSlice';
 import appReducer from '../features/app/appSlice';
 import configReducer from '../features/app/configSlice';
@@ -11,7 +11,7 @@ const logger = createLogger({});
 export const store = configureStore({
   reducer: {
     ambient: ambientReducer,
-    heaters: heatersReducer,
+    pwmOutputs: pwmOutputsReducer,
     power: powerReducer,
     app: appReducer,
     config: configReducer,

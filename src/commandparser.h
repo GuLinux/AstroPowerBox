@@ -6,7 +6,7 @@ class CommandParser {
 public:
     CommandParser();
     static CommandParser &Instance;
-    void getHeaters(JsonArray response);
-    void setHeaters(JsonVariant request);
+    void getPWMOutputs(JsonArray response);
+    void setPWMOutputs(JsonVariant request);
 };
 }

@@ -21,17 +21,18 @@ class History {
 public:
     History();
     struct Entry {
-        #if APB_HEATERS_SIZE > 0
+        uint32_t secondsFromBoot;
+        #if APB_PWM_OUTPUTS_SIZE > 0
         struct PWMOutput {
             int16_t temperatureHundredth;
             uint8_t duty;
-            void set(const APB::PWMOutput &heater);
+            void set(const APB::PWMOutput &pwmOutput);
             float getTemperature() const { return static_cast<float>(temperatureHundredth) / 100.0; }
             float getDuty() const { return static_cast<float>(duty); }
         };
-        std::array<PWMOutput, APB_HEATERS_TEMP_SENSORS> heaters;
+        std::array<PWMOutput, APB_PWM_OUTPUTS_TEMP_SENSORS> pwmOutputs;
         #endif
-        uint32_t secondsFromBoot;
+        
         #ifndef APB_AMBIENT_TEMPERATURE_SENSOR_NONE
         void setAmbient(const std::optional<Ambient::Reading> &reading);
         float getAmbientTemperature() const { return static_cast<float>(ambientTemperatureHundredth) / 100.0; }

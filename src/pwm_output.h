@@ -1,11 +1,10 @@
-#ifndef APB_HEATER_H
-#define APB_HEATER_H
+#ifndef APB_PWM_OUTPUT_H
+#define APB_PWM_OUTPUT_H
 
 #include <optional>
 #include <memory>
 #include <TaskSchedulerDeclarations.h>
 #include <forward_list>
-#include <unordered_map>
 #include <ArduinoJson.h>
 
 #include "configuration.h"
@@ -14,10 +13,10 @@
 namespace APB {
 
 class PWMOutput;
-namespace Heaters {
-    using Array = std::array<APB::PWMOutput, APB_HEATERS_SIZE>;
+namespace PWMOutputs {
+    using Array = std::array<APB::PWMOutput, APB_PWM_OUTPUTS_SIZE>;
     extern Array &Instance;
-    void toJson(JsonArray heatersStatus);
+    void toJson(JsonArray pwmOutputStatus);
     void saveConfig();
 }
 
@@ -25,14 +24,14 @@ namespace Heaters {
 class PWMOutput {
 public:
     using GetTargetTemperature = std::function<std::optional<float>()>;
-    enum Type { Heater, Output, Fan };
+    enum Type { Heater, Output };
     PWMOutput(Type type=Heater);
     ~PWMOutput();
     
     enum Mode { off, fixed, target_temperature, dewpoint };
     void setup(uint8_t index, Scheduler &scheduler);
 
-    void toJson(JsonObject heaterStatus);
+    void toJson(JsonObject pwmOutputStatus);
     
     float maxDuty() const;
     float duty() const;

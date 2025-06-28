@@ -10,7 +10,7 @@ CommandParser &CommandParser::Instance = *new CommandParser();
 CommandParser::CommandParser() {
 }
 
-void CommandParser::getHeaters(JsonArray response) {
-    Log.infoln(LOG_SCOPE "onGetHeaters: %d", Heaters::Instance.size());
-    Heaters::toJson(response);
+void CommandParser::getPWMOutputs(JsonArray response) {
+    Log.infoln(LOG_SCOPE "onGetPWMOutputs: %d", PWMOutputs::Instance.size());
+    PWMOutputs::toJson(response);
 }
