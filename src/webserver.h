@@ -30,7 +30,6 @@ private:
     void onGetStatus(AsyncWebServerRequest *request);
     void onGetConfig(AsyncWebServerRequest *request);
     void onGetHistory(AsyncWebServerRequest *request);
-    void onNotFound(AsyncWebServerRequest *request);
     void onPostWriteConfig(AsyncWebServerRequest *request);
     void onGetAmbient(AsyncWebServerRequest *request);
     void onGetPower(AsyncWebServerRequest *request);

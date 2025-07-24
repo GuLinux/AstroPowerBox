@@ -26,7 +26,7 @@ const addPWMOutputsToHistory = (state) => {
   state.history = [...state.history, { timestamp: new Date().getTime(), pwmOutputs: state.pwmOutputs.map(transformDuty) }]
 }
 const onPWMOutputsReceived = (state, payload) => {
-  state.pwmOutputs = payload;
+  state.pwmOutputs = payload.pwmOutputs;
   addPWMOutputsToHistory(state)
 }
 

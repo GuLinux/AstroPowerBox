@@ -5,7 +5,7 @@
 #include <ArduinoLog.h>
 #include <forward_list>
 #include <webvalidation.h>
-#include <jsonresponse.h>
+#include <jsonwebresponse.h>
 #include "metricsresponse.h"
 #include <esp_system.h>
 #include <LittleFS.h>
@@ -48,7 +48,7 @@ void APB::WebServer::setup() {
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
-        JsonResponse response(request);
+        JsonWebResponse response(request);
         response.root()["status"] = "Dropping WiFi";
     });
     #endif
@@ -94,13 +94,13 @@ void APB::WebServer::setup() {
 
 
 void APB::WebServer::onRestart(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     response.root()["status"] = "restarting";
     new Task(3000, TASK_ONCE, [](){ esp_restart(); }, &scheduler, true);
 }
 
 void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     response.root()["status"] = "ok";
     response.root()["uptime"] = esp_timer_get_time() / 1000'000.0;
 
@@ -110,7 +110,7 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     JsonObject rootObject = response.root().to<JsonObject>();
     WiFiManager::Instance.onGetConfig(rootObject);
     rootObject["ledDuty"] = Settings::Instance.statusLedDuty();
@@ -134,26 +134,19 @@ void APB::WebServer::onPostWriteConfig(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onGetAmbient(AsyncWebServerRequest *request) {
     if(!Ambient::Instance.reading()) {
-        JsonResponse::error(500, "Ambient reading not available", request);
+        JsonWebResponse::error(JsonWebResponse::InternalError, "Ambient reading not available", request);
         return;
     }
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     Ambient::Instance.toJson(response.root().to<JsonObject>());
-}
-
-
-
-void APB::WebServer::onGetPWMOutputs(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
-    CommandParser::Instance.getPWMOutputs(response.root().to<JsonArray>());
 }
 
 void APB::WebServer::onGetPower(AsyncWebServerRequest *request) {
     if(!PowerMonitor::Instance.status().initialised) {
-        JsonResponse::error(500, "Power reading not available", request);
+        JsonWebResponse::error(JsonWebResponse::InternalError, "Power reading not available", request);
         return;
     }
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     PowerMonitor::Instance.toJson(response.root().to<JsonObject>());
 }
 
@@ -231,7 +224,7 @@ void APB::WebServer::onGetMetrics(AsyncWebServerRequest *request) {
 
 
 void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     response.root()["mem"]["freeHeap"] = ESP.getFreeHeap();
     response.root()["mem"]["freePsRam"] = ESP.getFreePsram();
     response.root()["mem"]["heapSize"] = ESP.getHeapSize();
@@ -251,45 +244,16 @@ void APB::WebServer::onGetESPInfo(AsyncWebServerRequest *request) {
 
 void APB::WebServer::onPostSetPWMOutputs(AsyncWebServerRequest *request, JsonVariant &json) {
     WebValidation validation{request, json};
-    if(validation.required<int>("index").required<const char*>("mode")
-        .range("index", {0}, {PWMOutputs::Instance.size()-1})
-        .range("max_duty", {0}, {1})
-        .choice("mode", PWMOutput::validModes()).invalid()) return;
-
-    PWMOutput::Mode mode = PWMOutput::modeFromString(json["mode"]);
-    if(mode != PWMOutput::Mode::off) {
-        if(validation.range("max_duty", {0}, {1}).required<float>("max_duty").invalid()) return;
-        if(mode == PWMOutput::Mode::dewpoint) {
-            if(validation
-                .range("dewpoint_offset", {-30}, {30})
-                .required<float>("dewpoint_offset")
-                .range("min_duty", 0, 1)
-                .range("ramp_offset", 0, 20)
-                .invalid()
-            ) return;
-        }
-        if(mode == PWMOutput::Mode::target_temperature) {
-            if(validation
-                .range("target_temperature", {-50}, {50})
-                .required<float>("target_temperature")
-                .range("min_duty", 0, 1)
-                .range("ramp_offset", 0, 20)
-                .invalid()
-            ) return;
-        }
-    }
-
-    PWMOutput &pwmOutput = PWMOutputs::Instance[json["index"]];
-    const char *errorMessage =  pwmOutput.setState(json);
-    if(errorMessage) {
-        JsonResponse::error(500, errorMessage, request);
-        return;
-    }
-    if(pwmOutput.applyAtStartup()) {
-        PWMOutputs::saveConfig();
-    }
-    onGetPWMOutputs(request);
+    CommandParser::Instance.setPWMOutputs(validation);
+    JsonWebResponse response(request, CommandParser::Instance.getPWMOutputs());
 }
+
+void APB::WebServer::onGetPWMOutputs(AsyncWebServerRequest *request) {
+    auto jsonResponse = CommandParser::Instance.getPWMOutputs();
+    JsonWebResponse response(request, jsonResponse);
+}
+
+
 
 void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json) {
     WebValidation validation{request, json};
@@ -297,7 +261,7 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
         .range("duty", {0}, {1})
         .invalid()) return;
     StatusLed::Instance.setDuty(json["duty"]);
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     response.root()["duty"] = StatusLed::Instance.duty();
 }
 
@@ -317,7 +281,7 @@ void APB::WebServer::onConfigPowerSourceType(AsyncWebServerRequest *request, Jso
         .choice("powerSourceType", choices)
         .invalid()) return;
     Settings::Instance.setPowerSource(mapping.at(json["powerSourceType"]));
-    JsonResponse response(request);
+    JsonWebResponse response(request);
     response.root()["powerSourceType"] = Settings::PowerSourcesNames.at(Settings::Instance.powerSource());
 }
 

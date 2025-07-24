@@ -1,12 +1,13 @@
 #pragma once
 #include <ArduinoJson.h>
+#include <validation.h>
 
 namespace APB {
 class CommandParser {
 public:
     CommandParser();
     static CommandParser &Instance;
-    void getPWMOutputs(JsonArray response);
-    void setPWMOutputs(JsonVariant request);
+    JsonResponse getPWMOutputs();
+    JsonResponse setPWMOutputs(Validation &validation);
 };
 }
