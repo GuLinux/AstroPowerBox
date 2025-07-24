@@ -26,12 +26,11 @@ const std::unordered_map<APB::PowerMonitor::PowerSource, const char*> APB::Setti
 
 APB::Settings::Settings() :
 #ifdef APB_DEFAULT_HOSTNAME
-wifiSettings{prefs, LittleFS, APB_DEFAULT_HOSTNAME, false}
+wifiSettings{prefs, LittleFS, APB_DEFAULT_HOSTNAME, false, 5, true, 3}
 #else
-wifiSettings{prefs, LittleFS, "AstroPowerBox-", true}
+wifiSettings{prefs, LittleFS, "AstroPowerBox-", true, 5, true, 3}
 #endif
 {
-
 }
 
 void APB::Settings::setup() {
