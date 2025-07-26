@@ -19,7 +19,7 @@ export const AppNavbar = () => {
     const navbarBg = darkMode ? 'dark' : 'light'
     const dispatch = useDispatch();
     return <Navbar expand='lg' className="bg-body-tertiary px-4" bg={navbarBg} data-bs-theme={navbarBg} collapseOnSelect={true}>
-        <Navbar.Brand>AstroPowerBox</Navbar.Brand>
+        <Navbar.Brand><img src='/site_logo_mid.png' width={48} height={48} alt='AstroPowerBox' className='me-3' /> AstroPowerBox</Navbar.Brand>
         <Navbar.Toggle />
         <Navbar.Collapse>
             <Nav variant='tabs' className='me-auto'>

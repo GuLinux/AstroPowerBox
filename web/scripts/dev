@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")/.."
+ASTROPOWERBOX_HOST="$1"; shift
+if [ -z "$ASTROPOWERBOX_HOST" ]; then
+    echo "Usage: $0 <backend-host>" >&2
+    exit 1
+fi
+npm run dev
+

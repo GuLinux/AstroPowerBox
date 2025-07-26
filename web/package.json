@@ -21,10 +21,9 @@
   },
   "scripts": {
     "prepare": "cp node_modules/bootswatch/dist/flatly/bootstrap.min.css public/flatly.min.css && cp node_modules/bootswatch/dist/darkly/bootstrap.min.css public/darkly.min.css",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "npm run prepare && vite build",
+    "preview": "vite preview"
   },
   "eslintConfig": {
     "extends": [
@@ -43,5 +42,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "vite": "^7.0.6"
   }
 }
