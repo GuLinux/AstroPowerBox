@@ -6,3 +6,5 @@ logs
 data/wifi.json
 extra_envs.ini
 web/.env.*.local
+__pycache__
+
