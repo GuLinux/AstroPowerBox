@@ -22,5 +22,7 @@ jobs:
         run: pip install --upgrade platformio
       - name: Build AstroPowerBox
         run: pio run
+        working-directory: ./esp32
       - name: Build AstroPowerBox Frontend
         run: pio run -t buildfs -e esp32_c3_supermini
+        working-directory: ./esp32
