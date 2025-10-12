@@ -36,9 +36,9 @@ def before_build_filesystem(source, target, env):
     print('[OK]\n')
     print('Building react app')
     # subprocess.run('npm run build', shell=True, cwd='web').check_returncode()
-    env.Execute('cd web; npm run build')
-    copy_matching('web/build', 'assets', lambda f: 'index' in f and f.endswith('.js'))
-    copy_matching('web/build', '', lambda f: [ext for ext in ['.html', '.min.css', 'site_logo_mid.png'] if f.endswith(ext)])
+    env.Execute('cd ../frontend; npm run build')
+    copy_matching('../frontend/build', 'assets', lambda f: 'index' in f and f.endswith('.js'))
+    copy_matching('../frontend/build', '', lambda f: [ext for ext in ['.html', '.min.css', 'site_logo_mid.png'] if f.endswith(ext)])
 
 
 
