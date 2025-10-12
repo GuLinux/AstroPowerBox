@@ -14,7 +14,9 @@ import {
     selectWiFiStationsConfig,
     selectPowerSourceType,
     selectStatusLedDuty,
+    selectFanDuty,
     setStatusLedDutyAsync,
+    setFanDutyAsync,
     setPowerSourceTypeAsync
 } from './configSlice';
 import Spinner from 'react-bootstrap/Spinner';
@@ -112,26 +114,32 @@ const WiFiStations = () => {
     </Form>
 }
 
+const dutyTimers = {};
+
 const AppSettings = () => {
     const dispatch = useDispatch();
     const upstreamPowerSourceType = useSelector(selectPowerSourceType);
     const upstreamLedBrightness = useSelector(selectStatusLedDuty);
+    const upstreamFanDuty = useSelector(selectFanDuty);
 
     const [ledBrightness, setLedBrightness] = useState(upstreamLedBrightness);
     const [powerSupply, setPowerSupply] = useState(upstreamPowerSourceType);
+    const [fanDuty, setFanDuty] = useState(upstreamFanDuty);
     const [updateBrightnessTimer, setUpdateBrightnessTimer] = useState()
     useEffect(() => {
         setLedBrightness(upstreamLedBrightness);
         setPowerSupply(upstreamPowerSourceType);
-    }, [setLedBrightness, setPowerSupply, upstreamLedBrightness, upstreamPowerSourceType]);
+        setFanDuty(upstreamFanDuty);
+    }, [setLedBrightness, setPowerSupply, setFanDuty, upstreamLedBrightness, upstreamPowerSourceType, upstreamFanDuty]);
 
-    const updateLedBrightness = duty => {
-        setLedBrightness(duty)
-        if(updateBrightnessTimer) {
-            clearTimeout(updateBrightnessTimer)
+
+    const updateDuty = (name, duty, stateFunc, dispatchFunc) => {
+        stateFunc(duty)
+        if(dutyTimers[name]) {
+            clearTimeout(dutyTimers[name])
         }
-        setUpdateBrightnessTimer(setTimeout(() => {
-            dispatch(setStatusLedDutyAsync({duty}))
+        dutyTimers[name] = (setTimeout(() => {
+            dispatch(dispatchFunc({duty}))
         }, 1000))
         
     }
@@ -143,8 +151,16 @@ const AppSettings = () => {
         <Form.Group className='mb-3'>
             <Form.Label>Status led brightness</Form.Label>
             <Badge className='float-end'><Number value={ledBrightness*100} decimals={0} unit='%' /></Badge>
-            <Form.Range min={0.0} max={1.0} step={0.01} value={ledBrightness} onChange={e => updateLedBrightness(parseFloat(e.target.value))}/>
+            <Form.Range min={0.0} max={1.0} step={0.01} value={ledBrightness} onChange={e => updateDuty('led', parseFloat(e.target.value), setLedBrightness, setStatusLedDutyAsync)}/>
         </Form.Group>
+        { upstreamFanDuty !== undefined &&
+        <Form.Group className='mb-3'>
+            <Form.Label>Fan Speed</Form.Label>
+            <Badge className='float-end'><Number value={fanDuty*100} decimals={0} unit='%' /></Badge>
+            <Form.Range min={0.0} max={1.0} step={0.01} value={fanDuty} onChange={e => updateDuty('fan', parseFloat(e.target.value), setFanDuty, setFanDutyAsync)}/>
+        </Form.Group>
+        }
+
         <Form.Group className='mb-3'>
             <Form.Label>Power supply</Form.Label>
             <Form.Select value={powerSupply} onChange={e => updatePowerSourceType(e.target.value)}>

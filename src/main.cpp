@@ -21,6 +21,7 @@
 #include <asyncbufferedtcplogger.h>
 #include <arduinoota-manager.h>
 #include <ArduinoOTA.h>
+#include "pd_protocol.h"
 
 Scheduler scheduler;
 
@@ -61,7 +62,12 @@ void setup() {
 
   LittleFS.begin();
   APB::Settings::Instance.setup();
-  
+
+  PDProtocol::setVoltage(APB::Settings::Instance.pdVoltage());
+
+  #ifdef APB_PWM_FAN_PIN
+  analogWrite(APB_PWM_FAN_PIN, static_cast<int>(APB::Settings::Instance.fanDuty() * 255.0));    
+  #endif
   APB::StatusLed::Instance.setup(&scheduler);
   #ifdef WIFI_POWER_TX
   WiFi.setTxPower(WIFI_POWER_TX);
@@ -107,7 +113,19 @@ void setup() {
     Log.infoln("[OneButton] User button 1 double clicked, reconnecting WiFi");
     WiFiManager::Instance.reconnect();
   });
-  userButton.setup(ONEBUTTON_USER_BUTTON_1, INPUT, false);
+  userButton.attachLongPressStop([]() {
+    Log.infoln("[OneButton] User button 1 long press, restarting");
+    delay(2000);
+    ESP.restart();
+  });
+  #ifdef ONEBUTTON_USER_BUTTON_1_ACTIVE_HIGH
+  #define _BTN_ACTIVELOW false
+  #define _BTN_MODE INPUT_PULLDOWN
+  #else
+  #define _BTN_ACTIVELOW true
+  #define _BTN_MODE INPUT_PULLUP
+  #endif
+  userButton.setup(ONEBUTTON_USER_BUTTON_1, _BTN_MODE, _BTN_ACTIVELOW);
 #endif
 
   new Task(100, TASK_FOREVER, [](){ ArduinoOTAManager::Instance.loop(); }, &scheduler, true);

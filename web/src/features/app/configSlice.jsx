@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
-import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointConfig, saveWiFiStationConfig, setPowerSourceType, setStatusLedDuty } from './api';
+import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointConfig, saveWiFiStationConfig, setFanDuty, setPowerSourceType, setStatusLedDuty } from './api';
 
 const initialState = {
     ready: false,
@@ -9,6 +9,7 @@ const initialState = {
     },
     stations: [],
     ledDuty: 1,
+    fanDuty: undefined,
     powerSourceType: 'AC',
 };
 
@@ -43,6 +44,12 @@ export const setStatusLedDutyAsync = createAsyncThunk(
   async ({duty}) => await setStatusLedDuty({ duty })
 )
 
+export const setFanDutyAsync = createAsyncThunk(
+  'config/setFanDuty',
+  async ({duty}) => await setFanDuty({ duty })
+)
+
+
 export const setPowerSourceTypeAsync = createAsyncThunk(
   'config/setPowerSourceType',
   async ({powerSourceType}) => await setPowerSourceType({ powerSourceType })
@@ -55,6 +62,7 @@ export const selectConfig = state => state.config;
 export const selectConfigReady = createSelector([selectConfig], config => config.ready)
 export const selectPowerSourceType = createSelector([selectConfig], config => config.powerSourceType)
 export const selectStatusLedDuty = createSelector([selectConfig], config => config.ledDuty)
+export const selectFanDuty = createSelector([selectConfig], config => config.fanDuty)
 export const selectWiFiAccessPointConfig = createSelector([selectConfig], config => config.accessPoint)
 export const selectWiFiStationsConfig = createSelector([selectConfig], config => config.stations)
 
@@ -81,7 +89,9 @@ export const wifiSlice = createSlice({
       .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {duty}}) => {
         state.ledDuty = duty;
       })
-
+      .addCase(setFanDutyAsync.fulfilled, (state, {payload: {duty}}) => {
+        state.fanDuty = duty;
+      })
   },
 });
  

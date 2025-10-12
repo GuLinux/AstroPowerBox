@@ -9,6 +9,10 @@
 #include "configuration_lolin_c3_mini.h"
 #endif
 
+#ifdef CONFIG_PINOUT_WROOM_V1
+#include "configuration_wroom_v1.h"
+#endif
+
 
 #define APB_STATUS_LED_INVERT_LOGIC false
 #define WIFIMANAGER_MAX_STATIONS 5
@@ -32,7 +36,7 @@
 
 #define APB_INA1219_ADDRESS 0x40
 
-#define MAX_EVENTS_SIZE 800
+#define MAX_EVENTS_SIZE 1200
 
 #if __has_include ("configuration_custom.h")
 #include "configuration_custom.h"
