@@ -37,6 +37,8 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/config/accessPoint", [](AsyncWebServerRequest *request, JsonVariant &json){ WiFiManager::Instance.onConfigAccessPoint(request, json); }, HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/station", [](AsyncWebServerRequest *request, JsonVariant &json){ WiFiManager::Instance.onConfigStation(request, json); }, HTTP_POST | HTTP_DELETE);
     onJsonRequest("/api/config/statusLedDuty", std::bind(&WebServer::onConfigStatusLedDuty, this, _1, _2), HTTP_POST);
+    onJsonRequest("/api/config/fanDuty", std::bind(&WebServer::onConfigFanDuty, this, _1, _2), HTTP_POST);
+    onJsonRequest("/api/config/pdVoltage", std::bind(&WebServer::onConfigPDVoltage, this, _1, _2), HTTP_POST);
     onJsonRequest("/api/config/powerSourceType", std::bind(&WebServer::onConfigPowerSourceType, this, _1, _2), HTTP_POST);
     webserver.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
     webserver.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
@@ -107,6 +109,7 @@ void APB::WebServer::onGetStatus(AsyncWebServerRequest *request) {
     response.root()["has_power_monitor"] = PowerMonitor::Instance.status().initialised;
     response.root()["has_ambient_sensor"] = Ambient::Instance.isInitialised();
     response.root()["has_serial"] = static_cast<bool>(Serial);
+    response.root()["pdVoltageRequested"] = PDProtocol::getVoltage();
 }
 
 void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
@@ -114,6 +117,10 @@ void APB::WebServer::onGetConfig(AsyncWebServerRequest *request) {
     JsonObject rootObject = response.root().to<JsonObject>();
     WiFiManager::Instance.onGetConfig(rootObject);
     rootObject["ledDuty"] = Settings::Instance.statusLedDuty();
+    #ifdef APB_PWM_FAN_PIN
+    rootObject["fanDuty"] = Settings::Instance.fanDuty();
+    #endif
+    rootObject["pdVoltage"] = Settings::Instance.pdVoltage();
     rootObject["powerSourceType"] = Settings::PowerSourcesNames.at(Settings::Instance.powerSource());
 }
 
@@ -263,6 +270,37 @@ void APB::WebServer::onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonV
     StatusLed::Instance.setDuty(json["duty"]);
     JsonWebResponse response(request);
     response.root()["duty"] = StatusLed::Instance.duty();
+}
+
+void APB::WebServer::onConfigPDVoltage(AsyncWebServerRequest *request, JsonVariant &json) {
+    WebValidation validation{request, json};
+    if(validation.required<PDProtocol::Voltage>("pdVoltage")
+        .invalid()) return;
+    bool valid_voltage = std::any_of(PDProtocol::getSupportedVoltages().begin(), PDProtocol::getSupportedVoltages().end(),
+        [json](PDProtocol::Voltage v){ return v == json["pdVoltage"].as<PDProtocol::Voltage>(); });
+    if(!valid_voltage) {
+        JsonWebResponse::error(JsonWebResponse::BadRequest, "Invalid voltage", request);
+        return;
+    }
+    Settings::Instance.setPdVoltage(json["pdVoltage"].as<PDProtocol::Voltage>());
+    PDProtocol::setVoltage(Settings::Instance.pdVoltage());
+    JsonWebResponse response(request);
+    response.root()["pdVoltage"] = PDProtocol::getVoltage();
+}
+
+void APB::WebServer::onConfigFanDuty(AsyncWebServerRequest *request, JsonVariant &json) {
+    #ifndef APB_PWM_FAN_PIN
+        JsonWebResponse(request).error(JsonWebResponse::NotFound, "Fan control not supported on this hardware", request);
+    #else
+        WebValidation validation{request, json};
+        if(validation.required<float>("duty")
+            .range("duty", {0}, {1})
+            .invalid()) return;
+        int analogValue = json["duty"].as<float>() * 255.0;
+        analogWrite(APB_PWM_FAN_PIN, analogValue);    
+        JsonWebResponse response(request);
+        response.root()["duty"] = Settings::Instance.fanDuty();
+    #endif
 }
 
 void APB::WebServer::onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json) {

@@ -5,18 +5,15 @@ class FetchError extends Error {
         this.response = response;
     }
 }
+
 const fetchJson = async (path, init) => {
-    let url = path;
-    // console.log(process.env)
-    if(process.env.NODE_ENV === 'development' && 'REACT_APP_ASTROPOWERBOX_API_HOST' in process.env) {
-        url = `${process.env.REACT_APP_ASTROPOWERBOX_API_HOST}${path}`;
-    }
-    const response = await fetch(url, init)
+    const response = await fetch(path, init)
     if(!response.ok) {
         throw new FetchError(`Response failed for ${path}`, { path, init}, response)
     }
     return await response.json();
 }
+
 const payloadJson = async (path, method, payload) => {
     return await fetchJson(path, {
         method,
@@ -40,4 +37,5 @@ export const fetchRestart = async () => await fetchJson('/api/restart', { method
 export const fetchReconnectWiFi = async () => await fetchJson('/api/wifi/connect', { method: 'POST' })
 export const setPWMOutput = async (index, pwmOutput) => await payloadJson('/api/pwmOutput', 'POST', {index, ...pwmOutput})
 export const setStatusLedDuty = async payload => await payloadJson('/api/config/statusLedDuty', 'POST', payload)
+export const setFanDuty = async payload => await payloadJson('/api/config/fanDuty', 'POST', payload)
 export const setPowerSourceType = async payload => await payloadJson('/api/config/powerSourceType', 'POST', payload)

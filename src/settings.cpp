@@ -9,6 +9,7 @@
 #define APB_KEY_VERSION "version"
 
 #define APB_KEY_STATUS_LED_DUTY "status_led_duty"
+#define APB_KEY_FAN_DUTY "fan_duty"
 #define APB_KEY_POWER_SOURCE_TYPE "power_src_type"
 
 #define LOG_SCOPE "APB::Configuration - "
@@ -50,6 +51,8 @@ void APB::Settings::load() {
         return;
     }
     _statusLedDuty = prefs.getFloat(APB_KEY_STATUS_LED_DUTY, 1);
+    _fanDuty = prefs.getFloat(APB_KEY_FAN_DUTY, 1.0);
+    _pdVoltage = static_cast<PDProtocol::Voltage>(prefs.getUShort("pd_voltage", static_cast<uint16_t>(PDProtocol::V12)));
     _powerSource = static_cast<PowerMonitor::PowerSource>(prefs.getUShort(APB_KEY_POWER_SOURCE_TYPE, static_cast<uint16_t>(PowerMonitor::AC)));
     wifiSettings.load();
     Log.infoln(LOG_SCOPE "Preferences loaded");
@@ -59,6 +62,8 @@ void APB::Settings::loadDefaults() {
     wifiSettings.loadDefaults();
     _powerSource = PowerMonitor::AC;
     _statusLedDuty = 1.0;
+    _fanDuty = 1.0;
+    _pdVoltage = PDProtocol::V12;
 }
 
 
@@ -68,11 +73,16 @@ void APB::Settings::save() {
     prefs.putUShort(APB_KEY_VERSION, APB_PREFS_VERSION);
     wifiSettings.save();
     prefs.putFloat(APB_KEY_STATUS_LED_DUTY, _statusLedDuty);
+    prefs.putFloat(APB_KEY_FAN_DUTY, _fanDuty);
     prefs.putUShort(APB_KEY_POWER_SOURCE_TYPE, static_cast<uint16_t>(_powerSource));
+    prefs.putUShort("pd_voltage", static_cast<uint16_t>(_pdVoltage));
     Log.infoln(LOG_SCOPE "Preferences saved");
 }
 
-APB::PowerMonitor::PowerSource APB::Settings::powerSource() const {
+
+
+APB::PowerMonitor::PowerSource APB::Settings::powerSource() const
+{
     return _powerSource;
 }
 

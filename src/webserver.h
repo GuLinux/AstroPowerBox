@@ -39,6 +39,8 @@ private:
     void onRestart(AsyncWebServerRequest *request);
     void onPostSetPWMOutputs(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigStatusLedDuty(AsyncWebServerRequest *request, JsonVariant &json);
+    void onConfigFanDuty(AsyncWebServerRequest *request, JsonVariant &json);
+    void onConfigPDVoltage(AsyncWebServerRequest *request, JsonVariant &json);
     void onConfigPowerSourceType(AsyncWebServerRequest *request, JsonVariant &json);
 };
 }
