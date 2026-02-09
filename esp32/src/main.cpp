@@ -22,11 +22,10 @@
 #include <arduinoota-manager.h>
 #include <ArduinoOTA.h>
 #include "pd_protocol.h"
+#include "fan.h"
 
 Scheduler scheduler;
 
-
-AsyncBufferedTCPLogger bufferedLogger{9911, APB_NETWORK_LOGGER_BACKLOG };
 
 #ifdef ONEBUTTON_USER_BUTTON_1
 OneButton userButton;
@@ -52,10 +51,11 @@ void setup() {
   delay(BOOT_DELAY);
   #endif
 
+  AsyncBufferedTCPLogger::instance().begin(9911);
+  AsyncBufferedTCPLogger::instance().setBacklogLines(APB_NETWORK_LOGGER_BACKLOG);
 
-  bufferedLogger.setup();
   Log.begin(LOG_LEVEL_VERBOSE, &Serial, true);
-  Log.addHandler(&bufferedLogger);
+  Log.addHandler(&AsyncBufferedTCPLogger::instance());
   Log.infoln(LOG_SCOPE "setup, core: %d", xPortGetCoreID());
   
   
@@ -66,7 +66,7 @@ void setup() {
   PDProtocol::setVoltage(APB::Settings::Instance.pdVoltage());
 
   #ifdef APB_PWM_FAN_PIN
-  analogWrite(APB_PWM_FAN_PIN, static_cast<int>(APB::Settings::Instance.fanDuty() * 255.0));    
+  Fan::Instance().setup(100'000, APB::Settings::Instance.fanDuty());
   #endif
   APB::StatusLed::Instance.setup(&scheduler);
   #ifdef WIFI_POWER_TX
