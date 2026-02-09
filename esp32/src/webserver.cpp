@@ -42,12 +42,12 @@ void APB::WebServer::setup() {
     onJsonRequest("/api/config/fanDuty", std::bind(&WebServer::onConfigFanDuty, this, _1, _2), HTTP_POST);
     onJsonRequest("/api/config/pdVoltage", std::bind(&WebServer::onConfigPDVoltage, this, _1, _2), HTTP_POST);
     onJsonRequest("/api/config/powerSourceType", std::bind(&WebServer::onConfigPowerSourceType, this, _1, _2), HTTP_POST);
-    webserver.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1));
-    webserver.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1));
-    webserver.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1));
-    webserver.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1));
-    webserver.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1));
-    webserver.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1));
+    webserver.on("/api/metrics", HTTP_GET, std::bind(&WebServer::onGetMetrics, this, _1), nullptr, nullptr);
+    webserver.on("/api/config/write", HTTP_POST, std::bind(&WebServer::onPostWriteConfig, this, _1), nullptr, nullptr);
+    webserver.on("/api/config", HTTP_GET, std::bind(&WebServer::onGetConfig, this, _1), nullptr, nullptr);
+    webserver.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1), nullptr, nullptr);
+    webserver.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1), nullptr, nullptr);
+    webserver.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1), nullptr, nullptr);
     webserver.on("/api/logs", HTTP_GET, [](AsyncWebServerRequest *request){ 
         auto response = request->beginResponseStream("text/plain");
         response->setCode(200);
@@ -58,21 +58,21 @@ void APB::WebServer::setup() {
             backlog.pop();
         }
         request->send(response);
-    });
-    webserver.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1));
+    }, nullptr, nullptr);
+    webserver.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1), nullptr, nullptr);
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
         new Task(1'000, TASK_ONCE, [](){WiFi.disconnect();}, &scheduler, true);
         JsonWebResponse response(request);
         response.root()["status"] = "Dropping WiFi";
-    });
+    }, nullptr, nullptr);
     #endif
-    webserver.on("/api/wifi", HTTP_GET, [](AsyncWebServerRequest *request){ WiFiManager::Instance.onGetWiFiStatus(request); });
-    webserver.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1));
+    webserver.on("/api/wifi", HTTP_GET, [](AsyncWebServerRequest *request){ WiFiManager::Instance.onGetWiFiStatus(request); }, nullptr, nullptr);
+    webserver.on("/api/restart", HTTP_POST, std::bind(&WebServer::onRestart, this, _1), nullptr, nullptr);
     
-    webserver.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1));
-    webserver.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1));
-    webserver.on("/api/pwmOutputs", HTTP_GET, std::bind(&WebServer::onGetPWMOutputs, this, _1));
+    webserver.on("/api/status", HTTP_GET, std::bind(&WebServer::onGetStatus, this, _1), nullptr, nullptr);
+    webserver.on("/api/ambient", HTTP_GET, std::bind(&WebServer::onGetAmbient, this, _1), nullptr, nullptr);
+    webserver.on("/api/pwmOutputs", HTTP_GET, std::bind(&WebServer::onGetPWMOutputs, this, _1), nullptr, nullptr);
     onJsonRequest("/api/pwmOutput", std::bind(&APB::WebServer::onPostSetPWMOutputs, this, _1, _2), HTTP_POST);
 
     events.onConnect([](AsyncEventSourceClient *client){
