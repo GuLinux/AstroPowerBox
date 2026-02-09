@@ -12,6 +12,8 @@
 #include <map>
 #include "utils.h"
 #include "commandparser.h"
+#include "fan.h"
+#include "asyncbufferedtcplogger.h"
 
 #define LOG_SCOPE "APB::WebServer "
 
@@ -46,6 +48,17 @@ void APB::WebServer::setup() {
     webserver.on("/api/info", HTTP_GET, std::bind(&WebServer::onGetESPInfo, this, _1));
     webserver.on("/api/history", HTTP_GET, std::bind(&WebServer::onGetHistory, this, _1));
     webserver.on("/api/power", HTTP_GET, std::bind(&WebServer::onGetPower, this, _1));
+    webserver.on("/api/logs", HTTP_GET, [](AsyncWebServerRequest *request){ 
+        auto response = request->beginResponseStream("text/plain");
+        response->setCode(200);
+        response->addHeader("Cache-Control", "no-cache");
+        auto backlog = AsyncBufferedTCPLogger::instance().getBacklog();
+        while(!backlog.empty()) {
+            response->print(backlog.front());
+            backlog.pop();
+        }
+        request->send(response);
+    });
     webserver.on("/api/wifi/connect", HTTP_POST, std::bind(&WiFiManager::onPostReconnectWiFi, &WiFiManager::Instance, _1));
     #ifdef CONFIGURATION_FOR_PROTOTYPE
     server.on("/api/wifi", HTTP_DELETE, [this](AsyncWebServerRequest *request){
@@ -296,10 +309,11 @@ void APB::WebServer::onConfigFanDuty(AsyncWebServerRequest *request, JsonVariant
         if(validation.required<float>("duty")
             .range("duty", {0}, {1})
             .invalid()) return;
-        int analogValue = json["duty"].as<float>() * 255.0;
-        analogWrite(APB_PWM_FAN_PIN, analogValue);    
+        float duty = json["duty"];
+        Fan::Instance().setDuty(duty);
         JsonWebResponse response(request);
-        response.root()["duty"] = Settings::Instance.fanDuty();
+        response.root()["duty"] = duty;
+        Settings::Instance.setFanDuty(duty);
     #endif
 }
 
