@@ -42,8 +42,8 @@ function App() {
   const activeTab = useSelector(tabSelector);
   const accessPoint = useSelector(selectWiFiAccessPointConfig)
   useEffect(() => {
-    if(!!accessPoint.essid) {
-      document.title = accessPoint.essid;
+    if(!!accessPoint.ssid) {
+      document.title = accessPoint.ssid;
     }
   });
   return (
