@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+COPY_FRONTEND=false
+RESET=true
+COPY_APP=true
+REPL=true
+
+print_help() {
+    cat >&2 <<EOF
+Usage: $(basename $0) [-na|--no-copy-app] [-f|--frontend] [-nr|--no-reset] [-np|--no-repl]
+EOF
+    exit "${1:-0}"
+}
+
+while [ -n "$1" ]; do
+    case "$1" in
+        -na|--no-copy-app)
+            COPY_APP=false
+            ;;
+        -f|--frontend)
+            COPY_FRONTEND=true
+            ;;
+        -nr|--no-reset)
+            RESET=false
+            ;;
+        -np|--no-repl)
+            REPL=false
+            ;;
+        *)
+            print_help 1
+            ;;
+    esac
+    shift
+done
+
+if [ "$COPY_APP" = true ]; then
+    mpremote fs mkdir :"/boards"
+    mpremote fs mkdir :"/boards/esp32"
+    for file in main.py config.py utils.py board.py boards/esp32/*.py; do
+        mpremote fs cp ./$file :/$file
+    done
+fi
+
+if [ "$COPY_FRONTEND" = true ]; then
+    rm -rf static
+    (
+        cd ./frontend
+        rm -rf build/* && npm run build
+    )
+
+    echo mpremote fs mkdir :"/static"
+    find ./frontend/build/ -type f | while read f; do
+        dest_path="static${f##./frontend/build}.gz"
+        mkdir -p "$(dirname "$dest_path")"
+        gzip "$f" -k -9 -c > "$dest_path"
+        mpremote fs mkdir :"/$(dirname "$dest_path")"
+        mpremote fs cp "$dest_path" ":/$dest_path"
+        
+    done
+    rm -rf "static"
+fi
+
+if [ "$RESET" = true ]; then
+    echo 'Restarting MCU'
+    mpremote reset
+fi
+if [ "$REPL" = true ]; then
+    mpremote
+fi

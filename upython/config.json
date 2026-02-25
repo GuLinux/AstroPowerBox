@@ -1,0 +1,17 @@
+{
+    "stations": [
+        {
+            "ssid": "b",
+            "psk": "b"
+        },
+        {
+            "ssid": "foo",
+            "psk": ""
+        }
+    ],
+    "ap": {
+        "ssid": "AstroPowerBox",
+        "psk": "astropowerbox"
+    },
+    "stLedDuty": 0.57
+}
