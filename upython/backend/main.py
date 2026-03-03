@@ -1,6 +1,7 @@
 from microdot import Microdot, send_file
 import os
-from board import Board, asyncio
+from board_compat import asyncio
+from board import Board
 from config import WiFi
 
 board = Board()
@@ -50,7 +51,10 @@ async def get_config(request):
     return board.config.json
 
 async def main():
+    await board.start()
     await board.wifi_manager.connect_stations()
+
+    board.status_led.wifi_connecting()
     await app.start_server(port=int(os.environ.get('PORT', '80')))
 
 asyncio.run(main())
