@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+watch_files() {
+    for file in /tmp/AstroPowerBox-GPIOSimulator/*; do
+        echo "$(basename "$file"): $(cat "$file")"
+    done
+}
+
+if [ "$1" = watch_files ]; then
+    watch_files
+else
+    watch -n 0.1 "$@" "$0 watch_files"
+fi
+
