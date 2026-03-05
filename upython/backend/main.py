@@ -53,8 +53,6 @@ async def get_config(request):
 async def main():
     await board.start()
     await board.wifi_manager.connect_stations()
-
-    board.status_led.wifi_connecting()
-    await app.start_server(port=int(os.environ.get('PORT', '80')))
+    await app.start_server(port=int(os.environ.get('PORT', '80')), debug=os.environ.get('DEBUG', 0) in ['1', 'true'])
 
 asyncio.run(main())

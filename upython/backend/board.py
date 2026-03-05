@@ -25,6 +25,9 @@ class Board:
             self.pinout_config = json.load(pinout_config_file)
         print(self.pinout_config)
         self.status_led = StatusLed(self.__load_output(self.pinout_config['status_led']))
+        self.wifi_manager.on_connecting = lambda: self.status_led.wifi_connecting()
+        self.wifi_manager.on_station_connected = lambda _: self.status_led.status_ok()
+        self.wifi_manager.on_ap_started = lambda _: self.status_led.wifi_failed()
         
 
     def __load_output(self, config: dict):

@@ -2,6 +2,8 @@ import uasyncio as asyncio
 import network
 import binascii
 import typing
+import protocols.wifi_manager
+
 if typing.TYPE_CHECKING:
     from config import Config
 
@@ -39,8 +41,9 @@ class ScanResult:
     def __repr__(self):
         return self.__str__()
 
-class ESPWiFiManager:
+class ESPWiFiManager(protocols.wifi_manager.WiFiManager):
     def __init__(self, config: Config):
+        super().__init__(config)
         self.config = config
         self.station_wlan = network.WLAN(network.STA_IF)
         self.ap_wlan = network.WLAN(network.AP_IF)
@@ -51,6 +54,7 @@ class ESPWiFiManager:
         return [ScanResult(*result) for result in raw_results]
 
     async def connect_stations(self, connect_ap_on_failure: bool = True):
+        self.on_connecting()
         self.set_hostname()
         self.ap_wlan.active(False)  # Disable AP mode while trying to connect to stations
         print('Connecting to WiFi stations...')
@@ -83,6 +87,7 @@ class ESPWiFiManager:
             for _ in range(10):
                 if wlan.isconnected():
                     print(f'Connected to {wifi.ssid}')
+                    self.on_station_connected(wifi.ssid)
                     return
                 await asyncio.sleep(1)  # Non-blocking wait
             print(f'Failed to connect to {wifi.ssid}')
@@ -98,6 +103,7 @@ class ESPWiFiManager:
         self.ap_wlan.active(True)
         self.ap_wlan.config(ssid=ap.ssid, key=ap.psk, security=3)
         print(f'AP started with SSID: {ap.ssid}')
+        self.on_ap_started(ap.ssid)
 
     def set_hostname(self):
         network.hostname(self.config.ap.ssid)
