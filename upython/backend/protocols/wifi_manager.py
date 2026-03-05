@@ -1,7 +1,8 @@
 from protocols.config import Config
+from typing import Protocol
 
 
-class WiFiManager:
+class WiFiManager(Protocol):
     def __init__(self, config: Config):
         pass
 
