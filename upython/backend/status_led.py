@@ -23,10 +23,10 @@ class StatusLed:
 
 
     def wifi_connecting(self):
-        self.pattern = [(True, 0.5), (False, 0.5)]
+        self.pattern = [(True, 0.2), (False, 0.2)]
 
     def status_ok(self):
-        pass
+        self.pattern = [(True, 2), (False, 0.4)]
 
     def wifi_failed(self):
-        pass
+        self.pattern = [(True, 0.4), (False, 0.4)] * 3 + [(False, 2)]
