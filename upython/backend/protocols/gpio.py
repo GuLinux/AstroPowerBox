@@ -1,10 +1,10 @@
 import typing
 
-class GPIO:
+class GPIO(typing.Protocol):
     def __init__(self, pin_name: str):
         pass
 
-class ButtonPin(GPIO):
+class ButtonPin(GPIO, typing.Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 
@@ -15,7 +15,7 @@ class ButtonPin(GPIO):
     def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
         raise NotImplementedError()
 
-class AnalogInputPin(GPIO):
+class AnalogInputPin(GPIO, typing.Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 
@@ -23,7 +23,7 @@ class AnalogInputPin(GPIO):
     def value(self) -> float:
         raise NotImplementedError()
 
-class DigitalOutputPin(GPIO):
+class DigitalOutputPin(GPIO, typing.Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 
@@ -40,7 +40,7 @@ class DigitalOutputPin(GPIO):
         return False
 
 
-class PWMPin(GPIO):
+class PWMPin(GPIO, typing.Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 

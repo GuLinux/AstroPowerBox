@@ -3,8 +3,9 @@ import os
 from protocols.config_storage import ConfigStorage
 
 class JsonConfigStorage(ConfigStorage):
+    CONFIG_FILE_PATH = os.environ.get('CONFIG_FILE', 'config.json')
     def __init__(self):
-        self.config_file = os.environ.get('CONFIG_FILE', 'config.json')
+        self.config_file = JsonConfigStorage.CONFIG_FILE_PATH
 
     def load_str(self, key: str, maximum_size: int=1024, default: str='') -> str | None:
         return self.__load_json_config().get(key, default)

@@ -1,7 +1,8 @@
 from protocols.config_storage import ConfigStorage
+from typing import Protocol
 
 
-class WiFi:
+class WiFi(Protocol):
     def __init__(self, ssid: str, psk: str | None = None):
         pass
 
@@ -38,7 +39,7 @@ class WiFi:
         raise NotImplementedError()
 
 
-class Config:
+class Config(Protocol):
     def __init__(self, storage: ConfigStorage):
         pass
 

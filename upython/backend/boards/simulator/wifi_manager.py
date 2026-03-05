@@ -1,16 +1,20 @@
 import asyncio
-from config import Config, WiFi
+from protocols.config import Config
+from boards.cpython.json_config_storage import JsonConfigStorage
 import json
 
 
 class SimulatorWiFiManager:
     def __init__(self, config: Config):
         self.config = config
-        with open(self.config.storage.config_file, 'r') as config_file:
+        with open(JsonConfigStorage.CONFIG_FILE_PATH, 'r') as config_file:
             self.stations = json.load(config_file)['stations']
         print(self.stations)
 
     def scan(self) -> list[str]:
+        return [station['ssid'] for station in self._sorted_available_stations()]
+
+    def _sorted_available_stations(self) -> list[dict]:
         available_stations = [st for st in self.stations if st.get('sim_available', True)]
         return sorted(available_stations, key=lambda st: st.get('sim_rssi', 0))
 
@@ -18,7 +22,7 @@ class SimulatorWiFiManager:
     async def connect_stations(self, connect_ap_on_failure: bool = True):
         print('Connecting to WiFi stations...')
         print(f'Configured stations: {self.config.stations}')
-        available_stations = self.scan()
+        available_stations = self._sorted_available_stations()
         if not available_stations:
             print('No stations configured, skipping connection')
             print('Starting AP mode...')
