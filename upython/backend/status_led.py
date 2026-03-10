@@ -1,8 +1,11 @@
 from board_compat import asyncio
+from protocols.gpio import DigitalOutputPin, PWMOutputPin
+from protocols.config import Config
 
 class StatusLed:
-    def __init__(self, gpio_output):
-        self.gpio_output = gpio_output
+    def __init__(self, output_pin: DigitalOutputPin | PWMOutputPin, config: Config):
+        self.gpio_output = output_pin
+        self.config = config
         self.pattern = [(False, 1)]
 
     async def start(self):
@@ -16,11 +19,7 @@ class StatusLed:
                 await asyncio.sleep(time)
 
     def _set_led(self, state):
-        if self.gpio_output.is_pwm:
-            self.gpio_output.duty = 1 if state else 0
-        else:
-            self.gpio_output.value = state
-
+        self.gpio_output.duty = self.config.status_led_duty if state else False
 
     def wifi_connecting(self):
         self.pattern = [(True, 0.2), (False, 0.2)]

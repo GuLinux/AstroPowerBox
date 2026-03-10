@@ -40,15 +40,15 @@ class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
         self._value = False
 
     @property
-    def value(self) -> bool:
+    def on(self) -> bool:
         return self._value
 
-    @value.setter
-    def value(self, value: bool) -> None:
-        self._write(str(value))
-        self._value = value
+    @on.setter
+    def on(self, on: bool) -> None:
+        self._write(str(on))
+        self._value = on 
 
-class PWMPin(GPIO, protocols.gpio.PWMPin):
+class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
         self._value = 0.0

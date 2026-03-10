@@ -1,10 +1,8 @@
 import sys
 import json
 from config import Config
-import typing
 import protocols.wifi_manager
 import protocols.config_storage
-import protocols.gpio
 from status_led import StatusLed
 from board_compat import ConfigStorage, WiFiManager, pinout_config_path, gpio
 
@@ -24,7 +22,7 @@ class Board:
         with open(pinout_config_path, 'r') as pinout_config_file:
             self.pinout_config = json.load(pinout_config_file)
         print(self.pinout_config)
-        self.status_led = StatusLed(self.__load_output(self.pinout_config['status_led']))
+        self.status_led = StatusLed(self.__load_output(self.pinout_config['status_led']), self.config)
         self.wifi_manager.on_connecting = lambda: self.status_led.wifi_connecting()
         self.wifi_manager.on_station_connected = lambda _: self.status_led.status_ok()
         self.wifi_manager.on_ap_started = lambda _: self.status_led.wifi_failed()
@@ -32,7 +30,7 @@ class Board:
 
     def __load_output(self, config: dict):
         if config['type'] == 'pwm':
-            return gpio.PWMPin(config['pin'])
+            return gpio.PWMOutputPin(config['pin'])
         return gpio.DigitalOutputPin(config['pin'])
 
 
