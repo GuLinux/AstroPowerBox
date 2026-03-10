@@ -67,9 +67,8 @@ class Config(Protocol):
     def status_led_duty(self, duty: float) -> None:
         raise NotImplementedError()
 
-    @property
-    def load(self):
+    def load(self) -> None:
         raise NotImplementedError()
 
-    def save(self):
+    def save(self) -> None:
         raise NotImplementedError()
