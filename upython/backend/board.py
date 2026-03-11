@@ -1,4 +1,3 @@
-import sys
 import json
 from config import Config
 import protocols.wifi_manager
@@ -20,8 +19,8 @@ class Board:
         self.config = Config(self.config_storage)
         self.wifi_manager = WiFiManager(self.config)
         with open(pinout_config_path, 'r') as pinout_config_file:
+            print(f'Loading pinout file: {pinout_config_path}')
             self.pinout_config = json.load(pinout_config_file)
-        print(self.pinout_config)
         self.status_led = StatusLed(self.__load_output(self.pinout_config['status_led']), self.config)
         self.wifi_manager.on_connecting = lambda: self.status_led.wifi_connecting()
         self.wifi_manager.on_station_connected = lambda _: self.status_led.status_ok()

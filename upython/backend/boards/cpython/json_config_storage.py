@@ -3,7 +3,7 @@ import os
 from protocols.config_storage import ConfigStorage
 
 class JsonConfigStorage(ConfigStorage):
-    CONFIG_FILE_PATH = os.environ.get('CONFIG_FILE', 'config.json')
+    CONFIG_FILE_PATH = os.environ.get('CONFIG_FILE', 'config_files/config.json')
     def __init__(self):
         self.config_file = JsonConfigStorage.CONFIG_FILE_PATH
 

@@ -44,6 +44,7 @@ class ESPConfigStorage(ConfigStorage):
     def _load_blob(self, key: str, buffer_size: int, default_value: bytes | None = None) -> bytes | None:
         buffer = bytearray(buffer_size)
         try:
-            return self.nvs.get_blob(key, buffer)
+            read = self.nvs.get_blob(key, buffer)
+            return buffer
         except OSError:
             return default_value
