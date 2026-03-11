@@ -4,12 +4,26 @@ COPY_FRONTEND=false
 RESET=true
 COPY_APP=true
 REPL=true
+BOARD_NAME=''
 
 print_help() {
     cat >&2 <<EOF
-Usage: $(basename $0) [-na|--no-copy-app] [-f|--frontend] [-nr|--no-reset] [-np|--no-repl]
+Usage: $(basename $0) [-h|--help] [-na|--no-copy-app] [-f|--frontend] [-nr|--no-reset] [-np|--no-repl] <board_name>
 EOF
     exit "${1:-0}"
+}
+
+set_board_name() {
+    board_name="$1"
+    if ! [ -r "backend/config_files/pinout_$board_name.json" ]; then
+        echo "Invalid board name: $board_name" >&2
+        echo "Valid board names:" >&2
+        for file in backend/config_files/pinout_*.json; do
+            echo "  - $(basename "$file" .json | cut -d_ -f2-)"
+        done
+        exit 1
+    fi
+    export BOARD_NAME="$board_name"
 }
 
 while [ -n "$1" ]; do
@@ -26,12 +40,20 @@ while [ -n "$1" ]; do
         -np|--no-repl)
             REPL=false
             ;;
-        *)
+        -h|--help)
             print_help 1
+            ;;
+        *)
+            set_board_name "$1"
             ;;
     esac
     shift
 done
+
+if [ -z "$BOARD_NAME" ]; then
+    echo "Error: you must set the board name" >&2
+    print_help 1
+fi
 
 mpremote_mkdir_recursive() {
     declare -a dirs
@@ -51,6 +73,7 @@ mpremote_mkdir_recursive() {
 }
 
 if [ "$COPY_APP" = true ]; then
+    envsubst < backend/board_vars.py.envsubst > backend/board_vars.py
     find backend -type f -name *.py | while read python_file; do
         target_file="${python_file##backend}"
         target_dir="$(dirname "$target_file")"
@@ -58,8 +81,11 @@ if [ "$COPY_APP" = true ]; then
             mpremote_mkdir_recursive "$target_dir"
         fi
         echo "$python_file -> $target_file (dir: $target_dir)"
-        echo mpremote fs cp "$python_file" ":$target_file"
+        mpremote fs cp "$python_file" ":$target_file"
     done
+    pinout_config_file="pinout_${BOARD_NAME}.json"
+    echo "backend/config_files/${pinout_config_file} -> :/${pinout_config_file}"
+    mpremote fs cp "backend/config_files/${pinout_config_file}" ":/${pinout_config_file}"
     #mpremote fs mkdir :"/boards"
     #mpremote fs mkdir :"/boards/esp32"
     #for file in main.py config.py utils.py board.py boards/esp32/*.py; do

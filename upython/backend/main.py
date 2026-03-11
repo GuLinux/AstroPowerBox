@@ -1,6 +1,6 @@
 from microdot import Microdot, send_file
 import os
-from board_compat import asyncio
+from board_compat import asyncio, server_port, server_debug
 from board import Board
 from config import WiFi
 
@@ -53,6 +53,6 @@ async def get_config(request):
 async def main():
     await board.start()
     await board.wifi_manager.connect_stations()
-    await app.start_server(port=int(os.environ.get('PORT', '80')), debug=os.environ.get('DEBUG', 0) in ['1', 'true'])
+    await app.start_server(port=server_port, debug=server_debug)
 
 asyncio.run(main())
