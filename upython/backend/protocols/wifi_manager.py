@@ -19,9 +19,6 @@ class WiFiManager(Protocol):
     async def start_ap(self):
         raise NotImplementedError()
 
-    def set_hostname(self):
-        raise NotImplementedError()
-
     @property
     def on_station_connected(self) -> Callable[[str], None]:
         return self._on_station_connected

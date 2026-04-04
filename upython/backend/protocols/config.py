@@ -1,43 +1,6 @@
 from protocols.config_storage import ConfigStorage
 from typing import Protocol
-
-
-class WiFi(Protocol):
-    def __init__(self, ssid: str, psk: str | None = None):
-        pass
-
-    @property
-    def ssid(self) -> str:
-        raise NotImplementedError()
-
-    @ssid.setter
-    def ssid(self, ssid: str) -> None:
-        raise NotImplementedError()
-
-    @property
-    def psk(self) -> str | None:
-        raise NotImplementedError()
-
-    @psk.setter
-    def psk(self, psk: str) -> None:
-        raise NotImplementedError()
-
-    @property
-    def json(self) -> dict:
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json: dict) -> WiFi:
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json_list(cls, json: list) -> list[WiFi]:
-        raise NotImplementedError()
-
-    @classmethod
-    def to_json_list(cls, json: list) -> list[dict]:
-        raise NotImplementedError()
-
+from wifi import WiFi
 
 class Config(Protocol):
     def __init__(self, storage: ConfigStorage):
