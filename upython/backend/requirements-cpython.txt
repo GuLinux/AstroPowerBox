@@ -1,3 +1,1 @@
 appdirs
-sdbus
-sdbus-networkmanager

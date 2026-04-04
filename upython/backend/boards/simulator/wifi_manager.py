@@ -53,7 +53,5 @@ class SimulatorWiFiManager(protocols.wifi_manager.WiFiManager):
         print('AP started')
         self.on_ap_started(self.config.ap.ssid)
 
-    def set_hostname(self):
-        print(f'Setting hostname to {self.config.ap.ssid}')
 
 
