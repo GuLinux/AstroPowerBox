@@ -42,6 +42,20 @@ class NetworkManager:
             return True
         return await self.wait_for_device_state(device, self.DeviceState.ACTIVATED)
 
+    async def connect_device(self, device: str) -> bool:
+        try:
+            await self._run_nmcli('device', 'connect', device)
+        except RuntimeError as error:
+            print(error)
+            return False
+        return await self.wait_for_device_state(device, self.DeviceState.ACTIVATED)
+
+    async def get_active_connection_name(self, device: str) -> str | None:
+        result = await self._run_nmcli_fields(('GENERAL.CONNECTION',), 'device', 'show', device)
+        if not result:
+            return None
+        return result[0].get('GENERAL.CONNECTION') or None
+
     async def start_ap(self, connection_name: str, device: str | None = None) -> bool:
         return await self.connect_station(connection_name, device)
 
