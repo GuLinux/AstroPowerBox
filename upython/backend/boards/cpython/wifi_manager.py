@@ -20,18 +20,22 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
                 await self.start_ap()
             return
 
+        if not self.config.stations:
+            print('No stations configured, starting AP mode')
+            if connect_ap_on_failure:
+                await self.start_ap()
+            return
+
         self.on_connecting()
         await self.write_wifi_config(device, self.config.ap, self.config.stations)
 
-        print('Connecting to WiFi stations...')
-        for station in self.config.stations:
-            connection_name = self.netplan_config.station_connection_name(station.ssid)
-            print(f'Attempting to connect to station: {station.ssid}')
-            if await self.network_manager.connect_station(connection_name, device):
-                print(f'Connected to station: {station.ssid}')
-                self.on_station_connected(station.ssid)
-                return
-            print(f'Failed to connect to station: {station.ssid}')
+        print('Connecting to best available WiFi station...')
+        if await self.network_manager.connect_device(device):
+            connection_name = await self.network_manager.get_active_connection_name(device)
+            ssid = connection_name.removeprefix(self.netplan_config.STATION_CONNECTION_PREFIX) if connection_name else 'unknown'
+            print(f'Connected to station: {ssid}')
+            self.on_station_connected(ssid)
+            return
 
         print('Failed to connect to any station')
         if connect_ap_on_failure:
