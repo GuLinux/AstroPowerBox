@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-SIMULATOR=1 PORT=8080 DEBUG=1 python3 main.py
+SIMULATOR_WIFI=1 SIMULATOR_GPIO=1 PORT=8080 DEBUG=1 python3 main.py
