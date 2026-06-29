@@ -1,7 +1,5 @@
 import protocols.wifi_manager
 from protocols.config import Config
-from wifi import WiFi
-from boards.cpython.net.netplan import NetPlanConfig
 from boards.cpython.net.networkmanager import NetworkManager
 
 
@@ -9,8 +7,8 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
     def __init__(self, config: Config):
         super().__init__(config)
         self.config = config
-        self.netplan_config = NetPlanConfig()
         self.network_manager = NetworkManager()
+        self._prefix = 'apb-'
 
     async def connect_stations(self, connect_ap_on_failure: bool = True):
         device = await self.network_manager.get_wifi_device()
@@ -26,13 +24,23 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
                 await self.start_ap()
             return
 
+        # If currently connected to AP, disconnect it first
+        current_connection = await self.network_manager.get_active_connection_name(device)
+        if current_connection == f'{self._prefix}ap':
+            print(f'Currently connected to AP, disconnecting to try stations...')
+            await self.network_manager.disconnect_device(device)
+
         self.on_connecting()
-        await self.write_wifi_config(device, self.config.ap, self.config.stations)
+        if not await self.network_manager.apply_wifi_config(device, self.config.ap, self.config.stations, self._prefix):
+            print('Failed to apply WiFi configuration')
+            if connect_ap_on_failure:
+                await self.start_ap()
+            return
 
         print('Connecting to best available WiFi station...')
         if await self.network_manager.connect_device(device):
             connection_name = await self.network_manager.get_active_connection_name(device)
-            ssid = connection_name.removeprefix(self.netplan_config.STATION_CONNECTION_PREFIX) if connection_name else 'unknown'
+            ssid = connection_name.removeprefix(self._prefix) if connection_name and connection_name.startswith(self._prefix) else 'unknown'
             print(f'Connected to station: {ssid}')
             self.on_station_connected(ssid)
             return
@@ -46,24 +54,12 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
         if not device:
             raise RuntimeError('No WiFi device found, cannot start AP mode')
 
-        await self.write_wifi_config(device, self.config.ap, self.config.stations)
-        connection_name = self.netplan_config.ap_connection_name()
-        print(f'Starting AP with SSID: {self.config.ap.ssid}')
-        if not await self.network_manager.start_ap(connection_name, device):
-            raise RuntimeError(f'Failed to start AP connection: {connection_name}')
+        if not await self.network_manager.apply_wifi_config(device, self.config.ap, self.config.stations, self._prefix):
+            raise RuntimeError('Failed to apply WiFi configuration')
+        
+        ap_connection_name = f'{self._prefix}ap'
+        print(f'Starting AP with SSID: {self.config.ap.ssid}, connection name: {ap_connection_name}')
+        if not await self.network_manager.connect_station(ap_connection_name, device):
+            raise RuntimeError(f'Failed to start AP connection: {ap_connection_name}')
         print('AP started')
         self.on_ap_started(self.config.ap.ssid)
-
-    async def read_wifi_config(self, iface_name: str) -> tuple[WiFi | None, list[WiFi]]:
-        ap, stations = self.netplan_config.read(iface_name)
-        print(f'Read WiFi configuration - AP: {ap}, Stations: {stations}')
-        return ap, stations
-
-    async def write_wifi_config(self, iface_name: str, ap_config: WiFi, station_configs: list[WiFi]) -> None:
-        self.netplan_config.write(iface_name, ap_config, station_configs)
-        print(f'Written WiFi configuration - AP: {ap_config}, Stations: {station_configs}')
-        await self.netplan_config.apply()
-        print('Netplan configuration applied, waiting for NetworkManager...')
-        if not await self.network_manager.wait_until_ready():
-            raise RuntimeError('NetworkManager did not become ready after netplan apply')
-        print('NetworkManager is ready')

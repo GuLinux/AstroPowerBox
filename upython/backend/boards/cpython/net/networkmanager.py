@@ -50,6 +50,14 @@ class NetworkManager:
             return False
         return await self.wait_for_device_state(device, self.DeviceState.ACTIVATED)
 
+    async def disconnect_device(self, device: str) -> bool:
+        try:
+            await self._run_nmcli('device', 'disconnect', device)
+            return True
+        except RuntimeError as error:
+            print(error)
+            return False
+
     async def get_active_connection_name(self, device: str) -> str | None:
         result = await self._run_nmcli_fields(('GENERAL.CONNECTION',), 'device', 'show', device)
         if not result:
@@ -95,12 +103,117 @@ class NetworkManager:
                 await asyncio.sleep(delay)
         return False
 
+    async def list_connections(self, prefix: str | None = None) -> list[str]:
+        connections = await self._run_nmcli_fields(('NAME',), 'connection', 'show')
+        names = [conn['NAME'] for conn in connections]
+        if prefix:
+            names = [name for name in names if name.startswith(prefix)]
+        return names
+
+    async def delete_connection(self, connection_name: str) -> bool:
+        try:
+            await self._run_nmcli('connection', 'delete', connection_name)
+            return True
+        except RuntimeError as error:
+            print(f'Warning: Failed to delete connection {connection_name}: {error}')
+            return False
+
+    async def add_or_update_connection(
+        self,
+        connection_name: str,
+        ssid: str,
+        psk: str | None = None,
+        mode: str | None = None,
+        priority: int = 0,
+        device: str | None = None,
+        ipv4_method: str | None = None,
+        ipv6_disabled: bool = False,
+    ) -> bool:
+        # Check if connection exists
+        try:
+            await self._run_nmcli('connection', 'show', connection_name)
+            # Connection exists, delete and recreate
+            await self.delete_connection(connection_name)
+        except RuntimeError:
+            # Connection doesn't exist, proceed to create
+            pass
+
+        args = ['connection', 'add', 'type', 'wifi', 'con-name', connection_name, 'ssid', ssid]
+        if device:
+            args.extend(['ifname', device])
+        
+        # Treat empty strings as no password
+        if psk and psk.strip():
+            args.extend(['wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.psk', psk])
+        else:
+            args.extend(['wifi-sec.key-mgmt', 'none'])
+        
+        if mode == 'ap':
+            args.extend(['mode', 'ap'])
+        
+        if ipv4_method:
+            args.extend(['ipv4.method', ipv4_method])
+        
+        if ipv6_disabled:
+            args.extend(['ipv6.method', 'ignore'])
+        
+        try:
+            await self._run_nmcli(*args)
+            # Set priority
+            await self._run_nmcli('connection', 'modify', connection_name, 'connection.autoconnect-priority', str(priority))
+            return True
+        except RuntimeError as error:
+            print(f'Failed to add/update connection {connection_name}: {error}')
+            return False
+
+    async def apply_wifi_config(self, device: str, ap_config, station_configs: list, prefix: str = 'apb-') -> bool:
+        print(f'Applying WiFi configuration with {prefix} prefix')
+        
+        # Delete old APB connections
+        old_connections = await self.list_connections(prefix)
+        for conn in old_connections:
+            print(f'Deleting old connection: {conn}')
+            await self.delete_connection(conn)
+        
+        # Create AP connection
+        ap_name = f'{prefix}ap'
+        print(f'Creating AP connection: {ap_name}')
+        if not await self.add_or_update_connection(
+            ap_name,
+            ap_config.ssid,
+            ap_config.psk,
+            mode='ap',
+            priority=0,
+            device=device,
+            ipv4_method='shared',
+            ipv6_disabled=True,
+        ):
+            return False
+        
+        # Create station connections
+        for i, station in enumerate(station_configs):
+            # Higher index = lower priority (100 for first, 90 for second, etc.)
+            priority = 100 - (i * 10)
+            station_name = f'{prefix}{station.ssid}'
+            print(f'Creating station connection: {station_name} (priority {priority})')
+            if not await self.add_or_update_connection(
+                station_name,
+                station.ssid,
+                station.psk,
+                priority=priority,
+                device=device,
+            ):
+                return False
+        
+        print('WiFi configuration applied successfully')
+        return True
+
     async def _run_nmcli_fields(self, fields: tuple[str, ...], command: str, *args) -> list[dict[str, str]]:
         stdout = await self._run_nmcli('-g', ','.join(fields), command, *args)
         return [dict(zip(fields, tuple(line.split(':')))) for line in stdout.splitlines()]
 
     async def _run_nmcli(self, *args) -> str:
-        arguments = ['nmcli', *args]
+        arguments = ['sudo', 'nmcli', *args]
         process = await asyncio.create_subprocess_exec(
             *arguments,
             stdout=asyncio.subprocess.PIPE,
