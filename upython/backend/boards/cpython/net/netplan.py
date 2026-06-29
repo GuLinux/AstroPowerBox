@@ -23,23 +23,36 @@ import yaml
 #             name: "APB-AstroPowerBox-AP"
 
 class NetPlanConfig:
+    AP_CONNECTION_NAME = 'AstroPowerBox-AP'
+    STATION_CONNECTION_PREFIX = 'APB-'
+
     def __init__(self, config_file: str = '/etc/netplan/01-netcfg.yaml'):
         self.config_file = config_file
+
+    @classmethod
+    def ap_connection_name(cls) -> str:
+        return cls.AP_CONNECTION_NAME
+
+    @classmethod
+    def station_connection_name(cls, ssid: str) -> str:
+        return f'{cls.STATION_CONNECTION_PREFIX}{ssid}'
 
     def read(self, iface_name: str) -> tuple[WiFi | None, list[WiFi]]:
         if not os.path.exists(self.config_file):
             print(f'Netplan config file {self.config_file} not found, returning empty config')
             return None, []
         with open(self.config_file, 'r') as f:
-            data = yaml.safe_load(f)
+            data = yaml.safe_load(f) or {}
         wifi_config = data.get('network', {}).get('wifis', {}).get(iface_name, {}).get('access-points', {})
         ap = None
         stations = []
         for ssid, station in wifi_config.items():
+            if station is None:
+                station = {}
             if station.get('mode') != 'ap':
                 password = station.get('password', '')
                 stations.append(WiFi(ssid=ssid, psk=password))
-            elif station.get('networkmanager', {}).get('name', '') == 'AstroPowerBox-AP':
+            elif station.get('networkmanager', {}).get('name', '') == self.ap_connection_name():
                 ap = WiFi(ssid=ssid, psk=station.get('password', ''))
 
         return ap, stations
@@ -57,7 +70,7 @@ class NetPlanConfig:
                                 'mode': 'ap',
                                 'password': ap.psk,
                                 'networkmanager': {
-                                    'name': 'AstroPowerBox-AP',
+                                    'name': self.ap_connection_name(),
                                     'passthrough': {
                                         'connection.autoconnect-priority': 0
                                     }
@@ -72,7 +85,7 @@ class NetPlanConfig:
             netplan_obj['network']['wifis'][iface_name]['access-points'][station.ssid] = {
                 'password': station.psk,
                 'networkmanager': {
-                    'name': f'APB-{station.ssid}',
+                    'name': self.station_connection_name(station.ssid),
                     'passthrough': {
                         'connection.autoconnect-priority': 100
                     }
@@ -82,6 +95,15 @@ class NetPlanConfig:
             yaml.dump(netplan_obj, f)
 
     async def apply(self):
-        result = await asyncio.create_subprocess_exec('sudo', 'netplan', 'apply')
-        if result.returncode != 0:
-            raise RuntimeError('Failed to apply netplan configuration')
+        process = await asyncio.create_subprocess_exec(
+            'sudo',
+            'netplan',
+            'apply',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            raise RuntimeError(f'Failed to apply netplan configuration: {stderr.decode()}')
+        if stdout:
+            print(stdout.decode())

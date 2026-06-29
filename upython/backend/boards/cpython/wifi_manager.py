@@ -1,113 +1,65 @@
 import protocols.wifi_manager
 from protocols.config import Config
-import asyncio
-from enum import Enum
+from wifi import WiFi
+from boards.cpython.net.netplan import NetPlanConfig
+from boards.cpython.net.networkmanager import NetworkManager
 
 
 class WiFiManager(protocols.wifi_manager.WiFiManager):
-    class NmConnectionStatus(Enum):
-        NM_DEVICE_STATE_UNKNOWN = (0, "the device's state is unknown")
-        NM_DEVICE_STATE_UNMANAGED = (10, "the device is not managed by NetworkManager")
-        NM_DEVICE_STATE_UNAVAILABLE = (20, "the device is unavailable")
-        NM_DEVICE_STATE_DISCONNECTED = (30, "the device is disconnected")
-        NM_DEVICE_STATE_PREPARE = (40, "the device is preparing to connect")
-        NM_DEVICE_STATE_CONFIG = (50, "the device is configuring the connection")
-        NM_DEVICE_STATE_NEED_AUTH = (60, "the device needs authentication to connect")
-        NM_DEVICE_STATE_IP_CONFIG = (70, "the device is obtaining an IP address")
-        NM_DEVICE_STATE_ACTIVATED = (100, "the device is connected and has an IP address")
-        NM_DEVICE_STATE_DEACTIVATING = (110, "the device is disconnecting")
-        NM_DEVICE_STATE_FAILED = (120, "the device failed to connect")
-
-        @property
-        def code(self) -> int:
-            return self.value[0]
-
-        @property
-        def description(self) -> str:
-            return self.value[1]
-
-
     def __init__(self, config: Config):
         super().__init__(config)
         self.config = config
+        self.netplan_config = NetPlanConfig()
+        self.network_manager = NetworkManager()
 
     async def connect_stations(self, connect_ap_on_failure: bool = True):
-        wifi_device = next((d for d in await self._get_devices() if d['TYPE'] == 'wifi'), None)
-        if not wifi_device:
-            print('No WiFi device found, skipping connection')
-            print('Starting AP mode...')
-            await self.start_ap()
-            return
-        self.on_connecting()
-        print('Connecting to WiFi stations...')
-        connected = await self._autoconnect_device(wifi_device['DEVICE'])
-        if connected:
-            print('Connected to WiFi station')
-            self.on_station_connected(wifi_device['DEVICE'])
-        else:
-            print('Failed to connect to WiFi station')
+        device = await self.network_manager.get_wifi_device()
+        if not device:
+            print('No WiFi device found, skipping station connection')
             if connect_ap_on_failure:
-                print('Starting AP mode...')
                 await self.start_ap()
+            return
+
+        self.on_connecting()
+        await self.write_wifi_config(device, self.config.ap, self.config.stations)
+
+        print('Connecting to WiFi stations...')
+        for station in self.config.stations:
+            connection_name = self.netplan_config.station_connection_name(station.ssid)
+            print(f'Attempting to connect to station: {station.ssid}')
+            if await self.network_manager.connect_station(connection_name, device):
+                print(f'Connected to station: {station.ssid}')
+                self.on_station_connected(station.ssid)
+                return
+            print(f'Failed to connect to station: {station.ssid}')
+
+        print('Failed to connect to any station')
+        if connect_ap_on_failure:
+            await self.start_ap()
 
     async def start_ap(self):
-        ap_connection = await self._get_ap_connection()
-        if not ap_connection:
-            raise RuntimeError('No AP connection found, cannot start AP mode')
+        device = await self.network_manager.get_wifi_device()
+        if not device:
+            raise RuntimeError('No WiFi device found, cannot start AP mode')
+
+        await self.write_wifi_config(device, self.config.ap, self.config.stations)
+        connection_name = self.netplan_config.ap_connection_name()
         print(f'Starting AP with SSID: {self.config.ap.ssid}')
-        await self.__run_nmcli('connection', 'up', ap_connection['NAME'])
+        if not await self.network_manager.start_ap(connection_name, device):
+            raise RuntimeError(f'Failed to start AP connection: {connection_name}')
         print('AP started')
         self.on_ap_started(self.config.ap.ssid)
 
-    async def _autoconnect_device(self, device: str) -> bool:
-        print(f'Attempting to autoconnect device {device}...')
-        await self.__run_nmcli('device', 'connect', device)
-        for _ in range(30):
-            status = await self._get_device_status(device)
-            print(f'Device {device} status: {status.description}')
-            if status == self.NmConnectionStatus.NM_DEVICE_STATE_ACTIVATED:
-                return True
-            elif status in (self.NmConnectionStatus.NM_DEVICE_STATE_FAILED, self.NmConnectionStatus.NM_DEVICE_STATE_UNAVAILABLE):
-                return False
-            await asyncio.sleep(1)
-        print(f'Timed out while waiting for device {device} to connect')
-        return False
+    async def read_wifi_config(self, iface_name: str) -> tuple[WiFi | None, list[WiFi]]:
+        ap, stations = self.netplan_config.read(iface_name)
+        print(f'Read WiFi configuration - AP: {ap}, Stations: {stations}')
+        return ap, stations
 
-    async def _get_devices(self):
-        return await self.__run_nmcli_fields(('DEVICE', 'TYPE'), 'device')
-
-    async def _get_ap_connection(self):
-        connections = await self._get_wifi_connections()
-        return next((conn for conn in connections if conn['MODE'] == 'ap'), None)
-
-    async def _get_wifi_connections(self):
-        all_connections = await self.__run_nmcli_fields(('NAME', 'UUID', 'TYPE'), 'connection', 'show')
-        wifi_connections = [conn for conn in all_connections if conn['TYPE'] == '802-11-wireless']
-        for conn in wifi_connections:
-            conn_details = await self.__run_nmcli_fields(('802-11-wireless.mode', '802-11-wireless.ssid'), 'connection', 'show', conn['UUID'])
-            conn.update(conn_details[0])
-        return wifi_connections
-
-    async def _get_device_status(self, device: str) -> NmConnectionStatus:
-        status = await self.__run_nmcli_fields(('GENERAL.STATE',), 'device', 'show', device)
-        if not status:
-            raise RuntimeError(f'No status found for device {device}')
-        status = int(status[0]['GENERAL.STATE'].split(' ')[0])
-        status = next((s for s in self.NmConnectionStatus if s.code == status), None)
-        if not status:
-            raise RuntimeError(f'Unknown status code {status} for device {device}')
-        return status
-
-    async def __run_nmcli_fields(self, fields: tuple[str,...], command: str, *args) -> list[dict[str, str]]:
-        arguments = ['-g', ','.join(fields), command, *args]
-        stdout = await self.__run_nmcli(*arguments)
-        return [dict(zip(fields, tuple(line.split(':')))) for line in stdout.splitlines()]
-
-    async def __run_nmcli(self, *args) -> str:
-        arguments = ['nmcli', *args]
-        process = await asyncio.create_subprocess_exec(*arguments, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            raise RuntimeError(f'Command {" ".join(arguments)} failed with error: {stderr.decode()}')
-        return stdout.decode()
-    
+    async def write_wifi_config(self, iface_name: str, ap_config: WiFi, station_configs: list[WiFi]) -> None:
+        self.netplan_config.write(iface_name, ap_config, station_configs)
+        print(f'Written WiFi configuration - AP: {ap_config}, Stations: {station_configs}')
+        await self.netplan_config.apply()
+        print('Netplan configuration applied, waiting for NetworkManager...')
+        if not await self.network_manager.wait_until_ready():
+            raise RuntimeError('NetworkManager did not become ready after netplan apply')
+        print('NetworkManager is ready')
