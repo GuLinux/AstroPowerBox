@@ -23,7 +23,7 @@ elif sys.implementation.name == 'cpython':
     if os.environ.get('SIMULATOR_GPIO', '0') == '1':
         import boards.simulator.gpio as gpio
     else:
-        pass
+        import boards.cpython.gpio as gpio
         
         
     pinout_config_path = os.environ.get('PINOUT_CONFIG_PATH', 'config_files/pinout.json')

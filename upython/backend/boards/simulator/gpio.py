@@ -18,26 +18,48 @@ class GPIO(protocols.gpio.GPIO):
 class ButtonPin(GPIO, protocols.gpio.ButtonPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
+        self._pressed = False
+        self._callback = None
 
     @property
     def value(self) -> bool:
-        raise NotImplementedError()
+        """Returns current button state: True if pressed, False if released"""
+        return self._pressed
     
     def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
-        raise NotImplementedError()
+        """Register callback for level changes. Callback receives bool (True=pressed, False=released)"""
+        self._callback = callback
+    
+    def _trigger_callback(self, pressed: bool) -> None:
+        """Internal method to trigger the callback (used for testing)"""
+        self._pressed = pressed
+        if self._callback:
+            self._callback(pressed)
 
 class AnalogInputPin(GPIO, protocols.gpio.AnalogInputPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
+        # Default simulated value: 2.0V (middle of typical 0-4.096V range)
+        self._value = 2.0
 
     @property
     def value(self) -> float:
-        raise NotImplementedError()
+        """Returns simulated voltage (default 2.0V, can be overridden via sim_value)"""
+        return self._value
+    
+    def set_simulated_value(self, voltage: float) -> None:
+        """Set the simulated voltage value (for testing)"""
+        self._value = max(0.0, min(4.096, voltage))
 
 class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
         self._value = False
+
+    @property
+    def is_pwm(self) -> bool:
+        """This is not a PWM pin"""
+        return False
 
     @property
     def on(self) -> bool:
@@ -54,10 +76,16 @@ class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
         self._value = 0.0
 
     @property
+    def is_pwm(self) -> bool:
+        """This is a PWM pin"""
+        return True
+
+    @property
     def duty(self) -> float:
         return self._value
 
     @duty.setter
     def duty(self, duty: float) -> None:
-        self._write(str(duty))
+        self._value = max(0.0, min(1.0, duty))
+        self._write(str(self._value))
 
