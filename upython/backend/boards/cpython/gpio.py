@@ -1,5 +1,7 @@
 import re
 import typing
+import json
+import os
 
 try:
     import lgpio
@@ -13,16 +15,62 @@ except ImportError:
     _ads1115_available = False
 
 
-def _parse_gpio_pin(pin_name: str) -> tuple[int, int]:
+class PinConfig:
+    """Manages pin configuration loaded from JSON files"""
+    
+    def __init__(self, config_path: str):
+        """Load pin configuration from JSON file"""
+        self.config = {}
+        self.adc_config = {}
+        
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    data = json.load(f)
+                    self.config = data.get('pinout', {})
+                    self.adc_config = data.get('adc', {})
+            except Exception as e:
+                raise RuntimeError(f'Failed to load pin configuration from {config_path}: {e}')
+        else:
+            raise RuntimeError(f'Pin configuration file not found: {config_path}')
+    
+    def get_gpio_pin(self, pin_name: str) -> str:
+        """Get GPIO format string for a pin name (e.g., 'PWM1' -> 'GPIO3_C2')"""
+        if pin_name not in self.config:
+            raise ValueError(f'Pin {pin_name} not found in configuration')
+        return self.config[pin_name]
+    
+    def get_adc_config(self, pin_name: str) -> dict:
+        """Get ADC configuration for a pin"""
+        if pin_name not in self.adc_config:
+            raise ValueError(f'ADC pin {pin_name} not found in configuration')
+        return self.adc_config[pin_name]
+
+
+# Global pin configuration (initialized on first use)
+_pin_config: PinConfig | None = None
+
+
+def _get_pin_config() -> PinConfig:
+    """Get or initialize global pin configuration"""
+    global _pin_config
+    if _pin_config is None:
+        # Determine config path from environment or use default
+        config_path = os.environ.get('GPIO_CONFIG_PATH', 'pinouts/gpio_pinout.json')
+        _pin_config = PinConfig(config_path)
+    return _pin_config
+
+
+def _parse_gpio_pin(gpio_format: str) -> tuple[int, int]:
     """
     Parse GPIO pin name format: GPIO<chip>_<port><pin>
     Examples: GPIO0_A5, GPIO1_B3
     Returns: (chip_number, line_offset)
     """
     pattern = r'^GPIO(\d)_([A-D])(\d+)$'
-    match = re.match(pattern, pin_name.upper())
+    match = re.match(pattern, gpio_format.upper())
     if not match:
-        raise ValueError(f'Invalid GPIO pin name: {pin_name}. Expected format: GPIO<chip>_<port><pin>, e.g., GPIO0_A5')
+        raise ValueError(f'Invalid GPIO format: {gpio_format}. Expected format: GPIO<chip>_<port><pin>, e.g., GPIO0_A5')
     
     chip = int(match.group(1))
     port = match.group(2)
@@ -43,7 +91,9 @@ class ButtonPin:
             raise RuntimeError('lgpio module not available')
         
         self.pin_name = pin_name
-        self.chip, self.line = _parse_gpio_pin(pin_name)
+        config = _get_pin_config()
+        gpio_format = config.get_gpio_pin(pin_name)
+        self.chip, self.line = _parse_gpio_pin(gpio_format)
         self.handle = lgpio.gpiochip_open(self.chip)
         self._callback = None
         self._lgpio_callback = None
@@ -92,28 +142,28 @@ class AnalogInputPin:
     # Class-level cache for ADS1115 instances (shared across pins)
     _ads_instances: dict[tuple[int, int], 'ADS1x15.ADS1115'] = {}
     
-    def __init__(self, pin_name: str, i2c_bus: int = 2, i2c_addr: int = 0x48, adc_channel: int = 0):
+    def __init__(self, pin_name: str):
         """
         Initialize analog input pin.
         
         Args:
-            pin_name: Pin identifier (can be anything, used for logging)
-            i2c_bus: I2C bus number for ADS1115 (default: 2)
-            i2c_addr: I2C address of ADS1115 (default: 0x48)
-            adc_channel: ADC channel 0-3 on the ADS1115 (default: 0)
+            pin_name: Pin identifier in configuration (e.g., 'ANALOG_IN1')
         """
         if not _ads1115_available:
             raise RuntimeError('ADS1x15 module not available')
         
         self.pin_name = pin_name
-        self.i2c_bus = i2c_bus
-        self.i2c_addr = i2c_addr
-        self.adc_channel = adc_channel
+        config = _get_pin_config()
+        adc_config = config.get_adc_config(pin_name)
+        
+        self.i2c_bus = adc_config.get('i2c_bus', 2)
+        self.i2c_addr = adc_config.get('i2c_addr', 0x48)
+        self.adc_channel = adc_config.get('channel', 0)
         
         # Get or create ADS1115 instance
-        key = (i2c_bus, i2c_addr)
+        key = (self.i2c_bus, self.i2c_addr)
         if key not in AnalogInputPin._ads_instances:
-            ads = ADS1x15.ADS1115(i2c_bus, i2c_addr)
+            ads = ADS1x15.ADS1115(self.i2c_bus, self.i2c_addr)
             ads.setGain(ads.PGA_4_096V)  # Set to 4.096V max for better resolution
             AnalogInputPin._ads_instances[key] = ads
         
@@ -138,7 +188,9 @@ class DigitalOutputPin:
             raise RuntimeError('lgpio module not available')
         
         self.pin_name = pin_name
-        self.chip, self.line = _parse_gpio_pin(pin_name)
+        config = _get_pin_config()
+        gpio_format = config.get_gpio_pin(pin_name)
+        self.chip, self.line = _parse_gpio_pin(gpio_format)
         self.handle = lgpio.gpiochip_open(self.chip)
         self._value = False
         
@@ -181,7 +233,7 @@ class PWMOutputPin:
         Initialize PWM output pin.
         
         Args:
-            pin_name: GPIO pin identifier
+            pin_name: GPIO pin identifier from configuration
             frequency: PWM frequency in Hz (default: 1000)
         """
         if lgpio is None:
@@ -189,7 +241,9 @@ class PWMOutputPin:
         
         self.pin_name = pin_name
         self.frequency = frequency
-        self.chip, self.line = _parse_gpio_pin(pin_name)
+        config = _get_pin_config()
+        gpio_format = config.get_gpio_pin(pin_name)
+        self.chip, self.line = _parse_gpio_pin(gpio_format)
         self.handle = lgpio.gpiochip_open(self.chip)
         self._duty = 0.0
         

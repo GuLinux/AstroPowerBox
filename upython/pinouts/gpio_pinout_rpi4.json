@@ -1,0 +1,57 @@
+{
+  "comment": "Raspberry Pi 4 GPIO pinout using BCM GPIO numbering",
+  "hardware": "Raspberry Pi 4 Model B",
+  "soc": "BCM2711",
+  "pinout": {
+    "PWM0": "GPIO0_A4",
+    "PWM1": "GPIO0_A17",
+    "PWM2": "GPIO0_A27",
+    "PWM3": "GPIO0_B22",
+    "PWM4": "GPIO0_C23",
+    "PWM5": "GPIO0_C24",
+    "PWM6": "GPIO0_C25",
+    "PWM7": "GPIO0_D12",
+    "PWM8": "GPIO0_D13",
+    "PWM9": "GPIO0_D18",
+    "PWM10": "GPIO0_D19",
+    "BTN0": "GPIO0_A2",
+    "BTN1": "GPIO0_A3",
+    "BTN2": "GPIO0_A14",
+    "BTN3": "GPIO0_A15",
+    "BTN4": "GPIO0_B5",
+    "BTN5": "GPIO0_B6",
+    "LED_STATUS": "GPIO0_A21",
+    "LED_ERROR": "GPIO0_A20",
+    "RELAY0": "GPIO0_C26",
+    "RELAY1": "GPIO0_D16"
+  },
+  "adc": {
+    "ANALOG_IN0": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 0
+    },
+    "ANALOG_IN1": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 1
+    },
+    "ANALOG_IN2": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 2
+    },
+    "ANALOG_IN3": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 3
+    }
+  },
+  "notes": [
+    "BCM GPIO on Raspberry Pi uses a single chip (GPIO0)",
+    "Port mapping: A=0-7, B=8-15, C=16-23, D=24-31",
+    "BCM2 and BCM3 are I2C (reserved)",
+    "I2C bus 1 is default on Raspberry Pi (pins 2,3)",
+    "ADS1115 ADC at I2C address 0x48 (default)"
+  ]
+}

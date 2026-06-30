@@ -1,0 +1,69 @@
+{
+  "comment": "Orange Pi 5 Ultra GPIO pinout using Rockchip RK3588 GPIO mapping",
+  "hardware": "Orange Pi 5 Ultra (OPI5_MAX compatible)",
+  "soc": "Rockchip RK3588",
+  "pinout": {
+    "PWM1": "GPIO3_C2",
+    "PWM2": "GPIO4_A7",
+    "PWM3": "GPIO3_B7",
+    "PWM4": "GPIO3_C0",
+    "PWM5": "GPIO4_B7",
+    "PWM6": "GPIO3_B5",
+    "PWM7": "GPIO3_C1",
+    "PWM8": "GPIO3_C3",
+    "PWM9": "GPIO3_C4",
+    "PWM10": "GPIO3_C5",
+    "FAN": "GPIO3_C1",
+    "BTN0": "GPIO1_A1",
+    "BTN1": "GPIO1_A2",
+    "BTN2": "GPIO1_A3",
+    "BTN3": "GPIO1_A4",
+    "BTN4": "GPIO1_B0",
+    "BTN5": "GPIO1_B1",
+    "LED_STATUS": "GPIO4_B3",
+    "LED_ERROR": "GPIO4_B4",
+    "LED_POWER": "GPIO4_A6",
+    "RELAY0": "GPIO3_B0",
+    "RELAY1": "GPIO3_B1",
+    "RELAY2": "GPIO3_B2",
+    "RELAY3": "GPIO3_B3",
+    "BACKLIGHT": "GPIO3_B6"
+  },
+  "adc": {
+    "ANALOG_IN0": {
+      "i2c_bus": 2,
+      "i2c_addr": "0x48",
+      "channel": 0
+    },
+    "ANALOG_IN1": {
+      "i2c_bus": 2,
+      "i2c_addr": "0x48",
+      "channel": 1
+    },
+    "ANALOG_IN2": {
+      "i2c_bus": 2,
+      "i2c_addr": "0x48",
+      "channel": 2
+    },
+    "ANALOG_IN3": {
+      "i2c_bus": 2,
+      "i2c_addr": "0x48",
+      "channel": 3
+    },
+    "POWER_MONITOR": {
+      "i2c_bus": 2,
+      "i2c_addr": "0x49",
+      "channel": 0
+    }
+  },
+  "notes": [
+    "Orange Pi 5 Ultra uses Rockchip RK3588 SoC with multiple GPIO banks",
+    "GPIO chips: GPIO0-GPIO4 (5 chips)",
+    "Port mapping per chip: A=0-7, B=8-15, C=16-23, D=24-31",
+    "I2C bus 2 is available for ADC/sensors",
+    "ADS1115 ADC at I2C address 0x48 (default)",
+    "Secondary ADS1115 can be addressed at 0x49 (address pin pulled high)",
+    "GPIO3 and GPIO4 are commonly used for PWM and relays",
+    "GPIO1 recommended for buttons with built-in pull-up support"
+  ]
+}
