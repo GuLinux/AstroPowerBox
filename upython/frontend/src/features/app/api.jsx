@@ -39,3 +39,6 @@ export const setPWMOutput = async (index, pwmOutput) => await payloadJson('/api/
 export const setStatusLedDuty = async payload => await payloadJson('/api/config/statusLedDuty', 'POST', payload)
 export const setFanDuty = async payload => await payloadJson('/api/config/fanDuty', 'POST', payload)
 export const setPowerSourceType = async payload => await payloadJson('/api/config/powerSourceType', 'POST', payload)
+export const fetchPinoutConfig = async () => await fetchJson('/api/config/pinout')
+export const fetchPinoutFiles = async () => await fetchJson('/api/config/pinouts')
+export const setPinoutConfig = async payload => await payloadJson('/api/config/pinout', 'POST', payload)
