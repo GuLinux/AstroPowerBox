@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
 import { AppNavbar } from './AppNavbar';
-import { setAmbient } from './features/sensors/ambient/ambientSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { getPWMOutputsAsync, updatePWMOutputs } from './features/sensors/pwmOutputs/pwmOutputsSlice';
-import { setPower } from './features/sensors/power/powerSlice';
-import { darkModeSelector, getAppStatusAsync, getHistoryAsync, setUptime, tabSelector } from './features/app/appSlice';
+import { darkModeSelector, getAppStatusAsync, getHistoryAsync, tabSelector } from './features/app/appSlice';
 import Tab from 'react-bootstrap/Tab';
 import Container from 'react-bootstrap/Container';
 import { Home } from './features/Home';
@@ -14,17 +12,19 @@ import { selectWiFiAccessPointConfig } from './features/app/configSlice';
 
 const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
-  es.addEventListener('status', m => {
+  es.addEventListener('pins', m => {
     const data = JSON.parse(m.data);
-    if(data.ambient) {
-      dispatch(setAmbient(data.ambient));
+    const pins = Array.isArray(data.pins) ? data.pins : [];
+    const pwmOutputs = pins
+      .filter(pin => pin.kind === 'pwm')
+      .map(pin => ({
+        duty: pin.duty || 0,
+        active: !!pin.on,
+        type: pin.role === 'heater' ? 'heater' : 'output',
+      }));
+    if (pwmOutputs.length > 0) {
+      dispatch(updatePWMOutputs(pwmOutputs));
     }
-    if(data.pwmOutputs.length > 0) {
-      dispatch(updatePWMOutputs(data.pwmOutputs));
-    } 
-    
-    dispatch(setPower(data.power));
-    dispatch(setUptime(data.app.uptime));
   })
   return () => es.close()
 }

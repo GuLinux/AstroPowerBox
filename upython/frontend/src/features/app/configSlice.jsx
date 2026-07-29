@@ -86,8 +86,8 @@ export const wifiSlice = createSlice({
       .addCase(setPowerSourceTypeAsync.fulfilled, (state, {payload: {powerSourceType}}) => {
         state.powerSourceType = powerSourceType
       })
-      .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {duty}}) => {
-        state.statusLedDuty = duty;
+      .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {statusLedDuty}}) => {
+        state.statusLedDuty = statusLedDuty;
       })
       .addCase(setFanDutyAsync.fulfilled, (state, {payload: {duty}}) => {
         state.fanDuty = duty;
