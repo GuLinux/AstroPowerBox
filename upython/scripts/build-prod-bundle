@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") [--frontend] [--no-mpy] [--out-dir DIR] <board_name>
+
+Builds a production bundle under dist/prod/<board_name>/:
+  - fs/               deployable MicroPython filesystem image
+  - manifest.json     build metadata
+  - files.txt         file list relative to fs/
+  - checksums.sha256  SHA256 checksums for fs/ files
+EOF
+    exit "${1:-0}"
+}
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: required command not found: $1" >&2
+        exit 1
+    fi
+}
+
+copy_frontend=false
+use_mpy=true
+out_dir="$ROOT_DIR/dist/prod"
+board_name=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --frontend)
+            copy_frontend=true
+            ;;
+        --no-mpy)
+            use_mpy=false
+            ;;
+        --out-dir)
+            shift
+            out_dir="$1"
+            ;;
+        -h|--help)
+            usage 0
+            ;;
+        *)
+            if [[ -n "$board_name" ]]; then
+                echo "Error: board name already provided: $board_name" >&2
+                usage 1
+            fi
+            board_name="$1"
+            ;;
+    esac
+    shift
+done
+
+if [[ -z "$board_name" ]]; then
+    echo "Error: missing board name" >&2
+    usage 1
+fi
+
+if [[ ! -r "$ROOT_DIR/backend/config_files/pinout_${board_name}.json" ]]; then
+    echo "Error: invalid board name: $board_name" >&2
+    exit 1
+fi
+
+require_command envsubst
+require_command find
+require_command sha256sum
+
+if [[ "$use_mpy" == true ]]; then
+    require_command mpy-cross
+fi
+
+build_root="$out_dir/$board_name"
+fs_root="$build_root/fs"
+manifest_path="$build_root/manifest.json"
+files_path="$build_root/files.txt"
+checksums_path="$build_root/checksums.sha256"
+
+rm -rf "$build_root"
+mkdir -p "$fs_root"
+
+copy_backend_file() {
+    local src="$1"
+    local rel="${src#backend/}"
+    local dest="$fs_root/$rel"
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+}
+
+cd "$ROOT_DIR"
+
+envsubst < backend/board_vars.py.envsubst > "$fs_root/board_vars.py"
+
+while IFS= read -r src_file; do
+    if [[ "$src_file" == "backend/board_vars.py" ]]; then
+        continue
+    fi
+    copy_backend_file "$src_file"
+done < <(find backend -type f -name '*.py' | sort)
+
+# Always include generic and board-specific pinout files for runtime selection.
+while IFS= read -r pinout_file; do
+    cp "$pinout_file" "$fs_root/$(basename "$pinout_file")"
+done < <(find backend/config_files -maxdepth 1 -type f -name 'pinout*.json' | sort)
+
+if [[ "$use_mpy" == true ]]; then
+    while IFS= read -r py_file; do
+        rel="${py_file#"$fs_root/"}"
+        base_name="$(basename "$rel")"
+
+        if [[ "$base_name" == "main.py" ]] || [[ "$base_name" == "boot.py" ]] || [[ "$base_name" == "board_vars.py" ]]; then
+            continue
+        fi
+
+        mpy_file="${py_file%.py}.mpy"
+        mpy-cross "$py_file" -o "$mpy_file"
+        rm -f "$py_file"
+    done < <(find "$fs_root" -type f -name '*.py' | sort)
+fi
+
+if [[ "$copy_frontend" == true ]]; then
+    require_command npm
+    require_command gzip
+
+    (
+        cd frontend
+        rm -rf build/*
+        npm run build
+    )
+
+    while IFS= read -r static_file; do
+        rel="${static_file#frontend/build/}"
+        dest="$fs_root/static/$rel.gz"
+        mkdir -p "$(dirname "$dest")"
+        gzip -9 -c "$static_file" > "$dest"
+    done < <(find frontend/build -type f | sort)
+fi
+
+(cd "$fs_root" && find . -type f | sed 's#^\./##' | sort > "$files_path")
+(cd "$fs_root" && sha256sum $(cat "$files_path") > "$checksums_path")
+
+build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+git_sha="unknown"
+if command -v git >/dev/null 2>&1; then
+    if git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git_sha="$(git -C "$ROOT_DIR" rev-parse --short HEAD)"
+    fi
+fi
+
+cat > "$manifest_path" <<EOF
+{
+  "mode": "production",
+  "board": "$board_name",
+  "buildTimeUtc": "$build_time",
+  "gitSha": "$git_sha",
+  "useMpy": $use_mpy,
+  "frontendBundled": $copy_frontend,
+  "filesystemPath": "fs",
+  "filesList": "files.txt",
+  "checksums": "checksums.sha256"
+}
+EOF
+
+echo "Production bundle created: $build_root"

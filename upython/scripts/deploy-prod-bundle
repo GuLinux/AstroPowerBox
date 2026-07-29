@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") [--no-reset] [--repl] [--bundle-dir DIR] <board_name>
+
+Uploads a prebuilt production bundle from:
+  dist/prod/<board_name>/fs
+or from --bundle-dir if provided.
+EOF
+    exit "${1:-0}"
+}
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: required command not found: $1" >&2
+        exit 1
+    fi
+}
+
+mpremote_mkdir_recursive() {
+    local path="$1"
+    local parent
+    local parts=()
+
+    while [[ "$path" != "/" ]]; do
+        parts+=("$path")
+        path="$(dirname "$path")"
+    done
+
+    for ((i=${#parts[@]}-1; i>=0; i--)); do
+        parent="${parts[$i]}"
+        mpremote fs mkdir ":$parent" >/dev/null 2>&1 || true
+    done
+}
+
+reset=true
+repl=false
+bundle_dir=""
+board_name=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-reset)
+            reset=false
+            ;;
+        --repl)
+            repl=true
+            ;;
+        --bundle-dir)
+            shift
+            bundle_dir="$1"
+            ;;
+        -h|--help)
+            usage 0
+            ;;
+        *)
+            if [[ -n "$board_name" ]]; then
+                echo "Error: board name already provided: $board_name" >&2
+                usage 1
+            fi
+            board_name="$1"
+            ;;
+    esac
+    shift
+done
+
+if [[ -z "$board_name" ]]; then
+    echo "Error: missing board name" >&2
+    usage 1
+fi
+
+if [[ -z "$bundle_dir" ]]; then
+    bundle_dir="$ROOT_DIR/dist/prod/$board_name/fs"
+fi
+
+if [[ ! -d "$bundle_dir" ]]; then
+    echo "Error: bundle directory not found: $bundle_dir" >&2
+    exit 1
+fi
+
+require_command mpremote
+require_command find
+
+cd "$bundle_dir"
+while IFS= read -r file_path; do
+    rel="${file_path#./}"
+    target_dir="/$(dirname "$rel")"
+
+    if [[ "$target_dir" != "/." ]]; then
+        mpremote_mkdir_recursive "$target_dir"
+    fi
+
+    echo "$file_path -> /$rel"
+    mpremote fs cp "$file_path" ":/$rel"
+done < <(find . -type f | sort)
+
+if [[ "$reset" == true ]]; then
+    echo "Restarting MCU"
+    mpremote reset
+fi
+
+if [[ "$repl" == true ]]; then
+    mpremote
+fi

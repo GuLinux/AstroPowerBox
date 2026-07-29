@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") [--frontend] [--no-reset] [--repl] <board_name>
+
+Development deploy wrapper around ./deploy with safer defaults:
+  - Does not auto-open REPL unless --repl is provided
+  - Copies Python app by default
+  - Optional frontend upload via --frontend
+EOF
+    exit "${1:-0}"
+}
+
+copy_frontend=false
+reset=true
+repl=false
+board_name=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --frontend)
+            copy_frontend=true
+            ;;
+        --no-reset)
+            reset=false
+            ;;
+        --repl)
+            repl=true
+            ;;
+        -h|--help)
+            usage 0
+            ;;
+        *)
+            if [[ -n "$board_name" ]]; then
+                echo "Error: board name already provided: $board_name" >&2
+                usage 1
+            fi
+            board_name="$1"
+            ;;
+    esac
+    shift
+done
+
+if [[ -z "$board_name" ]]; then
+    echo "Error: missing board name" >&2
+    usage 1
+fi
+
+args=()
+if [[ "$copy_frontend" == true ]]; then
+    args+=(--frontend)
+fi
+if [[ "$reset" == false ]]; then
+    args+=(--no-reset)
+fi
+if [[ "$repl" == false ]]; then
+    args+=(--no-repl)
+fi
+args+=("$board_name")
+
+cd "$ROOT_DIR"
+exec ./deploy "${args[@]}"
