@@ -36,6 +36,12 @@ if ! command -v mpremote >/dev/null 2>&1; then
     exit 1
 fi
 
+devices="$(mpremote devs 2>/dev/null)"
+if [[ -z "$devices" ]]; then
+    echo "Error: no MicroPython device found (mpremote devs returned nothing)" >&2
+    exit 1
+fi
+
 cd "$ROOT_DIR"
 
 if [[ "$skip_upload" == false ]]; then
