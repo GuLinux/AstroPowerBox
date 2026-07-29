@@ -2,6 +2,11 @@ name: MicroPython Tests (HIL)
 
 on:
   workflow_dispatch:
+    inputs:
+      board_name:
+        description: Board pinout name to deploy before running tests (see upython/backend/config_files/pinout_<name>.json)
+        required: true
+        default: esp32_wroom_v1
 
 jobs:
   run-on-esp32:
@@ -23,6 +28,10 @@ jobs:
 
       - name: Verify mpremote is available
         run: mpremote --help >/dev/null
+
+      - name: Deploy app code to device
+        working-directory: upython
+        run: ./scripts/deploy-dev --no-reset "${{ inputs.board_name }}"
 
       - name: Run MicroPython backend tests on device
         run: ./upython/scripts/test-backend-mpy

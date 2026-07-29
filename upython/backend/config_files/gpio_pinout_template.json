@@ -1,0 +1,39 @@
+{
+  "comment": "GPIO Pinout Template - Copy and modify for your hardware",
+  "hardware": "Your Board Name",
+  "soc": "Your SoC/CPU Name",
+  "pinout": {
+    "PIN_NAME": "GPIO<chip>_<port><line>",
+    "_note_format": "GPIO format is GPIO<chip>_<port><line> where port is A-D and line is 0-31",
+    "_example_1": "GPIO0_A4 = Chip 0, Port A, Line 4",
+    "_example_2": "GPIO3_C2 = Chip 3, Port C, Line 2",
+    "PWM0": "GPIO0_A12",
+    "PWM1": "GPIO0_A13",
+    "BTN0": "GPIO0_A2",
+    "BTN1": "GPIO0_A3",
+    "LED_STATUS": "GPIO0_B5",
+    "RELAY0": "GPIO0_C7"
+  },
+  "adc": {
+    "ANALOG_IN0": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 0,
+      "_note": "Channel 0-3 for single-ended, or 0-1 for differential"
+    },
+    "ANALOG_IN1": {
+      "i2c_bus": 1,
+      "i2c_addr": "0x48",
+      "channel": 1
+    }
+  },
+  "notes": [
+    "Replace PIN_NAME with your application's logical names (e.g., PWM1, BTN0, RELAY0)",
+    "Replace GPIO format with the actual GPIO<chip>_<port><line> for each pin",
+    "Port encoding: A=0-7, B=8-15, C=16-23, D=24-31 (adds to the line number)",
+    "For I2C ADC: configure i2c_bus, i2c_addr (in hex), and channel (0-3)",
+    "See gpio_pinout_rpi4.json, gpio_pinout_rpi5.json, gpio_pinout_opi5_ultra.json for working examples",
+    "Set GPIO_CONFIG_PATH environment variable to point to your pinout JSON file",
+    "Default path is config_files/gpio_pinout.json"
+  ]
+}

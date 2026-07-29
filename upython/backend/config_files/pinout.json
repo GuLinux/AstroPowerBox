@@ -1,0 +1,41 @@
+{
+    "status_led": {
+        "type": "pwm",
+        "pin": "DUMMYGPIO0"
+    },
+    "heaters": [
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM0",
+            "temp": "DUMMYANALOG0"
+        },
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM1",
+            "temp": "DUMMYANALOG1"
+        },
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM2",
+            "temp": "DUMMYANALOG2"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM3"
+        },
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM4"
+        },
+        {
+            "type": "pwm",
+            "pin": "DUMMYPWM5"
+        }
+    ],
+    "buttons": [
+        "BUTTON0",
+        "BUTTON1"
+    ]
+}

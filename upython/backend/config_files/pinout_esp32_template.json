@@ -1,0 +1,65 @@
+{
+  "hardware": "esp32",
+  "variant": "template",
+  "board": "custom",
+  "hardware_name": "Your ESP32 Board Name",
+  "comment": "Template for AstroPowerBox ESP32 pin configuration",
+  "pinout": {
+    "I2C": {
+      "SDA": 21,
+      "SCL": 22,
+      "_note": "I2C bus for communicating with sensors and ADCs"
+    },
+    "SPI": {
+      "SCK": 18,
+      "MISO": 19,
+      "MOSI": 23,
+      "SS": 5,
+      "_note": "Optional SPI bus for SD card or other peripherals"
+    },
+    "status_led": 2,
+    "pwm_outputs": [
+      {
+        "name": "PWM0",
+        "pin": 32,
+        "thermistor_pin": 35,
+        "type": "Heater",
+        "_note": "PWM output with thermistor feedback for temperature control"
+      },
+      {
+        "name": "PWM1",
+        "pin": 33,
+        "thermistor_pin": 34,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM2",
+        "pin": 25,
+        "thermistor_pin": -1,
+        "type": "Output",
+        "_note": "No thermistor: simple PWM output (e.g., fan, relay)"
+      }
+    ],
+    "fan_pwm": 26,
+    "buttons": [
+      {
+        "name": "BTN_USER_1",
+        "pin": 0,
+        "_note": "User button for control/mode selection"
+      }
+    ],
+    "power_delivery": {
+      "CH224K_CFG1": 17,
+      "CH224K_CFG2": 18,
+      "CH224K_CFG3": 8,
+      "_note": "USB Power Delivery controller configuration pins (optional)"
+    }
+  },
+  "notes": [
+    "pin: GPIO pin number (0-39 typical for ESP32)",
+    "thermistor_pin: Analog pin for temperature sensor (-1 = not available)",
+    "type: 'Heater' = PWM with temperature feedback, 'Output' = simple PWM",
+    "See pinout_esp32_wroom_v1.json, pinout_esp32_lolin_c3_mini.json, pinout_esp32_lolin_s2_mini.json for working examples",
+    "Adapt pin numbers based on your board's datasheet and available GPIO"
+  ]
+}

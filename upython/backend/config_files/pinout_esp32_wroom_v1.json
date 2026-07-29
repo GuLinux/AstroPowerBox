@@ -1,0 +1,77 @@
+{
+  "hardware": "esp32",
+  "variant": "wroom32",
+  "board": "wroom_v1",
+  "hardware_name": "ESP32-WROOM-32 (Rev 1)",
+  "comment": "Default AstroPowerBox configuration for ESP32-WROOM boards",
+  "pinout": {
+    "I2C": {
+      "SDA": 15,
+      "SCL": 16
+    },
+    "SPI": {
+      "SCK": 12,
+      "MISO": 13,
+      "MOSI": 11,
+      "SS": 10
+    },
+    "status_led": 4,
+    "pwm_outputs": [
+      {
+        "name": "PWM0",
+        "pin": 41,
+        "thermistor_pin": 2,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM1",
+        "pin": 42,
+        "thermistor_pin": 1,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM2",
+        "pin": 46,
+        "thermistor_pin": -1,
+        "type": "Output"
+      },
+      {
+        "name": "PWM3",
+        "pin": 9,
+        "thermistor_pin": -1,
+        "type": "Output"
+      },
+      {
+        "name": "PWM4",
+        "pin": 14,
+        "thermistor_pin": -1,
+        "type": "Output"
+      },
+      {
+        "name": "PWM5",
+        "pin": 21,
+        "thermistor_pin": -1,
+        "type": "Output"
+      }
+    ],
+    "fan_pwm": 3,
+    "buttons": [
+      {
+        "name": "BTN_USER_1",
+        "pin": 7
+      }
+    ],
+    "power_delivery": {
+      "CH224K_CFG1": 17,
+      "CH224K_CFG2": 18,
+      "CH224K_CFG3": 8
+    }
+  },
+  "notes": [
+    "WROOM_V1 configuration with 6 PWM outputs (2 with thermistor support)",
+    "2 temperature sensors (thermistors) supported",
+    "I2C on pins 15/16",
+    "SPI available for external peripherals",
+    "USB PD control via CH224K chip"
+  ]
+}

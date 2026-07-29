@@ -1,0 +1,21 @@
+{
+    "hardware": "esp32",
+    "variant": "c3",
+    "board": "generic",
+    "hardware_name": "ESP32-C3 Dev Board (Generic)",
+    "comment": "AstroPowerBox minimal runtime pin mapping for generic ESP32-C3 boards",
+    "status_led": {
+        "type": "pwm",
+        "pin": "8"
+    },
+    "heaters": [
+    ],
+    "outputs": [
+    ],
+    "buttons": [
+    ],
+    "notes": [
+        "Legacy minimal schema used by backend runtime (status_led/heaters/outputs/buttons)",
+        "Only status LED is mapped by default; add heaters/outputs/buttons as needed for your board"
+    ]
+}

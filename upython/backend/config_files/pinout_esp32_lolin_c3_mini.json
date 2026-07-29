@@ -1,0 +1,48 @@
+{
+  "hardware": "esp32",
+  "variant": "c3",
+  "board": "lolin_c3_mini",
+  "hardware_name": "LOLIN C3 Mini (ESP32-C3)",
+  "comment": "AstroPowerBox configuration for LOLIN C3 Mini board",
+  "pinout": {
+    "I2C": {
+      "SDA": 10,
+      "SCL": 9
+    },
+    "status_led": 8,
+    "pwm_outputs": [
+      {
+        "name": "PWM0",
+        "pin": 3,
+        "thermistor_pin": 1,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM1",
+        "pin": 4,
+        "thermistor_pin": 0,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM2",
+        "pin": 20,
+        "thermistor_pin": -1,
+        "type": "Heater"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "BTN_USER_1",
+        "pin": 21
+      }
+    ]
+  },
+  "notes": [
+    "LOLIN C3 Mini is a compact ESP32-C3 development board",
+    "3 PWM outputs (2 with thermistor support)",
+    "2 temperature sensors (thermistors) supported",
+    "I2C on pins 10/9",
+    "Limited GPIO due to compact form factor",
+    "Built-in RGB LED can be used as status indicator"
+  ]
+}

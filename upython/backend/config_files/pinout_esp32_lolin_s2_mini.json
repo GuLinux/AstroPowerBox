@@ -1,0 +1,41 @@
+{
+  "hardware": "esp32",
+  "variant": "s2",
+  "board": "lolin_s2_mini",
+  "hardware_name": "LOLIN S2 Mini (ESP32-S2)",
+  "comment": "AstroPowerBox configuration for LOLIN S2 Mini board",
+  "pinout": {
+    "I2C": {
+      "SDA": 12,
+      "SCL": 13
+    },
+    "status_led": 8,
+    "pwm_outputs": [
+      {
+        "name": "PWM0",
+        "pin": 5,
+        "thermistor_pin": 1,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM1",
+        "pin": 2,
+        "thermistor_pin": 4,
+        "type": "Heater"
+      },
+      {
+        "name": "PWM2",
+        "pin": 3,
+        "thermistor_pin": 7,
+        "type": "Heater"
+      }
+    ]
+  },
+  "notes": [
+    "LOLIN S2 Mini is a compact ESP32-S2 development board",
+    "3 PWM outputs with full thermistor support (3 temperature sensors)",
+    "I2C on pins 12/13",
+    "ESP32-S2 is single-core, lower power consumption than C3/WROOM",
+    "Limited GPIO due to compact form factor"
+  ]
+}
