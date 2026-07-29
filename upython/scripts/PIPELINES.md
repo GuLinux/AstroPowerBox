@@ -120,3 +120,48 @@ Notes:
 1. Keep pure logic tests in both suites (`backend/tests` and `backend/tests_mpy`).
 2. Keep hardware-specific tests only on the ESP32 side.
 3. Keep API contract tests local (faster and richer assertions).
+
+## GitHub Workflows
+
+The repository now includes CI workflows in .github/workflows:
+
+1. backend-tests.yml
+2. prod-bundle.yml
+3. micropython-hil-tests.yml
+
+### Backend Tests (CPython)
+
+Workflow: backend-tests.yml
+
+Behavior:
+
+1. Runs on push, pull request, and manual dispatch.
+2. Installs pytest and backend CPython requirements.
+3. Executes scripts/test-backend-local.
+
+### Production Bundle Artifacts
+
+Workflow: prod-bundle.yml
+
+Behavior:
+
+1. Runs on manual dispatch and on version tags (v*).
+2. Builds production bundles for supported ESP32 board profiles.
+3. Uploads bundle artifacts from dist/prod/<board>/.
+4. Uses --no-mpy for portability in hosted CI.
+
+### MicroPython Tests in CI
+
+Workflow: micropython-hil-tests.yml
+
+Behavior:
+
+1. Manual dispatch only.
+2. Runs on a self-hosted runner labeled self-hosted and esp32.
+3. Executes scripts/test-backend-mpy against a physically connected board.
+
+Notes about emulation:
+
+1. There is no complete ESP32 hardware emulation in standard GitHub hosted runners.
+2. MicroPython unix-port style emulation can validate pure logic only, not GPIO, timing, or board peripherals.
+3. For real confidence, prefer hardware-in-the-loop tests (this workflow).

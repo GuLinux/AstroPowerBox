@@ -1,0 +1,38 @@
+name: Production Bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-bundle:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - esp32_c3
+          - esp32_lolin_c3_mini
+          - esp32_lolin_s2_mini
+          - esp32_wroom_v1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install packaging prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext-base
+
+      - name: Build production bundle
+        run: ./scripts/build-prod-bundle --no-mpy ${{ matrix.board }}
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-bundle-${{ matrix.board }}
+          path: dist/prod/${{ matrix.board }}/
+          if-no-files-found: error
