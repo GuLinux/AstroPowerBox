@@ -74,7 +74,7 @@ mpremote_mkdir_recursive() {
 
 if [ "$COPY_APP" = true ]; then
     envsubst < backend/board_vars.py.envsubst > backend/board_vars.py
-    find backend -type f -name *.py | while read python_file; do
+    find backend -type d \( -name tests -o -name tests_mpy \) -prune -o -type f -name '*.py' -print | while read python_file; do
         target_file="${python_file##backend}"
         target_dir="$(dirname "$target_file")"
         if [ "$target_dir" != "/" ]; then

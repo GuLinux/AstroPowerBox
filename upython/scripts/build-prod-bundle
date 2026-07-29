@@ -99,7 +99,7 @@ while IFS= read -r src_file; do
         continue
     fi
     copy_backend_file "$src_file"
-done < <(find backend -type f -name '*.py' | sort)
+done < <(find backend -type d \( -name tests -o -name tests_mpy \) -prune -o -type f -name '*.py' -print | sort)
 
 # Always include generic and board-specific pinout files for runtime selection.
 while IFS= read -r pinout_file; do

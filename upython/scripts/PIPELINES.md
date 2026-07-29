@@ -25,6 +25,7 @@ Behavior:
 1. Uses the existing `./deploy` flow.
 2. Uploads backend source files directly.
 3. Keeps debugging simple and update cycle short.
+4. Excludes `backend/tests` and `backend/tests_mpy` from normal deployment.
 
 ## Production
 
@@ -59,6 +60,7 @@ Bundle behavior:
 3. Copies all `pinout*.json` files to the filesystem root for runtime selection.
 4. Compiles modules to `.mpy` unless `--no-mpy` is set.
 5. Optionally includes pre-gzipped frontend static assets with `--frontend`.
+6. Excludes `backend/tests` and `backend/tests_mpy` from production bundles.
 
 ### 2) Deploy a bundle
 
@@ -85,3 +87,36 @@ Behavior:
 1. Day-to-day coding: `deploy-dev`.
 2. Pre-release validation: `build-prod-bundle --frontend` then `deploy-prod-bundle`.
 3. Keep pinout and runtime config external for easy field changes.
+
+## Testing (Local + ESP32)
+
+You can run tests in both environments with dedicated scripts.
+
+### Local tests (CPython)
+
+```bash
+./scripts/test-backend-local
+```
+
+Notes:
+
+1. Uses pytest against `backend/tests`.
+2. Focuses on logic that can run without ESP32 hardware.
+
+### On-device tests (MicroPython)
+
+```bash
+./scripts/test-backend-mpy
+```
+
+Notes:
+
+1. Uploads `backend/tests_mpy` and executes `tests_mpy/run_tests.py`.
+2. Runs a lightweight test harness using plain assertions.
+3. Use `--skip-upload` to re-run quickly without copying files again.
+
+### Suggested split
+
+1. Keep pure logic tests in both suites (`backend/tests` and `backend/tests_mpy`).
+2. Keep hardware-specific tests only on the ESP32 side.
+3. Keep API contract tests local (faster and richer assertions).

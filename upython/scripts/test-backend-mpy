@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") [--skip-upload]
+
+Runs backend MicroPython tests on a connected device.
+By default it uploads backend/tests_mpy first.
+EOF
+    exit "${1:-0}"
+}
+
+skip_upload=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --skip-upload)
+            skip_upload=true
+            ;;
+        -h|--help)
+            usage 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage 1
+            ;;
+    esac
+    shift
+done
+
+if ! command -v mpremote >/dev/null 2>&1; then
+    echo "Error: mpremote is required" >&2
+    exit 1
+fi
+
+cd "$ROOT_DIR"
+
+if [[ "$skip_upload" == false ]]; then
+    mpremote fs mkdir :/tests_mpy >/dev/null 2>&1 || true
+    while IFS= read -r test_file; do
+        echo "Uploading $test_file"
+        mpremote fs cp "$test_file" ":/${test_file#backend/}"
+    done < <(find backend/tests_mpy -type f -name '*.py' | sort)
+fi
+
+exec mpremote exec "import tests_mpy.run_tests as rt; rt.main()"
