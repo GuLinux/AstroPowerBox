@@ -30,6 +30,14 @@ class Config(Protocol):
     def status_led_duty(self, duty: float) -> None:
         raise NotImplementedError()
 
+    @property
+    def pinout_file(self) -> str:
+        raise NotImplementedError()
+
+    @pinout_file.setter
+    def pinout_file(self, pinout_file: str) -> None:
+        raise NotImplementedError()
+
     def load(self) -> None:
         raise NotImplementedError()
 

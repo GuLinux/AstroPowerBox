@@ -1,11 +1,45 @@
 from microdot import Microdot, send_file
-import os
+from microdot.sse import with_sse
 from board_compat import asyncio, server_port, server_debug
 from board import Board
 from config import WiFi
 
 board = Board()
 app = Microdot()
+
+
+class SSEBroadcaster:
+    def __init__(self):
+        self._queues = []
+
+    def subscribe(self):
+        queue = asyncio.Queue(32)
+        self._queues.append(queue)
+        return queue
+
+    def unsubscribe(self, queue):
+        self._queues = [item for item in self._queues if item is not queue]
+
+    def publish(self, event_name: str, payload: dict):
+        message = {'event': event_name, 'data': payload}
+        for queue in self._queues:
+            try:
+                if queue.full():
+                    try:
+                        queue.get_nowait()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            try:
+                queue.put_nowait(message)
+            except Exception:
+                asyncio.create_task(queue.put(message))
+
+
+sse_broadcaster = SSEBroadcaster()
+board.on_pin_update(lambda update: sse_broadcaster.publish('pins', update))
 
 @app.route('/')
 async def index(request):
@@ -49,6 +83,42 @@ async def set_status_led_duty(request):
 @app.route('/api/config')
 async def get_config(request):
     return board.config.json
+
+
+@app.route('/api/config/pinout')
+async def get_pinout_config(request):
+    return board.get_pinout_selection()
+
+
+@app.route('/api/config/pinout', methods=['POST'])
+async def set_pinout_config(request):
+    payload = request.json or {}
+    pinout_file = payload.get('file', '')
+    try:
+        return board.set_pinout_file(pinout_file)
+    except ValueError as error:
+        return {'error': str(error)}, 400
+
+
+@app.route('/api/config/pinouts')
+async def get_pinout_files(request):
+    return {
+        'files': board.list_available_pinout_files(),
+        'current': board.get_pinout_selection(),
+    }
+
+
+@app.route('/api/events')
+@with_sse
+async def events(request, sse):
+    queue = sse_broadcaster.subscribe()
+    await sse.send(board.pin_status_snapshot(), event='pins')
+    try:
+        while True:
+            message = await queue.get()
+            await sse.send(message['data'], event=message['event'])
+    finally:
+        sse_broadcaster.unsubscribe(queue)
 
 async def main():
     await board.start()
