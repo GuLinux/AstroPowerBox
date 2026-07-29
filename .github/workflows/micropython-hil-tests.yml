@@ -15,4 +15,4 @@ jobs:
         run: mpremote --help >/dev/null
 
       - name: Run MicroPython backend tests on device
-        run: ./scripts/test-backend-mpy
+        run: ./upython/scripts/test-backend-mpy
