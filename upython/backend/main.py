@@ -125,4 +125,5 @@ async def main():
     await board.wifi_manager.connect_stations()
     await app.start_server(port=server_port, debug=server_debug)
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
