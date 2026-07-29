@@ -1,19 +1,26 @@
 import os
 from types import SimpleNamespace
-
-import pytest
+from typing import Any, cast
 
 import board as board_module
 
 
 def _new_board():
-    return board_module.Board.__new__(board_module.Board)
+    return cast(Any, board_module.Board.__new__(board_module.Board))
+
+
+def _call_private(board: Any, method_name: str, *args: Any):
+    return getattr(board, method_name)(*args)
+
+
+def _set_private(board: Any, attr_name: str, value: Any):
+    setattr(board, attr_name, value)
 
 
 def test_is_pinout_file_name_filters_expected_patterns():
     board = _new_board()
 
-    is_name = board._Board__is_pinout_file_name
+    is_name = getattr(board, '_Board__is_pinout_file_name')
     assert is_name('pinout.json') is True
     assert is_name('pinout_esp32_c3.json') is True
     assert is_name('gpio_pinout_rpi4.json') is False
@@ -22,13 +29,13 @@ def test_is_pinout_file_name_filters_expected_patterns():
 
 def test_is_pinout_compatible_uses_hardware_and_variant_profile():
     board = _new_board()
-    board._Board__runtime_hardware_profile = lambda: ('esp32', 'c3')
+    _set_private(board, '_Board__runtime_hardware_profile', lambda: ('esp32', 'c3'))
 
-    assert board._Board__is_pinout_compatible({'hardware': 'esp32', 'variant': 'c3'}) is True
-    assert board._Board__is_pinout_compatible({'hardware': 'esp32', 'variant': 'any'}) is True
-    assert board._Board__is_pinout_compatible({'hardware': 'esp32', 'variant': 's2'}) is False
-    assert board._Board__is_pinout_compatible({'hardware': 'cpython', 'variant': 'c3'}) is False
-    assert board._Board__is_pinout_compatible({}) is True
+    assert _call_private(board, '_Board__is_pinout_compatible', {'hardware': 'esp32', 'variant': 'c3'}) is True
+    assert _call_private(board, '_Board__is_pinout_compatible', {'hardware': 'esp32', 'variant': 'any'}) is True
+    assert _call_private(board, '_Board__is_pinout_compatible', {'hardware': 'esp32', 'variant': 's2'}) is False
+    assert _call_private(board, '_Board__is_pinout_compatible', {'hardware': 'cpython', 'variant': 'c3'}) is False
+    assert _call_private(board, '_Board__is_pinout_compatible', {}) is True
 
 
 def test_resolve_pinout_prefers_configured_file(monkeypatch):
@@ -38,13 +45,13 @@ def test_resolve_pinout_prefers_configured_file(monkeypatch):
     monkeypatch.setattr(board_module, 'pinout_config_path', '/defaults/pinout.json')
     monkeypatch.setenv('PINOUT_CONFIG_PATH', '/ignored/from/env.json')
 
-    board._Board__scan_pinout_files = lambda: [
+    _set_private(board, '_Board__scan_pinout_files', lambda: [
         {'file': 'pinout.json', 'path': '/defaults/pinout.json', 'metadata': {'hardware': 'cpython'}},
         {'file': 'pinout_esp32_c3.json', 'path': '/custom/pinout_esp32_c3.json', 'metadata': {'hardware': 'cpython'}},
-    ]
-    board._Board__is_pinout_compatible = lambda _metadata: True
+    ])
+    _set_private(board, '_Board__is_pinout_compatible', lambda _metadata: True)
 
-    selected = board._Board__resolve_pinout_config_path()
+    selected = _call_private(board, '_Board__resolve_pinout_config_path')
     assert selected == '/custom/pinout_esp32_c3.json'
 
 
@@ -56,13 +63,13 @@ def test_resolve_pinout_falls_back_to_first_compatible_when_no_preferred(monkeyp
     monkeypatch.setattr(board_module, 'pinout_config_path', missing_default)
     monkeypatch.delenv('PINOUT_CONFIG_PATH', raising=False)
 
-    board._Board__scan_pinout_files = lambda: [
+    _set_private(board, '_Board__scan_pinout_files', lambda: [
         {'file': 'pinout_a.json', 'path': '/available/pinout_a.json', 'metadata': {'hardware': 'cpython'}},
         {'file': 'pinout_b.json', 'path': '/available/pinout_b.json', 'metadata': {'hardware': 'cpython'}},
-    ]
-    board._Board__is_pinout_compatible = lambda _metadata: True
+    ])
+    _set_private(board, '_Board__is_pinout_compatible', lambda _metadata: True)
 
-    selected = board._Board__resolve_pinout_config_path()
+    selected = _call_private(board, '_Board__resolve_pinout_config_path')
     assert selected == '/available/pinout_a.json'
 
 
@@ -73,11 +80,15 @@ def test_resolve_pinout_raises_when_nothing_available(monkeypatch):
     monkeypatch.setattr(board_module, 'pinout_config_path', '/missing/default.json')
     monkeypatch.delenv('PINOUT_CONFIG_PATH', raising=False)
 
-    board._Board__scan_pinout_files = lambda: []
-    board._Board__is_pinout_compatible = lambda _metadata: True
+    _set_private(board, '_Board__scan_pinout_files', lambda: [])
+    _set_private(board, '_Board__is_pinout_compatible', lambda _metadata: True)
 
-    with pytest.raises(RuntimeError, match='No compatible pinout configuration file found'):
-        board._Board__resolve_pinout_config_path()
+    try:
+        _call_private(board, '_Board__resolve_pinout_config_path')
+    except RuntimeError as error:
+        assert 'No compatible pinout configuration file found' in str(error)
+    else:
+        raise AssertionError('Expected RuntimeError when no pinout is available')
 
 
 def test_set_pinout_file_persists_and_marks_restart_requirement():
@@ -108,5 +119,9 @@ def test_set_pinout_file_rejects_paths():
     board.pinout_config_file = '/current/pinout.json'
     board.list_available_pinout_files = lambda: []
 
-    with pytest.raises(ValueError, match='file name, not a path'):
+    try:
         board.set_pinout_file('../pinout_esp32_c3.json')
+    except ValueError as error:
+        assert 'file name, not a path' in str(error)
+    else:
+        raise AssertionError('Expected ValueError for path-like pinout file names')
