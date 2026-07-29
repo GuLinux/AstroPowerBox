@@ -42,6 +42,10 @@ class DigitalOutputPin(GPIO, typing.Protocol):
     @property
     def duty(self) -> float:
         return 1.0 if self.on else 0.0
+
+    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+        raise NotImplementedError()
+
     @duty.setter
     def duty(self, duty: float) -> None:
         self.on = duty > 0
@@ -65,6 +69,10 @@ class PWMOutputPin(GPIO, typing.Protocol):
     @property
     def on(self) -> bool:
         return self.duty > 0
+
+    def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
+        raise NotImplementedError()
+
     @on.setter
     def on(self, on: bool) -> None:
         self.duty = 1 if on else 0

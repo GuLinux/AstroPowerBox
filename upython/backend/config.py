@@ -7,6 +7,7 @@ class Config(protocols.config.Config):
     _status_led_duty: float
     _ap: WiFi
     _stations: list[WiFi]
+    _pinout_file: str
 
     def __init__(self, storage: ConfigStorage):
         self.storage = storage
@@ -37,20 +38,31 @@ class Config(protocols.config.Config):
         self._status_led_duty = duty
 
     @property
+    def pinout_file(self) -> str:
+        return self._pinout_file
+
+    @pinout_file.setter
+    def pinout_file(self, pinout_file: str) -> None:
+        self._pinout_file = pinout_file
+
+    @property
     def json(self) -> dict:
         return {
             'ap': self.ap.json if self.ap else None,
             'stations': WiFi.to_json_list(self._stations),
             'statusLedDuty': self._status_led_duty,
+            'pinoutFile': self._pinout_file,
         }
 
     def load(self) -> None:
         self._ap, self._stations = self.storage.load_wifi()
         self._status_led_duty = self.storage.load_float('stLedDuty', default=1) or 1.0
+        self._pinout_file = self.storage.load_str('pinoutFile', default='') or ''
 
     def save(self) -> None:
         self.storage.save_wifi(self._stations, self._ap)
         self.storage.save_float('stLedDuty', self._status_led_duty)
+        self.storage.save_str('pinoutFile', self._pinout_file)
 
     def __str__(self):
         return f'Config{self.json}'

@@ -56,7 +56,7 @@ def _get_pin_config() -> PinConfig:
     global _pin_config
     if _pin_config is None:
         # Determine config path from environment or use default
-        config_path = os.environ.get('GPIO_CONFIG_PATH', 'pinouts/gpio_pinout.json')
+        config_path = os.environ.get('GPIO_CONFIG_PATH', 'config_files/gpio_pinout.json')
         _pin_config = PinConfig(config_path)
     return _pin_config
 
@@ -193,6 +193,7 @@ class DigitalOutputPin:
         self.chip, self.line = _parse_gpio_pin(gpio_format)
         self.handle = lgpio.gpiochip_open(self.chip)
         self._value = False
+        self._callbacks: list[typing.Callable[[bool], None]] = []
         
         # Claim as output
         lgpio.gpio_claim_output(self.handle, self.line)
@@ -211,8 +212,17 @@ class DigitalOutputPin:
     @on.setter
     def on(self, value: bool) -> None:
         """Set pin HIGH (True) or LOW (False)"""
-        self._value = bool(value)
+        new_value = bool(value)
+        if new_value == self._value:
+            return
+        self._value = new_value
         lgpio.gpio_write(self.handle, self.line, 1 if self._value else 0)
+        for callback in self._callbacks:
+            callback(self._value)
+
+    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+        """Register callback for output level changes"""
+        self._callbacks.append(callback)
     
     @property
     def duty(self) -> float:
@@ -246,9 +256,11 @@ class PWMOutputPin:
         self.chip, self.line = _parse_gpio_pin(gpio_format)
         self.handle = lgpio.gpiochip_open(self.chip)
         self._duty = 0.0
+        self._callbacks: list[typing.Callable[[float], None]] = []
         
         # Claim as output
         lgpio.gpio_claim_output(self.handle, self.line)
+        lgpio.tx_pwm(self.handle, self.line, self.frequency, 0)
     
     @property
     def is_pwm(self) -> bool:
@@ -268,9 +280,14 @@ class PWMOutputPin:
         Args:
             value: Duty cycle from 0.0 (off) to 1.0 (full on)
         """
-        self._duty = max(0.0, min(1.0, value))
+        new_duty = max(0.0, min(1.0, value))
+        if new_duty == self._duty:
+            return
+        self._duty = new_duty
         # lgpio tx_pwm expects duty as 0-100
         lgpio.tx_pwm(self.handle, self.line, self.frequency, self._duty * 100)
+        for callback in self._callbacks:
+            callback(self._duty)
     
     @property
     def on(self) -> bool:
@@ -281,3 +298,7 @@ class PWMOutputPin:
     def on(self, value: bool) -> None:
         """Set full on (True) or off (False)"""
         self.duty = 1.0 if value else 0.0
+
+    def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
+        """Register callback for duty cycle changes"""
+        self._callbacks.append(callback)

@@ -55,6 +55,8 @@ class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
         self._value = False
+        self._callbacks: list[typing.Callable[[bool], None]] = []
+        self._write('False')
 
     @property
     def is_pwm(self) -> bool:
@@ -67,13 +69,23 @@ class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
 
     @on.setter
     def on(self, on: bool) -> None:
-        self._write(str(on))
-        self._value = on 
+        new_value = bool(on)
+        if new_value == self._value:
+            return
+        self._write(str(new_value))
+        self._value = new_value
+        for callback in self._callbacks:
+            callback(self._value)
+
+    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+        self._callbacks.append(callback)
 
 class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
         self._value = 0.0
+        self._callbacks: list[typing.Callable[[float], None]] = []
+        self._write('0.0')
 
     @property
     def is_pwm(self) -> bool:
@@ -86,6 +98,15 @@ class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
 
     @duty.setter
     def duty(self, duty: float) -> None:
-        self._value = max(0.0, min(1.0, duty))
+        new_value = max(0.0, min(1.0, duty))
+        if new_value == self._value:
+            return
+        self._value = new_value
         self._write(str(self._value))
+
+        for callback in self._callbacks:
+            callback(self._value)
+
+    def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
+        self._callbacks.append(callback)
 
