@@ -158,7 +158,7 @@ Workflow: micropython-hil-tests.yml
 
 Behavior:
 
-1. Runs on pushes to `master` and by manual dispatch.
+1. Runs on pushes to `main` that change `backend/` and by manual dispatch.
 2. Runs on a self-hosted runner labeled self-hosted and esp32.
 3. Executes scripts/test-backend-mpy against a physically connected board.
 4. Uses `esp32_wroom_v1` for push-triggered runs; manual dispatch can select a

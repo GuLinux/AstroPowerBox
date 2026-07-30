@@ -3,7 +3,9 @@ name: MicroPython Tests (HIL)
 on:
   push:
     branches:
-      - master
+      - main
+    paths:
+      - backend/**
   workflow_dispatch:
     inputs:
       board_name:
