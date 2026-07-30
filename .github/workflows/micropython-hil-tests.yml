@@ -1,6 +1,9 @@
 name: MicroPython Tests (HIL)
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       board_name:
@@ -8,10 +11,19 @@ on:
         required: true
         default: esp32_wroom_v1
 
+concurrency:
+  # Keep only the newest waiting HIL run when the self-hosted runner is offline.
+  group: micropython-hil-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   run-on-esp32:
     # Requires a self-hosted runner with labels: self-hosted, esp32
     runs-on: [self-hosted, esp32]
+    # This limit begins after the runner accepts the job, not while it is queued.
+    timeout-minutes: 20
+    env:
+      BOARD_NAME: ${{ inputs.board_name || 'esp32_wroom_v1' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +42,7 @@ jobs:
         run: mpremote --help >/dev/null
 
       - name: Deploy app code to device
-        run: ./scripts/deploy-dev --no-reset "${{ inputs.board_name }}"
+        run: ./scripts/deploy-dev --no-reset "$BOARD_NAME"
 
       - name: Run MicroPython backend tests on device
         run: ./scripts/test-backend-mpy
