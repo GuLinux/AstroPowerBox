@@ -28,11 +28,11 @@ jobs:
           sudo apt-get install -y gettext-base
 
       - name: Build production bundle
-        run: ./upython/scripts/build-prod-bundle --no-mpy ${{ matrix.board }}
+        run: ./scripts/build-prod-bundle --no-mpy ${{ matrix.board }}
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
         with:
           name: prod-bundle-${{ matrix.board }}
-          path: upython/dist/prod/${{ matrix.board }}/
+          path: dist/prod/${{ matrix.board }}/
           if-no-files-found: error

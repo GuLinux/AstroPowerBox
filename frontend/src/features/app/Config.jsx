@@ -46,19 +46,19 @@ const WiFiPasswordControl = ({ label, ...props }) => {
 const WiFiAccessPoint = () => {
     const dispatch = useDispatch();
     const accessPoint = useSelector(selectWiFiAccessPointConfig);
-    const [essid, setEssid] = useState(accessPoint.essid);
+    const [ssid, setSsid] = useState(accessPoint.ssid);
     const [psk, setPsk] = useState(accessPoint.psk)
-    const isChanged = () => psk !== accessPoint.psk || essid !== accessPoint.essid
+    const isChanged = () => psk !== accessPoint.psk || ssid !== accessPoint.ssid
     const resetState = () => {
-        setEssid(accessPoint.essid);
+        setSsid(accessPoint.ssid);
         setPsk(accessPoint.psk);
     }
     return <Form>
         <Form.Group as={Row}>
-            <Form.Label column sm={4}>Hostname/AccessPoint ESSID</Form.Label>
+            <Form.Label column sm={4}>Hostname/AccessPoint SSID</Form.Label>
             <Col sm={8}>
-                <Form.Control type='text' value={essid} onChange={e => setEssid(e.target.value)} />
-                <Form.Text muted>This will be used as he DHCP hostname sent to your server. It's also the access point ESSID that will be used if AstroPowerBox can't be connected to any WiFi station</Form.Text>
+                <Form.Control type='text' value={ssid} onChange={e => setSsid(e.target.value)} />
+                <Form.Text muted>This will be used as he DHCP hostname sent to your server. It's also the access point SSID that will be used if AstroPowerBox can't be connected to any WiFi station</Form.Text>
             </Col>
         </Form.Group>
 
@@ -71,27 +71,28 @@ const WiFiAccessPoint = () => {
         </Form.Group>
         <ButtonGroup className='float-end'>
             <Button disabled={!isChanged()} variant="secondary" onClick={resetState}>Reset</Button>
-            <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveAccessPointConfigAsync({ essid, psk }))}>Update</Button>
+            <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveAccessPointConfigAsync({ ssid, psk }))}>Update</Button>
         </ButtonGroup>
     </Form>
 }
 
 const WifiStation = ({ station, index }) => {
-    const [essid, setEssid] = useState(station.essid)
+    const [ssid, setSsid] = useState(station.ssid)
     const [psk, setPsk] = useState(station.psk)
     const dispatch = useDispatch();
-    const isChanged = () => station.essid !== essid || station.psk !== psk
+    const isChanged = () => station.ssid !== ssid || station.psk !== psk
     const resetState = () => {
-        setEssid(station.essid)
+        setSsid(station.ssid)
         setPsk(station.psk)
     }
+    const isNew = index < 0;
     useEffect(resetState, [station]);
     return <Form.Group as={Row} className='mt-2'>
-        <Form.Label column lg={1}>Station {index}</Form.Label>
+        <Form.Label column lg={1}>{isNew ? 'New' : `Station ${index}`}</Form.Label>
         <Col lg={4}>
             <InputGroup>
-                <InputGroup.Text>ESSID</InputGroup.Text>
-                <Form.Control type='text' value={essid} onChange={e => setEssid(e.target.value)} />
+                <InputGroup.Text>SSID</InputGroup.Text>
+                <Form.Control type='text' value={ssid} onChange={e => setSsid(e.target.value)} />
             </InputGroup>
         </Col>
         <Col lg={5}>
@@ -100,8 +101,8 @@ const WifiStation = ({ station, index }) => {
         <Col lg={2} className='d-grid'>
             <ButtonGroup className='float-end' size='sm'>
                 <Button disabled={!isChanged()} variant="secondary" onClick={resetState}>Reset</Button>
-                <Button disabled={!isChanged()} variant="danger" onClick={() => dispatch(saveStationConfigAsync({ index, essid, psk }))}>Update</Button>
-                <Button disabled={!station.essid && !station.psk} variant="warning" onClick={() => dispatch(removeStationConfigAsync({ index }))}>Remove</Button>
+                <Button disabled={!isChanged()} style={{minWidth: '5.4em'}} variant="danger" onClick={() => dispatch(saveStationConfigAsync({ index, ssid, psk }))}>{isNew ? 'Add' : 'Update'}</Button>
+                <Button disabled={!station.ssid && !station.psk} variant="warning" onClick={() => dispatch(removeStationConfigAsync({ index }))}>Remove</Button>
             </ButtonGroup>
         </Col>
     </Form.Group>
@@ -109,8 +110,14 @@ const WifiStation = ({ station, index }) => {
 
 const WiFiStations = () => {
     const stations = useSelector(selectWiFiStationsConfig);
+    const [revision, setRevision] = useState(0);
+    useEffect(() => {
+        setRevision(revision + 1)
+    }, [stations])
     return <Form>
         {stations.map((station, index) => <WifiStation station={station} index={index} key={index} />)}
+
+        <WifiStation key={revision} station={{}} className='mt-5' index={-1} />
     </Form>
 }
 

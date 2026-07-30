@@ -3,12 +3,12 @@ import { fetchConfig, removeWiFiStationConfig, saveConfig, saveWiFiAccessPointCo
 
 const initialState = {
     ready: false,
-    accessPoint: {
-        essid: '',
+    ap: {
+        ssid: '',
         psk: '',
     },
     stations: [],
-    ledDuty: 1,
+    statusLedDuty: 1,
     fanDuty: undefined,
     powerSourceType: 'AC',
 };
@@ -61,9 +61,9 @@ export const setPowerSourceTypeAsync = createAsyncThunk(
 export const selectConfig = state => state.config;
 export const selectConfigReady = createSelector([selectConfig], config => config.ready)
 export const selectPowerSourceType = createSelector([selectConfig], config => config.powerSourceType)
-export const selectStatusLedDuty = createSelector([selectConfig], config => config.ledDuty)
+export const selectStatusLedDuty = createSelector([selectConfig], config => config.statusLedDuty)
 export const selectFanDuty = createSelector([selectConfig], config => config.fanDuty)
-export const selectWiFiAccessPointConfig = createSelector([selectConfig], config => config.accessPoint)
+export const selectWiFiAccessPointConfig = createSelector([selectConfig], config => config.ap)
 export const selectWiFiStationsConfig = createSelector([selectConfig], config => config.stations)
 
 export const wifiSlice = createSlice({
@@ -79,15 +79,15 @@ export const wifiSlice = createSlice({
     builder
       .addCase(getConfigAsync.pending, (state) => { state.ready = false })
       .addCase(getConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
-      .addCase(saveAccessPointConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
+      .addCase(saveAccessPointConfigAsync.fulfilled, (state, {payload}) => ({...state, ap: payload, ready: true}))
       .addCase(saveConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
-      .addCase(saveStationConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
-      .addCase(removeStationConfigAsync.fulfilled, (_, {payload}) => ({...payload, ready: true}))
+      .addCase(saveStationConfigAsync.fulfilled, (state, {payload}) => ({...state, stations: payload, ready: true}))
+      .addCase(removeStationConfigAsync.fulfilled, (state, {payload}) => ({...state, stations: payload, ready: true}))
       .addCase(setPowerSourceTypeAsync.fulfilled, (state, {payload: {powerSourceType}}) => {
         state.powerSourceType = powerSourceType
       })
-      .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {duty}}) => {
-        state.ledDuty = duty;
+      .addCase(setStatusLedDutyAsync.fulfilled, (state, {payload: {statusLedDuty}}) => {
+        state.statusLedDuty = statusLedDuty;
       })
       .addCase(setFanDutyAsync.fulfilled, (state, {payload: {duty}}) => {
         state.fanDuty = duty;

@@ -7,6 +7,8 @@ export default defineConfig({
     outDir: 'build', // CRA's default build output
   },
   server: {
+    host: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: `http://${process.env.ASTROPOWERBOX_HOST}`,

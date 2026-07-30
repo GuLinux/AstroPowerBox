@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       board_name:
-        description: Board pinout name to deploy before running tests (see upython/backend/config_files/pinout_<name>.json)
+        description: Board pinout name to deploy before running tests (see backend/config_files/pinout_<name>.json)
         required: true
         default: esp32_wroom_v1
 
@@ -23,15 +23,14 @@ jobs:
         run: |
           source "${{ github.workspace }}/.venv/bin/activate"
           pip install --upgrade pip
-          pip install -r upython/requirements-build.txt
+          pip install -r requirements-build.txt
           echo "${{ github.workspace }}/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Verify mpremote is available
         run: mpremote --help >/dev/null
 
       - name: Deploy app code to device
-        working-directory: upython
         run: ./scripts/deploy-dev --no-reset "${{ inputs.board_name }}"
 
       - name: Run MicroPython backend tests on device
-        run: ./upython/scripts/test-backend-mpy
+        run: ./scripts/test-backend-mpy
