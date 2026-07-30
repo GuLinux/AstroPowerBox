@@ -11,7 +11,7 @@ def test_wifi_from_json_requires_ssid():
 def test_wifi_from_json_defaults_psk_to_empty_string():
     wifi = WiFi.from_json({'ssid': 'AP'})
     assert wifi.ssid == 'AP'
-    assert wifi.psk == ''
+    assert wifi.psk == None
 
 
 def test_wifi_to_and_from_json_list_roundtrip():

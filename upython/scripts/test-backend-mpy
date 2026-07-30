@@ -46,6 +46,13 @@ cd "$ROOT_DIR"
 
 if [[ "$skip_upload" == false ]]; then
     mpremote fs mkdir :/tests_mpy >/dev/null 2>&1 || true
+
+    # Upload backend modules used by tests_mpy so imports resolve on device.
+    for module in backend/wifi.py backend/utils.py; do
+        echo "Uploading $module"
+        mpremote fs cp "$module" ":/$(basename "$module")"
+    done
+
     while IFS= read -r test_file; do
         echo "Uploading $test_file"
         mpremote fs cp "$test_file" ":/${test_file#backend/}"
