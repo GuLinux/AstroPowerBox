@@ -10,6 +10,7 @@ Usage: $(basename "$0") [--skip-upload]
 
 Runs backend MicroPython tests on a connected device.
 By default it uploads backend/tests_mpy first.
+The device is reset after tests so the application starts normally again.
 EOF
     exit "${1:-0}"
 }
@@ -59,4 +60,18 @@ if [[ "$skip_upload" == false ]]; then
     done < <(find backend/tests_mpy -type f -name '*.py' | sort)
 fi
 
-exec mpremote exec "import tests_mpy.run_tests as rt; rt.main()"
+test_status=0
+mpremote exec "import tests_mpy.run_tests as rt; failures = rt.main(); assert failures == 0, '{} MicroPython test(s) failed'.format(failures)" || test_status=$?
+
+echo "Restarting MCU after tests"
+reset_status=0
+mpremote reset || reset_status=$?
+
+if [[ "$test_status" -ne 0 ]]; then
+    exit "$test_status"
+fi
+
+if [[ "$reset_status" -ne 0 ]]; then
+    echo "Error: failed to restart MCU after tests" >&2
+    exit "$reset_status"
+fi

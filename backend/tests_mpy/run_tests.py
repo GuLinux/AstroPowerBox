@@ -27,11 +27,8 @@ def main():
 
     print('---')
     print('Total:', len(tests), 'Failed:', failures)
-
-    if failures:
-        sys.exit(1)
-    sys.exit(0)
+    return failures
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

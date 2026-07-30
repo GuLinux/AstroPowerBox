@@ -114,6 +114,8 @@ Notes:
 1. Uploads `backend/tests_mpy` and executes `tests_mpy/run_tests.py`.
 2. Runs a lightweight test harness using plain assertions.
 3. Use `--skip-upload` to re-run quickly without copying files again.
+4. Resets the MCU after testing so the deployed application resumes and the
+   serial REPL is returned to a known state.
 
 ### Suggested split
 
