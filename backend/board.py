@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-import typing
+from protocols.typing_compat import Callable
 from config import Config
 import protocols.wifi_manager
 import protocols.config_storage
@@ -61,7 +61,7 @@ class Board:
             'restartRequired': selected_path != self.pinout_config_file,
         }
 
-    def on_pin_update(self, callback: typing.Callable[[dict], None]) -> None:
+    def on_pin_update(self, callback: Callable[[dict], None]) -> None:
         self._pin_update_listeners.append(callback)
 
     def pin_status_snapshot(self) -> dict:
@@ -76,7 +76,7 @@ class Board:
         self.config_storage = ConfigStorage()
         self.config = Config(self.config_storage)
         self.wifi_manager = WiFiManager(self.config)
-        self._pin_update_listeners: list[typing.Callable[[dict], None]] = []
+        self._pin_update_listeners: list[Callable[[dict], None]] = []
         self.pin_states = {}
         self.output_pins = {}
         self.button_pins = {}
@@ -365,5 +365,4 @@ class Board:
             hardware = sys.implementation.name.lower().strip()
 
         return hardware, variant
-
 

@@ -1,6 +1,6 @@
-import typing
 import protocols.gpio
 from machine import Pin, PWM, ADC
+from protocols.typing_compat import Callable
 
 class GPIO(protocols.gpio.GPIO):
     def __init__(self, pin_name: str):
@@ -19,7 +19,7 @@ class ButtonPin(GPIO, protocols.gpio.ButtonPin):
         """Returns True if button is pressed (active low), False if released"""
         return self.pin.value() == 0
     
-    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+    def on_level_changed(self, callback: Callable[[bool], None]) -> None:
         """Register callback for level changes. Callback receives bool (True=pressed, False=released)"""
         self._callback = callback
         
@@ -49,7 +49,7 @@ class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
         super().__init__(pin_name)
         self.pin = Pin(int(pin_name), Pin.OUT)
         self._value = False
-        self._callbacks: list[typing.Callable[[bool], None]] = []
+        self._callbacks: list[Callable[[bool], None]] = []
         self.pin.value(0)
 
     @property
@@ -71,7 +71,7 @@ class DigitalOutputPin(GPIO, protocols.gpio.DigitalOutputPin):
         for callback in self._callbacks:
             callback(self._value)
 
-    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+    def on_level_changed(self, callback: Callable[[bool], None]) -> None:
         self._callbacks.append(callback)
 
 class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
@@ -79,7 +79,7 @@ class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
         super().__init__(pin_name)
         self.pin = PWM(Pin(int(pin_name)), freq=1000)
         self._duty = 0.0
-        self._callbacks: list[typing.Callable[[float], None]] = []
+        self._callbacks: list[Callable[[float], None]] = []
         self.pin.duty_u16(0)
 
     @property
@@ -101,5 +101,5 @@ class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
         for callback in self._callbacks:
             callback(self._duty)
 
-    def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
+    def on_duty_changed(self, callback: Callable[[float], None]) -> None:
         self._callbacks.append(callback)

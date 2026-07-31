@@ -1,6 +1,5 @@
 from protocols.config import Config
-from typing import Protocol
-from typing import Callable
+from protocols.typing_compat import Callable, Protocol
 
 
 class WiFiManager(Protocol):

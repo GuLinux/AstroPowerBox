@@ -116,6 +116,10 @@ Notes:
 3. Use `--skip-upload` to re-run quickly without copying files again.
 4. Resets the MCU after testing so the deployed application resumes and the
    serial REPL is returned to a known state.
+5. On ESP32 hardware, validates the MicroPython runtime. When the application
+   pinout is deployed (as it is in HIL CI), it also briefly pulses the
+   configured PWM status LED and checks the GPIO adapter's duty-change
+   callbacks.
 
 ### Suggested split
 

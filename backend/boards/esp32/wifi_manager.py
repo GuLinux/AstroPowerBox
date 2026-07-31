@@ -1,10 +1,10 @@
 import uasyncio as asyncio
 import network
 import binascii
-import typing
 import protocols.wifi_manager
+from protocols.typing_compat import TYPE_CHECKING
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from config import Config
 
 class ScanResult:
@@ -107,5 +107,4 @@ class ESPWiFiManager(protocols.wifi_manager.WiFiManager):
 
     def set_hostname(self):
         network.hostname(self.config.ap.ssid)
-
 

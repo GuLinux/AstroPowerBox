@@ -1,4 +1,4 @@
-from typing import Protocol
+from protocols.typing_compat import Protocol
 from wifi import WiFi
 
 class ConfigStorage(Protocol):
@@ -47,4 +47,3 @@ class ConfigStorage(Protocol):
         if type(ap_json) is not dict:
             raise ValueError('AP config must be a JSON object')
         return WiFi.from_json(ap_json)
-

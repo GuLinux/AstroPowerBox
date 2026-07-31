@@ -1,10 +1,10 @@
-import typing
+from protocols.typing_compat import Callable, Protocol
 
-class GPIO(typing.Protocol):
+class GPIO(Protocol):
     def __init__(self, pin_name: str):
         pass
 
-class ButtonPin(GPIO, typing.Protocol):
+class ButtonPin(GPIO, Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 
@@ -12,10 +12,10 @@ class ButtonPin(GPIO, typing.Protocol):
     def value(self) -> bool:
         raise NotImplementedError()
     
-    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+    def on_level_changed(self, callback: Callable[[bool], None]) -> None:
         raise NotImplementedError()
 
-class AnalogInputPin(GPIO, typing.Protocol):
+class AnalogInputPin(GPIO, Protocol):
     def __init__(self, pin_name: str):
         super().__init__(pin_name)
 
@@ -23,7 +23,7 @@ class AnalogInputPin(GPIO, typing.Protocol):
     def value(self) -> float:
         raise NotImplementedError()
     
-class DigitalOutputPin(GPIO, typing.Protocol):
+class DigitalOutputPin(GPIO, Protocol):
     def __init__(self, pin_name: str) -> None:
         super().__init__(pin_name)
 
@@ -43,14 +43,14 @@ class DigitalOutputPin(GPIO, typing.Protocol):
     def duty(self) -> float:
         return 1.0 if self.on else 0.0
 
-    def on_level_changed(self, callback: typing.Callable[[bool], None]) -> None:
+    def on_level_changed(self, callback: Callable[[bool], None]) -> None:
         raise NotImplementedError()
 
     @duty.setter
     def duty(self, duty: float) -> None:
         self.on = duty > 0
 
-class PWMOutputPin(GPIO, typing.Protocol):
+class PWMOutputPin(GPIO, Protocol):
     def __init__(self, pin_name: str) -> None:
         super().__init__(pin_name)
 
@@ -70,7 +70,7 @@ class PWMOutputPin(GPIO, typing.Protocol):
     def on(self) -> bool:
         return self.duty > 0
 
-    def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
+    def on_duty_changed(self, callback: Callable[[float], None]) -> None:
         raise NotImplementedError()
 
     @on.setter

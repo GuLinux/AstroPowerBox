@@ -1,5 +1,5 @@
 from protocols.config_storage import ConfigStorage
-from typing import Protocol
+from protocols.typing_compat import Protocol
 from wifi import WiFi
 
 class Config(Protocol):

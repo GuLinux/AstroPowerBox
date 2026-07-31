@@ -49,9 +49,21 @@ if [[ "$skip_upload" == false ]]; then
     mpremote fs mkdir :/tests_mpy >/dev/null 2>&1 || true
 
     # Upload backend modules used by tests_mpy so imports resolve on device.
-    for module in backend/wifi.py backend/utils.py; do
+    for directory in protocols boards boards/esp32; do
+        mpremote fs mkdir ":/$directory" >/dev/null 2>&1 || true
+    done
+
+    for module in \
+        backend/wifi.py \
+        backend/utils.py \
+        backend/config.py \
+        backend/protocols/config.py \
+        backend/protocols/config_storage.py \
+        backend/protocols/gpio.py \
+        backend/protocols/typing_compat.py \
+        backend/boards/esp32/gpio.py; do
         echo "Uploading $module"
-        mpremote fs cp "$module" ":/$(basename "$module")"
+        mpremote fs cp "$module" ":/${module#backend/}"
     done
 
     while IFS= read -r test_file; do
