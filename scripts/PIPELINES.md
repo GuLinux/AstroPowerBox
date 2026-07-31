@@ -120,6 +120,11 @@ Notes:
    pinout is deployed (as it is in HIL CI), it also briefly pulses the
    configured PWM status LED and checks the GPIO adapter's duty-change
    callbacks.
+6. Includes Wi-Fi HIL tests:
+    - Station connect test uses `APB_TEST_WIFI_SSID` and optional
+       `APB_TEST_WIFI_PSK`. If SSID is missing, the station-connect test fails.
+    - AP fallback test attempts a non-existent station with hardcoded values
+       `BadSSID` / `BadPSK`, then verifies fallback to AP mode.
 
 ### Suggested split
 

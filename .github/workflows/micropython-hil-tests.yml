@@ -26,6 +26,8 @@ jobs:
     timeout-minutes: 20
     env:
       BOARD_NAME: ${{ inputs.board_name || 'esp32_wroom_v1' }}
+      APB_TEST_WIFI_SSID: ${{ secrets.APB_TEST_WIFI_SSID }}
+      APB_TEST_WIFI_PSK: ${{ secrets.APB_TEST_WIFI_PSK }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

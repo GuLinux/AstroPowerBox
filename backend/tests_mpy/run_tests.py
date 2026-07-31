@@ -32,6 +32,8 @@ def main():
         from tests_mpy import test_hardware
         tests.append(('test_esp32_runtime_is_available', test_hardware.test_esp32_runtime_is_available))
         tests.append(('test_status_led_pwm_output_on_device', test_hardware.test_status_led_pwm_output_on_device))
+        tests.append(('test_wifi_connects_to_configured_station_from_env', test_hardware.test_wifi_connects_to_configured_station_from_env))
+        tests.append(('test_wifi_falls_back_to_ap_mode_when_station_is_unavailable', test_hardware.test_wifi_falls_back_to_ap_mode_when_station_is_unavailable))
 
     failures = 0
     for name, func in tests:
