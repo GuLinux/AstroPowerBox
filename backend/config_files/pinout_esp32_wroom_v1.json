@@ -15,7 +15,10 @@
       "MOSI": 11,
       "SS": 10
     },
-    "status_led": 4,
+    "status_led": {
+      "type": "pwm",
+      "pin": 4
+    },
     "pwm_outputs": [
       {
         "name": "PWM0",

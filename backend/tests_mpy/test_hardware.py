@@ -21,7 +21,7 @@ def test_status_led_pwm_output_on_device():
 
     status_led = pinout.get('status_led')
     if not isinstance(status_led, dict) or status_led.get('type') != 'pwm':
-        raise AssertionError('Selected board must define a PWM status LED for HIL testing')
+        raise AssertionError(f'Selected board {board_name} must define a PWM status LED for HIL testing, got {status_led}')
 
     output = PWMOutputPin(str(status_led['pin']))
     changes = []
