@@ -22,6 +22,28 @@ python_string_literal() {
     printf "'%s'" "$value"
 }
 
+upload_board_config() {
+    local board_name="$1"
+    local pinout_file="backend/config_files/pinout_${board_name}.json"
+    local board_vars_file
+
+    if [[ ! -r "$pinout_file" ]]; then
+        echo "Error: invalid BOARD_NAME '$board_name' (missing $pinout_file)" >&2
+        exit 1
+    fi
+
+    board_vars_file="${TMPDIR:-/tmp}/apb_board_vars_$$.py"
+    export BOARD_NAME="$board_name"
+    envsubst < backend/board_vars.py.envsubst > "$board_vars_file"
+
+    echo "Uploading generated backend/board_vars.py"
+    mpremote fs cp "$board_vars_file" :/board_vars.py
+    rm -f "$board_vars_file"
+
+    echo "$pinout_file -> :/pinout_${board_name}.json"
+    mpremote fs cp "$pinout_file" ":/pinout_${board_name}.json"
+}
+
 skip_upload=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -59,6 +81,10 @@ if [[ "$skip_upload" == false ]]; then
     for directory in protocols boards boards/esp32; do
         mpremote fs mkdir ":/$directory" >/dev/null 2>&1 || true
     done
+
+    if [[ -n "${BOARD_NAME:-}" ]]; then
+        upload_board_config "$BOARD_NAME"
+    fi
 
     for module in \
         backend/wifi.py \

@@ -117,9 +117,10 @@ Notes:
 4. Resets the MCU after testing so the deployed application resumes and the
    serial REPL is returned to a known state.
 5. On ESP32 hardware, validates the MicroPython runtime. When the application
-   pinout is deployed (as it is in HIL CI), it also briefly pulses the
-   configured PWM status LED and checks the GPIO adapter's duty-change
-   callbacks.
+   pinout is available, it also briefly pulses the configured PWM status LED
+   and checks the GPIO adapter's duty-change callbacks. If `BOARD_NAME` is set,
+   the script uploads generated `board_vars.py` plus `pinout_<board>.json`
+   before running tests.
 6. Includes Wi-Fi HIL tests:
     - Station connect test uses `APB_TEST_WIFI_SSID` and optional
        `APB_TEST_WIFI_PSK`. If SSID is missing, the station-connect test fails.
