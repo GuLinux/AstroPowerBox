@@ -7,6 +7,7 @@ def test_esp32_runtime_is_available():
 
 def test_status_led_pwm_output_on_device():
     import json
+    import time
 
     try:
         from board_vars import board_name
@@ -19,7 +20,7 @@ def test_status_led_pwm_output_on_device():
     with open('/pinout_{}.json'.format(board_name), 'r') as pinout_file:
         pinout = json.load(pinout_file)
 
-    status_led = pinout.get('status_led')
+    status_led = pinout['pinout']['status_led']
     if not isinstance(status_led, dict) or status_led.get('type') != 'pwm':
         raise AssertionError(f'Selected board {board_name} must define a PWM status LED for HIL testing, got {status_led}')
 
@@ -28,6 +29,10 @@ def test_status_led_pwm_output_on_device():
     output.on_duty_changed(changes.append)
     output.duty = 0.02
     output.duty = 0.0
+    for _ in range(10):
+        if output.duty == 0.0 and changes == [0.02, 0.0]:
+            break    
+        time.sleep(0.5)
 
     if output.duty != 0.0:
         raise AssertionError('Status LED did not return to off')

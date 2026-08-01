@@ -89,6 +89,7 @@ class PWMOutputPin(GPIO, protocols.gpio.PWMOutputPin):
 
     @property
     def duty(self) -> float:
+        #return self._duty
         return self.pin.duty_u16() / 65535.0
 
     @duty.setter
