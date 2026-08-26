@@ -1,11 +1,14 @@
 from microdot import Microdot, send_file
 from microdot.sse import with_sse
+import logging
 from board_compat import asyncio, server_port, server_debug
 from board import Board
 from config import WiFi
 
-board = Board()
 app = Microdot()
+if server_debug:
+    logging.basicConfig(level=logging.DEBUG)
+board = Board()
 
 
 class SSEBroadcaster:

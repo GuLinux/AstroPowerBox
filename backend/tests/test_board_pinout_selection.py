@@ -167,3 +167,14 @@ def test_gpio_initialization_error_identifies_the_application_pin(monkeypatch):
         assert str(error.__cause__) == 'GPIO busy'
     else:
         raise AssertionError('Expected contextual GPIO initialization error')
+
+
+def test_pin_initialization_logs_reused_configured_pin(caplog):
+    board = _new_board()
+
+    with caplog.at_level('DEBUG', logger='board'):
+        _call_private(board, '_Board__log_pin_initialization', {}, 'heater_0', 'heater', 'pwm', 'PWM5')
+        _call_private(board, '_Board__log_pin_initialization', {'PWM5': 'heater_0'}, 'output_2', 'output', 'pwm', 'PWM5')
+
+    assert "Initializing pin 'heater_0' (heater, pwm) configured as 'PWM5'" in caplog.messages
+    assert "Pin 'output_2' (output, pwm) reuses configured pin 'PWM5' already used by 'heater_0'" in caplog.messages

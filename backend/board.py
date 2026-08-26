@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 from protocols.typing_compat import Callable
@@ -7,6 +8,9 @@ import protocols.wifi_manager
 import protocols.config_storage
 from status_led import StatusLed
 from board_compat import ConfigStorage, WiFiManager, pinout_config_path, gpio
+
+logger = logging.getLogger(__name__)
+
 
 class Board:
     config_storage: protocols.config_storage.ConfigStorage
@@ -89,12 +93,15 @@ class Board:
         self.__load_gpio_pin_definitions()
 
         output_configs = self.__collect_output_configs()
+        configured_pins = {}
         for pin_id, role, output_cfg in output_configs:
+            self.__log_pin_initialization(configured_pins, pin_id, role, output_cfg['type'], output_cfg['pin'])
             output_pin = self.__load_output(pin_id, role, output_cfg)
             self.__register_output_pin(pin_id, role, output_pin)
             self.output_pins[pin_id] = output_pin
 
         for pin_id, button_pin_name in self.__collect_button_configs():
+            self.__log_pin_initialization(configured_pins, pin_id, 'button', 'input', button_pin_name)
             button_pin = self.__load_button(pin_id, button_pin_name)
             self.button_pins[pin_id] = button_pin
             self.__register_button_pin(pin_id, button_pin)
@@ -126,6 +133,20 @@ class Board:
             raise RuntimeError(
                 f"Failed to initialize button pin '{pin_id}' configured as '{pin_name}': {error}"
             ) from error
+
+    def __log_pin_initialization(self, configured_pins: dict, pin_id: str, role: str, pin_type: str, pin_name):
+        previous_pin = configured_pins.get(pin_name)
+        if previous_pin:
+            logger.debug(
+                "Pin '%s' (%s, %s) reuses configured pin '%s' already used by '%s'",
+                pin_id, role, pin_type, pin_name, previous_pin,
+            )
+        else:
+            logger.debug(
+                "Initializing pin '%s' (%s, %s) configured as '%s'",
+                pin_id, role, pin_type, pin_name,
+            )
+            configured_pins[pin_name] = pin_id
 
     def __collect_output_configs(self) -> list[tuple[str, str, dict]]:
         output_configs: list[tuple[str, str, dict]] = []
