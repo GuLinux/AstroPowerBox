@@ -138,3 +138,32 @@ def test_collect_output_configs_accepts_nested_status_led_output_object():
     assert _call_private(board, '_Board__collect_output_configs') == [
         ('status_led', 'status_led', {'type': 'pwm', 'pin': 4}),
     ]
+
+
+def test_gpio_initialization_error_identifies_the_application_pin(monkeypatch):
+    board = _new_board()
+
+    class _BusyPin:
+        def __init__(self, _pin_name):
+            raise RuntimeError('GPIO busy')
+
+    monkeypatch.setattr(board_module.gpio, 'PWMOutputPin', _BusyPin)
+    monkeypatch.setattr(board_module.gpio, 'ButtonPin', _BusyPin)
+
+    try:
+        _call_private(board, '_Board__load_output', 'heater_0', 'heater', {'type': 'pwm', 'pin': 'PWM0'})
+    except RuntimeError as error:
+        assert str(error) == "Failed to initialize heater pin 'heater_0' configured as 'PWM0': GPIO busy"
+        assert isinstance(error.__cause__, RuntimeError)
+        assert str(error.__cause__) == 'GPIO busy'
+    else:
+        raise AssertionError('Expected contextual GPIO initialization error')
+
+    try:
+        _call_private(board, '_Board__load_button', 'button_0', 'BTN0')
+    except RuntimeError as error:
+        assert str(error) == "Failed to initialize button pin 'button_0' configured as 'BTN0': GPIO busy"
+        assert isinstance(error.__cause__, RuntimeError)
+        assert str(error.__cause__) == 'GPIO busy'
+    else:
+        raise AssertionError('Expected contextual GPIO initialization error')

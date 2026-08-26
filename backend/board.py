@@ -90,12 +90,12 @@ class Board:
 
         output_configs = self.__collect_output_configs()
         for pin_id, role, output_cfg in output_configs:
-            output_pin = self.__load_output(output_cfg)
+            output_pin = self.__load_output(pin_id, role, output_cfg)
             self.__register_output_pin(pin_id, role, output_pin)
             self.output_pins[pin_id] = output_pin
 
         for pin_id, button_pin_name in self.__collect_button_configs():
-            button_pin = gpio.ButtonPin(button_pin_name)
+            button_pin = self.__load_button(pin_id, button_pin_name)
             self.button_pins[pin_id] = button_pin
             self.__register_button_pin(pin_id, button_pin)
 
@@ -108,10 +108,24 @@ class Board:
         self.wifi_manager.on_ap_started = lambda _: self.status_led.wifi_failed()
         
 
-    def __load_output(self, config: dict):
-        if config['type'] == 'pwm':
-            return gpio.PWMOutputPin(config['pin'])
-        return gpio.DigitalOutputPin(config['pin'])
+    def __load_output(self, pin_id: str, role: str, config: dict):
+        pin_name = config['pin']
+        try:
+            if config['type'] == 'pwm':
+                return gpio.PWMOutputPin(pin_name)
+            return gpio.DigitalOutputPin(pin_name)
+        except Exception as error:
+            raise RuntimeError(
+                f"Failed to initialize {role} pin '{pin_id}' configured as '{pin_name}': {error}"
+            ) from error
+
+    def __load_button(self, pin_id: str, pin_name: str):
+        try:
+            return gpio.ButtonPin(pin_name)
+        except Exception as error:
+            raise RuntimeError(
+                f"Failed to initialize button pin '{pin_id}' configured as '{pin_name}': {error}"
+            ) from error
 
     def __collect_output_configs(self) -> list[tuple[str, str, dict]]:
         output_configs: list[tuple[str, str, dict]] = []
