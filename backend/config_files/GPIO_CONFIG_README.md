@@ -83,7 +83,9 @@ export GPIO_CONFIG_PATH=/path/to/config_files/gpio_pinout_rpi5.json
 python backend/main.py
 ```
 
-Default path if not set: `config_files/gpio_pinout.json`
+Default path if not set: `config_files/gpio_pinout.json`, which is the Raspberry Pi
+4 mapping. Set `GPIO_CONFIG_PATH` explicitly for Raspberry Pi 5, Orange Pi, or
+custom hardware.
 
 ### In Code
 

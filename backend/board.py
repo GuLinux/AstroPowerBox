@@ -128,8 +128,12 @@ class Board:
 
         pinout_section = self.pinout_config.get('pinout', {})
         if isinstance(pinout_section, dict):
-            if 'status_led' not in [pin_id for pin_id, _, _ in output_configs] and 'status_led' in pinout_section:
-                output_configs.append(('status_led', 'status_led', {'type': 'digital', 'pin': pinout_section['status_led']}))
+            status_led = pinout_section.get('status_led')
+            if 'status_led' not in [pin_id for pin_id, _, _ in output_configs] and status_led is not None:
+                if isinstance(status_led, dict):
+                    output_configs.append(('status_led', 'status_led', status_led))
+                else:
+                    output_configs.append(('status_led', 'status_led', {'type': 'digital', 'pin': status_led}))
 
             for index, output in enumerate(pinout_section.get('pwm_outputs', [])):
                 role = 'heater' if str(output.get('type', '')).lower() == 'heater' else 'output'
@@ -365,4 +369,3 @@ class Board:
             hardware = sys.implementation.name.lower().strip()
 
         return hardware, variant
-

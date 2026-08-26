@@ -46,7 +46,7 @@ def test_simulator_board_publishes_pin_events_for_output_and_button(simulator_bo
     heater = board_instance.output_pins['heater_0']
     heater.duty = 0.4
 
-    assert (tmp_path / 'DUMMYPWM0').read_text() == '0.4'
+    assert (tmp_path / 'PWM0').read_text() == '0.4'
     assert events[-1]['changed'] == {
         'id': 'heater_0',
         'role': 'heater',

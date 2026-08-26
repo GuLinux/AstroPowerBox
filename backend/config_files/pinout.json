@@ -1,41 +1,45 @@
 {
+    "hardware": "cpython",
+    "board": "generic",
+    "hardware_name": "Linux SBC",
+    "comment": "Default AstroPowerBox application pinout for Linux SBCs",
     "status_led": {
         "type": "pwm",
-        "pin": "DUMMYGPIO0"
+        "pin": "LED_STATUS"
     },
     "heaters": [
         {
             "type": "pwm",
-            "pin": "DUMMYPWM0",
-            "temp": "DUMMYANALOG0"
+            "pin": "PWM0",
+            "temp": "ANALOG_IN0"
         },
         {
             "type": "pwm",
-            "pin": "DUMMYPWM1",
-            "temp": "DUMMYANALOG1"
+            "pin": "PWM1",
+            "temp": "ANALOG_IN1"
         },
         {
             "type": "pwm",
-            "pin": "DUMMYPWM2",
-            "temp": "DUMMYANALOG2"
+            "pin": "PWM2",
+            "temp": "ANALOG_IN2"
         }
     ],
     "outputs": [
         {
             "type": "pwm",
-            "pin": "DUMMYPWM3"
+            "pin": "PWM3"
         },
         {
             "type": "pwm",
-            "pin": "DUMMYPWM4"
+            "pin": "PWM4"
         },
         {
             "type": "pwm",
-            "pin": "DUMMYPWM5"
+            "pin": "PWM5"
         }
     ],
     "buttons": [
-        "BUTTON0",
-        "BUTTON1"
+        "BTN0",
+        "BTN1"
     ]
 }

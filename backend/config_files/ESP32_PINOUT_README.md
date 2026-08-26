@@ -19,7 +19,8 @@ SPI bus for SD card or other high-speed peripherals:
 - `SS`: Slave Select
 
 ### `status_led`
-GPIO pin for status LED indicator
+GPIO pin for the status LED indicator. It may be a pin number (for a digital
+output) or an output object such as `{"type": "pwm", "pin": 4}`.
 
 ### `pwm_outputs` array
 Array of PWM-controlled outputs:
@@ -66,7 +67,8 @@ USB Power Delivery controller pins (CH224K):
 
 ## Usage in MicroPython Code
 
-These files are referenced by the MicroPython ESP32 GPIO implementation:
+At startup, `Board` selects the compatible `pinout_esp32_*.json` file and passes
+the configured pin values to the MicroPython ESP32 GPIO implementation:
 
 ```python
 import json

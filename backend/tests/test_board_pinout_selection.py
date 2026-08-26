@@ -125,3 +125,16 @@ def test_set_pinout_file_rejects_paths():
         assert 'file name, not a path' in str(error)
     else:
         raise AssertionError('Expected ValueError for path-like pinout file names')
+
+
+def test_collect_output_configs_accepts_nested_status_led_output_object():
+    board = _new_board()
+    board.pinout_config = {
+        'pinout': {
+            'status_led': {'type': 'pwm', 'pin': 4},
+        },
+    }
+
+    assert _call_private(board, '_Board__collect_output_configs') == [
+        ('status_led', 'status_led', {'type': 'pwm', 'pin': 4}),
+    ]
