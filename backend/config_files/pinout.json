@@ -17,11 +17,6 @@
             "type": "pwm",
             "pin": "PWM1",
             "temp": "ANALOG_IN1"
-        },
-        {
-            "type": "pwm",
-            "pin": "PWM2",
-            "temp": "ANALOG_IN2"
         }
     ],
     "outputs": [
@@ -36,6 +31,10 @@
         {
             "type": "pwm",
             "pin": "PWM5"
+        },
+        {
+            "type": "pwm",
+            "pin": "PWM6"
         }
     ],
     "buttons": [
