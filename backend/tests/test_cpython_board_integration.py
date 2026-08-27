@@ -101,10 +101,7 @@ def test_cpython_board_composes_real_gpio_adapters_and_publishes_events(cpython_
 
     assert (0, 2, 1) in fake_lgpio.writes
     assert (0, 3, 1000, 60.0) in fake_lgpio.pwm
-    assert events[-1]['changed'] == {
-        'id': 'output_1',
-        'role': 'output',
-        'kind': 'pwm',
+    assert events[-1]['output_1'] == {
         'duty': 0.6,
         'on': True,
     }
@@ -112,9 +109,6 @@ def test_cpython_board_composes_real_gpio_adapters_and_publishes_events(cpython_
     button_line, button_callback = fake_lgpio.callbacks[-1]
     button_callback(0, button_line, 0, 0)
 
-    assert events[-1]['changed'] == {
-        'id': 'button_0',
-        'role': 'button',
-        'kind': 'button',
+    assert events[-1]['button_0'] == {
         'on': True,
     }

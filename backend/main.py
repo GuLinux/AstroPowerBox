@@ -1,6 +1,8 @@
 from microdot import Microdot, send_file
 from microdot.sse import with_sse
 import logging
+import os
+import time
 from board_compat import asyncio, server_port, server_debug
 from board import Board
 from config import WiFi
@@ -43,6 +45,47 @@ class SSEBroadcaster:
 
 sse_broadcaster = SSEBroadcaster()
 board.on_pin_update(lambda update: sse_broadcaster.publish('pins', update))
+
+
+def _clamp_duty(value) -> float:
+    try:
+        duty = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(1.0, duty))
+
+
+def _pwm_control_pin_ids() -> list[str]:
+    pin_ids = []
+    for pin in board.pin_status_snapshot().get('pins', []):
+        if pin.get('kind') != 'pwm':
+            continue
+        if pin.get('role') not in ('heater', 'output'):
+            continue
+        pin_id = pin.get('id')
+        if pin_id in board.output_pins:
+            pin_ids.append(pin_id)
+    return pin_ids
+
+
+def _pwm_outputs_payload() -> dict:
+    pwm_outputs = []
+    for pin_id in _pwm_control_pin_ids():
+        state = board.pin_states.get(pin_id, {})
+        pwm_outputs.append({
+            'type': 'heater' if state.get('role') == 'heater' else 'output',
+            'active': bool(state.get('on', False)),
+            'duty': _clamp_duty(state.get('duty', 0.0)),
+            'mode': 'fixed' if state.get('on', False) else 'off',
+            'max_duty': _clamp_duty(state.get('duty', 0.0)),
+            'min_duty': 0.0,
+            'apply_at_startup': False,
+            'target_temperature': None,
+            'dewpoint_offset': None,
+            'temperature': None,
+            'has_temperature': state.get('role') == 'heater',
+        })
+    return {'pwmOutputs': pwm_outputs}
 
 def try_send_file(path):
     try:
@@ -95,6 +138,112 @@ async def get_config(request):
     return board.config.json
 
 
+@app.route('/api/status')
+async def get_status(request):
+    return {
+        'has_power_monitor': False,
+        'has_ambient_sensor': False,
+        'status': 'ok',
+    }
+
+
+@app.route('/api/history')
+async def get_history(request):
+    return {
+        'now': int(time.time()),
+        'entries': [],
+    }
+
+
+@app.route('/api/info')
+async def get_info(request):
+    stat = os.statvfs('/')
+    total_space = stat.f_blocks * stat.f_frsize
+    free_space = stat.f_bfree * stat.f_frsize
+
+    return {
+        'mem': {
+            'heapSize': 0,
+            'freeHeap': 0,
+            'usedHeap': 0,
+            'maxAllocHeap': 0,
+        },
+        'sketch': {
+            'totalSpace': total_space,
+            'size': total_space - free_space,
+            'MD5': '',
+        },
+        'esp': {
+            'chipModel': os.uname().machine,
+            'chipCores': os.cpu_count() or 1,
+            'cpuFreqMHz': 0,
+        },
+    }
+
+
+@app.route('/api/restart', methods=['POST'])
+async def restart(request):
+    return {'restarting': False}
+
+
+@app.route('/api/wifi/connect', methods=['POST'])
+async def reconnect_wifi(request):
+    await board.wifi_manager.connect_stations()
+    return {'ok': True}
+
+
+@app.route('/api/pwmOutputs')
+async def get_pwm_outputs(request):
+    return _pwm_outputs_payload()
+
+
+@app.route('/api/pwmOutput', methods=['POST'])
+async def set_pwm_output(request):
+    payload = request.json or {}
+
+    try:
+        index = int(payload.get('index', -1))
+    except (TypeError, ValueError):
+        return {'error': 'index must be an integer'}, 400
+
+    pin_ids = _pwm_control_pin_ids()
+    if index < 0 or index >= len(pin_ids):
+        return {'error': f'Invalid pwm output index: {index}'}, 400
+
+    pin_id = pin_ids[index]
+    output_pin = board.output_pins[pin_id]
+
+    mode = payload.get('mode')
+    active = payload.get('active')
+    if mode == 'off' or active is False:
+        duty = 0.0
+    elif 'max_duty' in payload:
+        duty = _clamp_duty(payload.get('max_duty'))
+    elif 'duty' in payload:
+        duty = _clamp_duty(payload.get('duty'))
+    else:
+        duty = 1.0 if active else _clamp_duty(getattr(output_pin, 'duty', 0.0))
+
+    if output_pin.is_pwm:
+        output_pin.duty = duty
+    else:
+        output_pin.on = duty > 0
+
+    return _pwm_outputs_payload()
+
+
+@app.route('/api/config/fanDuty', methods=['POST'])
+async def set_fan_duty(request):
+    payload = request.json or {}
+    return {'duty': _clamp_duty(payload.get('duty'))}
+
+
+@app.route('/api/config/powerSourceType', methods=['POST'])
+async def set_power_source_type(request):
+    payload = request.json or {}
+    return {'powerSourceType': payload.get('powerSourceType', 'AC')}
+
+
 @app.route('/api/config/pinout')
 async def get_pinout_config(request):
     return board.get_pinout_selection()
@@ -122,7 +271,7 @@ async def get_pinout_files(request):
 @with_sse
 async def events(request, sse):
     queue = sse_broadcaster.subscribe()
-    await sse.send(board.pin_status_snapshot(), event='pins')
+    await sse.send(board.pin_event_snapshot(), event='pins')
     try:
         while True:
             message = await queue.get()

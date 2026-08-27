@@ -47,10 +47,7 @@ def test_simulator_board_publishes_pin_events_for_output_and_button(simulator_bo
     heater.duty = 0.4
 
     assert (tmp_path / 'PWM0').read_text() == '0.4'
-    assert events[-1]['changed'] == {
-        'id': 'heater_0',
-        'role': 'heater',
-        'kind': 'pwm',
+    assert events[-1]['heater_0'] == {
         'duty': 0.4,
         'on': True,
     }
@@ -65,7 +62,7 @@ def test_simulator_board_publishes_pin_events_for_output_and_button(simulator_bo
         'kind': 'button',
         'on': True,
     }
-    assert events[-1]['changed'] == button
+    assert events[-1]['button_0'] == {'on': True}
 
 
 def test_simulator_board_persists_configuration_and_reloads_it(simulator_board):

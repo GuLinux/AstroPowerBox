@@ -80,6 +80,9 @@ def _import_main(monkeypatch):
         def pin_status_snapshot(self):
             return {'pins': []}
 
+        def pin_event_snapshot(self):
+            return {}
+
         async def start(self):
             return None
 

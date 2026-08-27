@@ -61,7 +61,9 @@ export const pwmOutputsSlice = createSlice({
   initialState,
   reducers: {
     updatePWMOutputs: (state, action) => {
-        action.payload.forEach((pwmOutput, index) => state.pwmOutputs[index] = pwmOutput);
+        action.payload.forEach((pwmOutput, index) => {
+          state.pwmOutputs[index] = { ...state.pwmOutputs[index], ...pwmOutput };
+        });
         addPWMOutputsToHistory(state)
     }
   },

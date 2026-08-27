@@ -74,4 +74,4 @@ def test_frontend_sse_contract_matches_backend_event_name():
     assert "addEventListener('pins'" in frontend_text
 
     assert "sse_broadcaster.publish('pins'" in backend_text
-    assert "await sse.send(board.pin_status_snapshot(), event='pins')" in backend_text
+    assert "await sse.send(board.pin_event_snapshot(), event='pins')" in backend_text

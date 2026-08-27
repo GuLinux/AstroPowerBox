@@ -73,6 +73,19 @@ class Board:
             'pins': list(self.pin_states.values())
         }
 
+    def pin_event_snapshot(self) -> dict:
+        event = {}
+        for pin_id, state in self.pin_states.items():
+            if pin_id == 'status_led':
+                continue
+
+            pin_data = {'on': bool(state.get('on', False))}
+            if 'duty' in state:
+                pin_data['duty'] = state.get('duty', 0.0)
+            event[pin_id] = pin_data
+
+        return event
+
     async def start(self):
         await self.status_led.start()
 
@@ -209,7 +222,7 @@ class Board:
         self.__publish_pin_state(pin_id, 'button', 'button', button_pin.value)
 
     def __publish_pin_state(self, pin_id: str, role: str, kind: str, value):
-        pin_state = {
+        pin_state: dict[str, object] = {
             'id': pin_id,
             'role': role,
             'kind': kind,
@@ -221,10 +234,10 @@ class Board:
             pin_state['on'] = bool(value)
 
         self.pin_states[pin_id] = pin_state
-        event = {
-            'changed': pin_state,
-            'pins': list(self.pin_states.values())
-        }
+        if pin_id == 'status_led':
+            return
+
+        event = self.pin_event_snapshot()
         for callback in self._pin_update_listeners:
             callback(event)
 

@@ -14,14 +14,17 @@ const registerEventSource = dispatch => {
   const es = new EventSource('/api/events');
   es.addEventListener('pins', m => {
     const data = JSON.parse(m.data);
-    const pins = Array.isArray(data.pins) ? data.pins : [];
-    const pwmOutputs = pins
-      .filter(pin => pin.kind === 'pwm')
-      .map(pin => ({
-        duty: pin.duty || 0,
-        active: !!pin.on,
-        type: pin.role === 'heater' ? 'heater' : 'output',
-      }));
+    const pinStates = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+    const pwmOutputs = Object.entries(pinStates)
+      .filter(([id]) => id.startsWith('heater_') || id.startsWith('output_'))
+      .map(([id, pin]) => {
+        const duty = typeof pin.duty === 'number' ? pin.duty : (pin.on ? 1 : 0);
+        return {
+          duty,
+          active: !!pin.on,
+          type: id.startsWith('heater_') ? 'heater' : 'output',
+        };
+      });
     if (pwmOutputs.length > 0) {
       dispatch(updatePWMOutputs(pwmOutputs));
     }
