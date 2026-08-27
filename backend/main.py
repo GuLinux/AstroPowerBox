@@ -44,13 +44,20 @@ class SSEBroadcaster:
 sse_broadcaster = SSEBroadcaster()
 board.on_pin_update(lambda update: sse_broadcaster.publish('pins', update))
 
+def try_send_file(path):
+    try:
+        return send_file(path, compressed=True, file_extension='.gz')
+    except FileNotFoundError:
+        return send_file(path)
+
+
 @app.route('/')
 async def index(request):
-    return send_file('/static/index.html', compressed=True, file_extension='.gz')
+        return try_send_file('/static/index.html')
 
 @app.route('/assets/<path:path>')
 async def asset(request, path):
-    return send_file('/static/assets/' + path, compressed=True, file_extension='.gz')
+    return try_send_file('/static/assets/' + path)
 
 @app.route('/api/config/write', methods=['POST'])
 async def write_config(request):
