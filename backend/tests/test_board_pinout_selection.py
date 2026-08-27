@@ -1,4 +1,5 @@
 import os
+import asyncio
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -138,6 +139,52 @@ def test_collect_output_configs_accepts_nested_status_led_output_object():
     assert _call_private(board, '_Board__collect_output_configs') == [
         ('status_led', 'status_led', {'type': 'pwm', 'pin': 4}),
     ]
+
+
+def test_collect_output_configs_accepts_nested_fan_output_object():
+    board = _new_board()
+    board.pinout_config = {
+        'pinout': {
+            'fan': {'type': 'pwm', 'pin': 3},
+        },
+    }
+    board.fan_pin_id = None
+
+    assert _call_private(board, '_Board__collect_output_configs') == [
+        ('fan', 'fan', {'type': 'pwm', 'pin': 3}),
+    ]
+    assert board.fan_pin_id == 'fan'
+
+
+def test_collect_output_configs_accepts_legacy_nested_fan_pwm_output():
+    board = _new_board()
+    board.pinout_config = {
+        'pinout': {
+            'fan_pwm': 3,
+        },
+    }
+    board.fan_pin_id = None
+
+    assert _call_private(board, '_Board__collect_output_configs') == [
+        ('fan', 'fan', {'type': 'pwm', 'pin': 3}),
+    ]
+    assert board.fan_pin_id == 'fan'
+
+
+def test_start_applies_fan_duty_before_starting_status_led():
+    board = _new_board()
+    call_order = []
+
+    board.apply_fan_duty = lambda: call_order.append('fan')
+
+    class _StatusLed:
+        async def start(self):
+            call_order.append('status')
+
+    board.status_led = _StatusLed()
+
+    asyncio.run(board.start())
+    assert call_order == ['fan', 'status']
 
 
 def test_gpio_initialization_error_identifies_the_application_pin(monkeypatch):

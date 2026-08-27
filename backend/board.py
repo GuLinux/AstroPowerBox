@@ -18,6 +18,7 @@ class Board:
     wifi_manager: protocols.wifi_manager.WiFiManager
     pinout_config: dict
     pin_states: dict
+    fan_pin_id: str | None
 
     def list_available_pinout_files(self) -> list[dict]:
         files = []
@@ -87,6 +88,7 @@ class Board:
         return event
 
     async def start(self):
+        self.apply_fan_duty()
         await self.status_led.start()
 
     def __init__(self):
@@ -97,6 +99,7 @@ class Board:
         self.pin_states = {}
         self.output_pins = {}
         self.button_pins = {}
+        self.fan_pin_id = None
 
         self.pinout_config_file = self.__resolve_pinout_config_path()
         with open(self.pinout_config_file, 'r') as pinout_config_file:
@@ -126,6 +129,21 @@ class Board:
         self.wifi_manager.on_connecting = lambda: self.status_led.wifi_connecting()
         self.wifi_manager.on_station_connected = lambda _: self.status_led.status_ok()
         self.wifi_manager.on_ap_started = lambda _: self.status_led.wifi_failed()
+
+    def has_fan_output(self) -> bool:
+        return self.fan_pin_id is not None and self.fan_pin_id in self.output_pins
+
+    def apply_fan_duty(self) -> None:
+        if not self.has_fan_output():
+            return
+
+        fan_pin = self.output_pins[self.fan_pin_id]
+        duty = max(0.0, min(1.0, float(self.config.fan_duty)))
+        fan_pin.duty = duty
+
+    def set_fan_duty(self, duty: float) -> None:
+        self.config.fan_duty = duty
+        self.apply_fan_duty()
         
 
     def __load_output(self, pin_id: str, role: str, config: dict):
@@ -174,6 +192,11 @@ class Board:
         for index, output in enumerate(self.pinout_config.get('outputs', [])):
             output_configs.append((f'output_{index}', 'output', output))
 
+        fan_output = self.__resolve_fan_output_config()
+        if fan_output is not None:
+            output_configs.append(('fan', 'fan', fan_output))
+            self.fan_pin_id = 'fan'
+
         pinout_section = self.pinout_config.get('pinout', {})
         if isinstance(pinout_section, dict):
             status_led = pinout_section.get('status_led')
@@ -188,6 +211,33 @@ class Board:
                 output_configs.append((output.get('name', f'{role}_{index}'), role, {'type': 'pwm', 'pin': output['pin']}))
 
         return output_configs
+
+    def __resolve_fan_output_config(self) -> dict | None:
+        fan = self.pinout_config.get('fan')
+        if isinstance(fan, dict):
+            return fan
+
+        pinout_section = self.pinout_config.get('pinout', {})
+        if isinstance(pinout_section, dict):
+            fan = pinout_section.get('fan')
+            if isinstance(fan, dict):
+                return fan
+
+        # Backward compatibility for legacy pinout files.
+        fan_pwm = self.pinout_config.get('fan_pwm')
+        if fan_pwm is not None:
+            if isinstance(fan_pwm, dict):
+                return fan_pwm
+            return {'type': 'pwm', 'pin': fan_pwm}
+
+        if isinstance(pinout_section, dict):
+            fan_pwm = pinout_section.get('fan_pwm')
+            if fan_pwm is not None:
+                if isinstance(fan_pwm, dict):
+                    return fan_pwm
+                return {'type': 'pwm', 'pin': fan_pwm}
+
+        return None
 
     def __collect_button_configs(self) -> list[tuple[str, str]]:
         button_configs: list[tuple[str, str]] = []

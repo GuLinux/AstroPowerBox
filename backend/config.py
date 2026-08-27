@@ -5,6 +5,7 @@ from wifi import WiFi
 
 class Config(protocols.config.Config):
     _status_led_duty: float
+    _fan_duty: float
     _ap: WiFi
     _stations: list[WiFi]
     _pinout_file: str
@@ -38,6 +39,14 @@ class Config(protocols.config.Config):
         self._status_led_duty = duty
 
     @property
+    def fan_duty(self) -> float:
+        return self._fan_duty
+
+    @fan_duty.setter
+    def fan_duty(self, duty: float) -> None:
+        self._fan_duty = duty
+
+    @property
     def pinout_file(self) -> str:
         return self._pinout_file
 
@@ -51,17 +60,20 @@ class Config(protocols.config.Config):
             'ap': self.ap.json if self.ap else None,
             'stations': WiFi.to_json_list(self._stations),
             'statusLedDuty': self._status_led_duty,
+            'fanDuty': self._fan_duty,
             'pinoutFile': self._pinout_file,
         }
 
     def load(self) -> None:
         self._ap, self._stations = self.storage.load_wifi()
         self._status_led_duty = self.storage.load_float('stLedDuty', default=1) or 1.0
+        self._fan_duty = self.storage.load_float('fanDuty', default=1) or 1.0
         self._pinout_file = self.storage.load_str('pinoutFile', default='') or ''
 
     def save(self) -> None:
         self.storage.save_wifi(self._stations, self._ap)
         self.storage.save_float('stLedDuty', self._status_led_duty)
+        self.storage.save_float('fanDuty', self._fan_duty)
         self.storage.save_str('pinoutFile', self._pinout_file)
 
     def __str__(self):

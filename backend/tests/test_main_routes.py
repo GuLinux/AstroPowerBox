@@ -61,8 +61,10 @@ def _import_main(monkeypatch):
                 stations=[],
                 ap=_WiFi('AstroPowerBox', 'astropowerbox'),
                 status_led_duty=1.0,
+                fan_duty=1.0,
                 json={
                     'statusLedDuty': 1.0,
+                    'fanDuty': 1.0,
                     'pinoutFile': '',
                     'ap': {'ssid': 'AstroPowerBox', 'psk': 'astropowerbox'},
                     'stations': [],
@@ -116,6 +118,7 @@ class _Request:
 class _FakeConfig:
     def __init__(self):
         self._status_led_duty = 1.0
+        self._fan_duty = 1.0
         self._save_calls = 0
 
     @property
@@ -127,9 +130,18 @@ class _FakeConfig:
         self._status_led_duty = duty
 
     @property
+    def fan_duty(self):
+        return self._fan_duty
+
+    @fan_duty.setter
+    def fan_duty(self, duty):
+        self._fan_duty = duty
+
+    @property
     def json(self):
         return {
             'statusLedDuty': self._status_led_duty,
+            'fanDuty': self._fan_duty,
             'pinoutFile': 'pinout_esp32_c3.json',
             'ap': {'ssid': 'AstroPowerBox', 'psk': 'astropowerbox'},
             'stations': [],
@@ -142,6 +154,7 @@ class _FakeConfig:
 class _FakeBoard:
     def __init__(self):
         self.config = _FakeConfig()
+        self.last_set_fan_duty = None
 
     def get_pinout_selection(self):
         return {
@@ -172,6 +185,10 @@ class _FakeBoard:
             'selectedFile': 'pinout_esp32_c3.json',
             'restartRequired': file_name != 'pinout_esp32_c3.json',
         }
+
+    def set_fan_duty(self, duty):
+        self.last_set_fan_duty = duty
+        self.config.fan_duty = duty
 
 
 class _FakePWMOutputPin:
@@ -252,6 +269,17 @@ def test_set_status_led_duty_returns_full_config_payload(monkeypatch):
 
     payload = asyncio.run(main.set_status_led_duty(_Request({'duty': 0.33})))
     assert payload['statusLedDuty'] == 0.33
+    assert payload['pinoutFile'] == 'pinout_esp32_c3.json'
+
+
+def test_set_fan_duty_returns_full_config_payload(monkeypatch):
+    main = _import_main(monkeypatch)
+    fake_board = _FakeBoard()
+    main.board = fake_board
+
+    payload = asyncio.run(main.set_fan_duty(_Request({'duty': 0.21})))
+    assert fake_board.last_set_fan_duty == 0.21
+    assert payload['fanDuty'] == 0.21
     assert payload['pinoutFile'] == 'pinout_esp32_c3.json'
 
 

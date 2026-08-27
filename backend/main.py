@@ -239,7 +239,8 @@ async def set_pwm_output(request):
 @app.route('/api/config/fanDuty', methods=['POST'])
 async def set_fan_duty(request):
     payload = request.json or {}
-    return {'duty': _clamp_duty(payload.get('duty'))}
+    board.set_fan_duty(_clamp_duty(payload.get('duty')))
+    return board.config.json
 
 
 @app.route('/api/config/powerSourceType', methods=['POST'])

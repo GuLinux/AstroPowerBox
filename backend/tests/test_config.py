@@ -57,6 +57,7 @@ def test_config_loads_defaults_when_storage_is_empty():
     assert cfg.ap.psk == 'astropowerbox'
     assert cfg.stations == []
     assert cfg.status_led_duty == 1.0
+    assert cfg.fan_duty == 1.0
     assert cfg.pinout_file == ''
 
 
@@ -65,16 +66,20 @@ def test_config_save_persists_pinout_and_status_led():
     cfg = Config(storage)
 
     cfg.status_led_duty = 0.42
+    cfg.fan_duty = 0.35
     cfg.pinout_file = 'pinout_esp32_c3.json'
     cfg.save()
 
     assert storage.data['stLedDuty'] == 0.42
+    assert storage.data['fanDuty'] == 0.35
     assert storage.data['pinoutFile'] == 'pinout_esp32_c3.json'
 
 
 def test_config_json_includes_pinout_file():
     cfg = Config(MemoryStorage())
     cfg.pinout_file = 'pinout_esp32_wroom_v1.json'
+    cfg.fan_duty = 0.5
 
     payload = cfg.json
     assert payload['pinoutFile'] == 'pinout_esp32_wroom_v1.json'
+    assert payload['fanDuty'] == 0.5

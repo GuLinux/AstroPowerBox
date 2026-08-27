@@ -7,6 +7,10 @@
         "type": "pwm",
         "pin": "LED_STATUS"
     },
+    "fan": {
+        "type": "pwm",
+        "pin": "FAN"
+    },
     "heaters": [
         {
             "type": "pwm",

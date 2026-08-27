@@ -31,6 +31,14 @@ class Config(Protocol):
         raise NotImplementedError()
 
     @property
+    def fan_duty(self) -> float:
+        raise NotImplementedError()
+
+    @fan_duty.setter
+    def fan_duty(self, duty: float) -> None:
+        raise NotImplementedError()
+
+    @property
     def pinout_file(self) -> str:
         raise NotImplementedError()
 
