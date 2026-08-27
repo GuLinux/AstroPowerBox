@@ -135,6 +135,12 @@ class ButtonPin:
         if self._lgpio_callback is not None:
             self._lgpio_callback.cancel()
 
+    def __str__(self):
+        return f'ButtonPin(pin_name={self.pin_name}, chip={self.chip}, line={self.line})'
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class AnalogInputPin:
     """Analog input pin using ADS1115 ADC"""
@@ -178,6 +184,12 @@ class AnalogInputPin:
         """
         raw = self.ads.readADC(self.adc_channel)
         return raw * self._voltage_scale
+
+    def __str__(self):
+        return f'AnalogInputPin(pin_name={self.pin_name}, i2c_bus={self.i2c_bus}, i2c_addr=0x{self.i2c_addr:X}, channel={self.adc_channel})'
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class DigitalOutputPin:
@@ -233,6 +245,12 @@ class DigitalOutputPin:
     def duty(self, value: float) -> None:
         """Set on (True) if duty > 0, off (False) if duty == 0"""
         self.on = value > 0.0
+
+    def __str__(self):
+        return f'DigitalOutputPin(pin_name={self.pin_name}, on={self._value})'
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class PWMOutputPin:
@@ -302,3 +320,9 @@ class PWMOutputPin:
     def on_duty_changed(self, callback: typing.Callable[[float], None]) -> None:
         """Register callback for duty cycle changes"""
         self._callbacks.append(callback)
+
+    def __str__(self):
+        return f'PWMOutputPin(pin_name={self.pin_name}, frequency={self.frequency}, duty={self._duty})'
+
+    def __repr__(self):
+        return self.__str__()

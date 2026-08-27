@@ -10,12 +10,12 @@
     "heaters": [
         {
             "type": "pwm",
-            "pin": "PWM0",
+            "pin": "PWM1",
             "temp": "ANALOG_IN0"
         },
         {
             "type": "pwm",
-            "pin": "PWM1",
+            "pin": "PWM2",
             "temp": "ANALOG_IN1"
         }
     ],

@@ -174,6 +174,42 @@ class _FakeBoard:
         }
 
 
+class _FakePWMOutputPin:
+    def __init__(self, board_state, pin_id):
+        self.is_pwm = True
+        self._board_state = board_state
+        self._pin_id = pin_id
+
+    @property
+    def duty(self):
+        return float(self._board_state[self._pin_id].get('duty', 0.0))
+
+    @duty.setter
+    def duty(self, value):
+        duty = max(0.0, min(1.0, float(value)))
+        self._board_state[self._pin_id]['duty'] = duty
+        self._board_state[self._pin_id]['on'] = duty > 0
+
+
+class _FakePWMBoard:
+    def __init__(self):
+        self.pin_states = {
+            'output_0': {
+                'id': 'output_0',
+                'role': 'output',
+                'kind': 'pwm',
+                'duty': 0.0,
+                'on': False,
+            }
+        }
+        self.output_pins = {
+            'output_0': _FakePWMOutputPin(self.pin_states, 'output_0')
+        }
+
+    def pin_status_snapshot(self):
+        return {'pins': list(self.pin_states.values())}
+
+
 def test_get_pinout_files_returns_files_and_current(monkeypatch):
     main = _import_main(monkeypatch)
     main.board = _FakeBoard()
@@ -227,3 +263,26 @@ def test_write_config_triggers_save(monkeypatch):
     payload = asyncio.run(main.write_config(_Request()))
     assert fake_board.config._save_calls == 1
     assert payload['statusLedDuty'] == 1.0
+
+
+def test_set_pwm_output_ignores_active_input_flag(monkeypatch):
+    main = _import_main(monkeypatch)
+    main.board = _FakePWMBoard()
+
+    payload = asyncio.run(main.set_pwm_output(_Request({'index': 0, 'mode': 'fixed', 'active': False, 'duty': 0.6})))
+
+    assert main.board.output_pins['output_0'].duty == 0.6
+    assert payload['pwmOutputs'][0]['duty'] == 0.6
+    assert payload['pwmOutputs'][0]['active'] is True
+
+
+def test_set_pwm_output_mode_off_forces_output_off(monkeypatch):
+    main = _import_main(monkeypatch)
+    main.board = _FakePWMBoard()
+    main.board.output_pins['output_0'].duty = 0.8
+
+    payload = asyncio.run(main.set_pwm_output(_Request({'index': 0, 'mode': 'off', 'duty': 0.8})))
+
+    assert main.board.output_pins['output_0'].duty == 0.0
+    assert payload['pwmOutputs'][0]['duty'] == 0.0
+    assert payload['pwmOutputs'][0]['active'] is False

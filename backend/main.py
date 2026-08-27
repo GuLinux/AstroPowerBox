@@ -7,6 +7,8 @@ from board_compat import asyncio, server_port, server_debug
 from board import Board
 from config import WiFi
 
+logger = logging.getLogger(__name__)
+
 app = Microdot()
 if server_debug:
     logging.basicConfig(level=logging.DEBUG)
@@ -212,21 +214,23 @@ async def set_pwm_output(request):
 
     pin_id = pin_ids[index]
     output_pin = board.output_pins[pin_id]
+    logger.debug(f'Setting PWM output for pin {pin_id}-{output_pin} with payload: {payload}')
 
     mode = payload.get('mode')
-    active = payload.get('active')
-    if mode == 'off' or active is False:
+    if mode == 'off':
         duty = 0.0
     elif 'max_duty' in payload:
         duty = _clamp_duty(payload.get('max_duty'))
     elif 'duty' in payload:
         duty = _clamp_duty(payload.get('duty'))
     else:
-        duty = 1.0 if active else _clamp_duty(getattr(output_pin, 'duty', 0.0))
+        duty = _clamp_duty(getattr(output_pin, 'duty', 0.0))
 
     if output_pin.is_pwm:
+        logger.debug(f'Setting duty cycle for PWM output pin {pin_id} to {duty}')
         output_pin.duty = duty
     else:
+        logger.debug(f'Setting digital output pin {pin_id} to {"on" if duty > 0 else "off"}')
         output_pin.on = duty > 0
 
     return _pwm_outputs_payload()
