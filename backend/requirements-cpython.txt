@@ -1,2 +1,3 @@
 appdirs
 PyYAML
+ADS1x15-ADC==1.1.2

@@ -2,6 +2,8 @@ import re
 import typing
 import json
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     import lgpio
