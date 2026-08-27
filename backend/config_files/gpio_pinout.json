@@ -26,6 +26,7 @@
     "RELAY1": "GPIO0_D16"
   },
   "adc": {
+    "calibration": 1.0,
     "ANALOG_IN0": {
       "i2c_bus": 1,
       "i2c_addr": "0x48",

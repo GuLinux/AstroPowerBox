@@ -15,6 +15,7 @@
     "LED_STATUS": "GPIO4_B3"
   },
   "adc": {
+    "calibration": 1.52,
     "ANALOG_IN0": {
       "i2c_bus": 2,
       "i2c_addr": "0x48",

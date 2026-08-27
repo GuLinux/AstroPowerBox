@@ -71,9 +71,10 @@ def _pwm_control_pin_ids() -> list[str]:
 
 
 def _pwm_outputs_payload() -> dict:
+    snapshot_by_id = {pin.get('id'): pin for pin in board.pin_status_snapshot().get('pins', [])}
     pwm_outputs = []
     for pin_id in _pwm_control_pin_ids():
-        state = board.pin_states.get(pin_id, {})
+        state = snapshot_by_id.get(pin_id, {})
         pwm_outputs.append({
             'type': 'heater' if state.get('role') == 'heater' else 'output',
             'active': bool(state.get('on', False)),
@@ -84,8 +85,8 @@ def _pwm_outputs_payload() -> dict:
             'apply_at_startup': False,
             'target_temperature': None,
             'dewpoint_offset': None,
-            'temperature': None,
-            'has_temperature': state.get('role') == 'heater',
+            'temperature': state.get('temperature'),
+            'has_temperature': board.has_temperature_sensor(pin_id),
         })
     return {'pwmOutputs': pwm_outputs}
 

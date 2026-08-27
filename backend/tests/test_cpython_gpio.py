@@ -1,4 +1,5 @@
 import pytest
+import json
 
 import boards.cpython.gpio as gpio
 
@@ -49,6 +50,8 @@ class _Lgpio:
 
 
 class _PinConfig:
+    adc_calibration = 1.0
+
     def get_gpio_pin(self, pin_name):
         return {
             'DIGITAL': 'GPIO1_B3',
@@ -58,7 +61,7 @@ class _PinConfig:
 
     def get_adc_config(self, pin_name):
         assert pin_name == 'ANALOG'
-        return {'i2c_bus': 1, 'i2c_addr': 72, 'channel': 2}
+        return {'i2c_bus': 1, 'i2c_addr': '0x48', 'channel': 2}
 
 
 class _AdsDevice:
@@ -72,16 +75,32 @@ class _AdsDevice:
     def setGain(self, gain):
         self.gains.append(gain)
 
-    def toVoltage(self):
+    def getGain(self):
+        if self.gains:
+            return self.gains[-1]
+        return None
+
+    def toVoltage(self, gain=None):
         return 0.01
 
     def readADC(self, channel):
         assert channel == 2
-        return 123
+        return int(123)
 
 
 class _AdsModule:
     ADS1115 = _AdsDevice
+
+
+class _GainAwareAdsDevice(_AdsDevice):
+    def toVoltage(self, gain=None):
+        # Simulate implementations where bare toVoltage() is wrong unless
+        # conversion is bound to the configured gain value.
+        return 0.01 if gain == self.PGA_4_096V else 0.0066666667
+
+
+class _GainAwareAdsModule:
+    ADS1115 = _GainAwareAdsDevice
 
 
 @pytest.fixture
@@ -150,4 +169,48 @@ def test_button_and_analog_input_use_hardware_adapters(fake_gpio):
     assert changes == [True]
     assert first_handle.cancelled is True
     assert analog.value == 1.23
-    assert analog.ads.gains == ['gain']
+    assert getattr(analog.ads, 'gains') == ['gain']
+
+
+def test_analog_input_uses_gain_aware_voltage_scale(monkeypatch):
+    fake_lgpio = _Lgpio()
+    monkeypatch.setattr(gpio, 'lgpio', fake_lgpio)
+    monkeypatch.setattr(gpio, '_pin_config', _PinConfig())
+    monkeypatch.setattr(gpio, '_ads1115_available', True)
+    monkeypatch.setattr(gpio, 'ADS1x15', _GainAwareAdsModule, raising=False)
+    gpio.AnalogInputPin._ads_instances = {}
+
+    analog = gpio.AnalogInputPin('ANALOG')
+    assert getattr(analog.ads, 'gains') == ['gain']
+    assert analog.value == pytest.approx(0.82, rel=1e-6)
+
+
+def test_analog_input_applies_adc_calibration_factor(monkeypatch):
+    fake_lgpio = _Lgpio()
+
+    class _CalibratedPinConfig(_PinConfig):
+        adc_calibration = 1.5
+
+    monkeypatch.setattr(gpio, 'lgpio', fake_lgpio)
+    monkeypatch.setattr(gpio, '_pin_config', _CalibratedPinConfig())
+    monkeypatch.setattr(gpio, '_ads1115_available', True)
+    monkeypatch.setattr(gpio, 'ADS1x15', _AdsModule, raising=False)
+    gpio.AnalogInputPin._ads_instances = {}
+
+    analog = gpio.AnalogInputPin('ANALOG')
+    assert analog.value == pytest.approx(1.845, rel=1e-6)
+
+
+def test_pin_config_loads_adc_calibration_from_adc_section(tmp_path):
+    config_file = tmp_path / 'gpio_pinout.json'
+    config_file.write_text(json.dumps({
+        'pinout': {'DIGITAL': 'GPIO1_B3'},
+        'adc': {
+            'calibration': 1.52,
+            'ANALOG': {'i2c_bus': 1, 'i2c_addr': '0x48', 'channel': 0},
+        },
+    }))
+
+    pin_config = gpio.PinConfig(str(config_file))
+
+    assert pin_config.adc_calibration == pytest.approx(1.52)

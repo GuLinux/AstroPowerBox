@@ -85,6 +85,9 @@ def _import_main(monkeypatch):
         def pin_event_snapshot(self):
             return {}
 
+        def has_temperature_sensor(self, _pin_id):
+            return False
+
         async def start(self):
             return None
 
@@ -225,6 +228,9 @@ class _FakePWMBoard:
 
     def pin_status_snapshot(self):
         return {'pins': list(self.pin_states.values())}
+
+    def has_temperature_sensor(self, _pin_id):
+        return False
 
 
 def test_get_pinout_files_returns_files_and_current(monkeypatch):

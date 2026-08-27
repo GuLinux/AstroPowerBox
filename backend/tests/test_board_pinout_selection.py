@@ -141,6 +141,94 @@ def test_collect_output_configs_accepts_nested_status_led_output_object():
     ]
 
 
+def test_collect_output_configs_preserves_nested_heater_thermistor_pin():
+    board = _new_board()
+    board.pinout_config = {
+        'pinout': {
+            'pwm_outputs': [
+                {'name': 'PWM0', 'pin': 41, 'type': 'Heater', 'thermistor_pin': 2},
+            ]
+        },
+    }
+
+    assert _call_private(board, '_Board__collect_output_configs') == [
+        ('PWM0', 'heater', {'type': 'pwm', 'pin': 41, 'thermistor_pin': 2}),
+    ]
+
+
+def test_resolve_temperature_pin_name_uses_heater_temp_and_thermistor_fields():
+    board = _new_board()
+
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'heater', {'temp': 'ANALOG_IN0'}) == 'ANALOG_IN0'
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'heater', {'temp': {'type': 'thermistor', 'pin': 'ANALOG_IN0'}}) == 'ANALOG_IN0'
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'heater', {'thermistor_pin': 3}) == '3'
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'heater', {'thermistor_pin': -1}) is None
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'heater', {'temp': {'type': 'other', 'pin': 'ANALOG_IN0'}}) is None
+    assert _call_private(board, '_Board__resolve_temperature_pin_name', 'output', {'temp': 'ANALOG_IN0'}) is None
+
+
+def test_resolve_thermistor_model_merges_global_and_local_overrides():
+    board = _new_board()
+    board.pinout_config = {
+        'thermistor': {'beta': 3435, 'vcc': 5.0},
+    }
+
+    model = _call_private(board, '_Board__resolve_thermistor_model', {'thermistor': {'series_resistor': 4700}})
+    assert model['beta'] == 3435.0
+    assert model['vcc'] == 5.0
+    assert model['series_resistor'] == 4700.0
+    assert model['r0'] == 10000.0
+    assert model['t0_c'] == 25.0
+
+
+def test_resolve_thermistor_model_accepts_temp_object_overrides():
+    board = _new_board()
+    board.pinout_config = {}
+
+    model = _call_private(board, '_Board__resolve_thermistor_model', {
+        'temp': {
+            'type': 'thermistor',
+            'pin': 'ANALOG_IN0',
+            'beta': 3435,
+            'series_resistor': 4700,
+        }
+    })
+    assert model['type'] == 'thermistor'
+    assert model['beta'] == 3435.0
+    assert model['series_resistor'] == 4700.0
+    assert model['r0'] == 10000.0
+
+
+def test_resolve_thermistor_model_accepts_nested_pinout_defaults():
+    board = _new_board()
+    board.pinout_config = {
+        'pinout': {
+            'thermistor': {'beta': 3380, 'vcc': 5.0, 'wiring': 'ntc_to_vcc'},
+        },
+    }
+
+    model = _call_private(board, '_Board__resolve_thermistor_model', {})
+    assert model['beta'] == 3380.0
+    assert model['vcc'] == 5.0
+    assert model['wiring'] == 'ntc_to_vcc'
+
+
+def test_voltage_to_temperature_c_matches_nominal_10k_3950_divider():
+    board = _new_board()
+    model = {
+        'beta': 3950.0,
+        'r0': 10000.0,
+        't0_c': 25.0,
+        'series_resistor': 10000.0,
+        'vcc': 3.3,
+        'wiring': 'ntc_to_gnd',
+    }
+
+    temperature = _call_private(board, '_Board__voltage_to_temperature_c', 1.65, model)
+    assert temperature is not None
+    assert abs(temperature - 25.0) < 0.2
+
+
 def test_collect_output_configs_accepts_nested_fan_output_object():
     board = _new_board()
     board.pinout_config = {

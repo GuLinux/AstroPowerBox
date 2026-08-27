@@ -31,10 +31,18 @@ class PinConfig:
                     data = json.load(f)
                     self.config = data.get('pinout', {})
                     self.adc_config = data.get('adc', {})
+                    adc_section = data.get('adc', {})
+                    if isinstance(adc_section, dict):
+                        self.adc_calibration = float(adc_section.get('calibration', data.get('adc_calibration', 1.0)))
+                    else:
+                        self.adc_calibration = float(data.get('adc_calibration', 1.0))
             except Exception as e:
                 raise RuntimeError(f'Failed to load pin configuration from {config_path}: {e}')
         else:
             raise RuntimeError(f'Pin configuration file not found: {config_path}')
+
+        if not hasattr(self, 'adc_calibration'):
+            self.adc_calibration = 1.0
     
     def get_gpio_pin(self, pin_name: str) -> str:
         """Get GPIO format string for a pin name (e.g., 'PWM1' -> 'GPIO3_C2')"""
@@ -165,8 +173,9 @@ class AnalogInputPin:
         adc_config = config.get_adc_config(pin_name)
         
         self.i2c_bus = adc_config.get('i2c_bus', 2)
-        self.i2c_addr = adc_config.get('i2c_addr', 0x48)
+        self.i2c_addr = int(adc_config.get('i2c_addr', '0x48'), 16)
         self.adc_channel = adc_config.get('channel', 0)
+        logger.debug(f'Initializing AnalogInputPin {self.pin_name} on I2C bus {self.i2c_bus}, address 0x{self.i2c_addr:X}, channel {self.adc_channel}')
         
         # Get or create ADS1115 instance
         key = (self.i2c_bus, self.i2c_addr)
@@ -174,9 +183,11 @@ class AnalogInputPin:
             ads = ADS1x15.ADS1115(self.i2c_bus, self.i2c_addr)
             ads.setGain(ads.PGA_4_096V)  # Set to 4.096V max for better resolution
             AnalogInputPin._ads_instances[key] = ads
+            logger.debug(f'Created new ADS1115 instance for bus {self.i2c_bus}, address 0x{self.i2c_addr:X}')
         
         self.ads = AnalogInputPin._ads_instances[key]
         self._voltage_scale = self.ads.toVoltage()
+        self._adc_calibration = config.adc_calibration
     
     @property
     def value(self) -> float:
@@ -185,7 +196,17 @@ class AnalogInputPin:
         Returns voltage as float (0.0 to 4.096V for ADS1115 with PGA_4_096V)
         """
         raw = self.ads.readADC(self.adc_channel)
-        return raw * self._voltage_scale
+        voltage = raw * self._voltage_scale * self._adc_calibration
+        logger.debug(
+            'AnalogInputPin %s read channel=%s raw=%s scale=%.8fV/count calibration=%.4f voltage=%.4fV',
+            self.pin_name,
+            self.adc_channel,
+            raw,
+            self._voltage_scale,
+            self._adc_calibration,
+            voltage,
+        )
+        return voltage
 
     def __str__(self):
         return f'AnalogInputPin(pin_name={self.pin_name}, i2c_bus={self.i2c_bus}, i2c_addr=0x{self.i2c_addr:X}, channel={self.adc_channel})'

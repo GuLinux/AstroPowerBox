@@ -1,13 +1,15 @@
 import json
 import logging
+import math
 import os
 import sys
 from protocols.typing_compat import Callable
+import protocols.gpio
 from config import Config
 import protocols.wifi_manager
 import protocols.config_storage
 from status_led import StatusLed
-from board_compat import ConfigStorage, WiFiManager, pinout_config_path, gpio
+from board_compat import ConfigStorage, WiFiManager, pinout_config_path, gpio, asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,10 @@ class Board:
     pinout_config: dict
     pin_states: dict
     fan_pin_id: str | None
+    heater_temperature_pin_names: dict[str, str]
+    heater_temperature_pins: dict[str, protocols.gpio.AnalogInputPin]
+    heater_temperature_models: dict[str, dict]
+    temperature_stream_interval_s: float
 
     def list_available_pinout_files(self) -> list[dict]:
         files = []
@@ -70,25 +76,19 @@ class Board:
         self._pin_update_listeners.append(callback)
 
     def pin_status_snapshot(self) -> dict:
+        self.__refresh_heater_temperatures()
         return {
             'pins': list(self.pin_states.values())
         }
 
     def pin_event_snapshot(self) -> dict:
-        event = {}
-        for pin_id, state in self.pin_states.items():
-            if pin_id == 'status_led':
-                continue
-
-            pin_data = {'on': bool(state.get('on', False))}
-            if 'duty' in state:
-                pin_data['duty'] = state.get('duty', 0.0)
-            event[pin_id] = pin_data
-
-        return event
+        self.__refresh_heater_temperatures()
+        return self.__build_pin_event_snapshot()
 
     async def start(self):
         self.apply_fan_duty()
+        if len(getattr(self, 'heater_temperature_pins', {})) > 0:
+            asyncio.create_task(self.__temperature_stream_loop())
         await self.status_led.start()
 
     def __init__(self):
@@ -100,6 +100,10 @@ class Board:
         self.output_pins = {}
         self.button_pins = {}
         self.fan_pin_id = None
+        self.heater_temperature_pin_names = {}
+        self.heater_temperature_pins = {}
+        self.heater_temperature_models = {}
+        self.temperature_stream_interval_s = 2.0
 
         self.pinout_config_file = self.__resolve_pinout_config_path()
         with open(self.pinout_config_file, 'r') as pinout_config_file:
@@ -116,6 +120,11 @@ class Board:
             self.__register_output_pin(pin_id, role, output_pin)
             self.output_pins[pin_id] = output_pin
 
+            temperature_pin_name = self.__resolve_temperature_pin_name(role, output_cfg)
+            if temperature_pin_name:
+                self.heater_temperature_pin_names[pin_id] = str(temperature_pin_name)
+                self.heater_temperature_models[pin_id] = self.__resolve_thermistor_model(output_cfg)
+
         for pin_id, button_pin_name in self.__collect_button_configs():
             self.__log_pin_initialization(configured_pins, pin_id, 'button', 'input', button_pin_name)
             button_pin = self.__load_button(pin_id, button_pin_name)
@@ -129,6 +138,8 @@ class Board:
         self.wifi_manager.on_connecting = lambda: self.status_led.wifi_connecting()
         self.wifi_manager.on_station_connected = lambda _: self.status_led.status_ok()
         self.wifi_manager.on_ap_started = lambda _: self.status_led.wifi_failed()
+        self.__load_heater_temperature_pins()
+        self.__refresh_heater_temperatures()
 
     def has_fan_output(self) -> bool:
         return self.fan_pin_id is not None and self.fan_pin_id in self.output_pins
@@ -144,6 +155,9 @@ class Board:
     def set_fan_duty(self, duty: float) -> None:
         self.config.fan_duty = duty
         self.apply_fan_duty()
+
+    def has_temperature_sensor(self, pin_id: str) -> bool:
+        return pin_id in self.heater_temperature_pins
         
 
     def __load_output(self, pin_id: str, role: str, config: dict):
@@ -208,7 +222,10 @@ class Board:
 
             for index, output in enumerate(pinout_section.get('pwm_outputs', [])):
                 role = 'heater' if str(output.get('type', '')).lower() == 'heater' else 'output'
-                output_configs.append((output.get('name', f'{role}_{index}'), role, {'type': 'pwm', 'pin': output['pin']}))
+                config = {'type': 'pwm', 'pin': output['pin']}
+                if 'thermistor_pin' in output:
+                    config['thermistor_pin'] = output.get('thermistor_pin')
+                output_configs.append((output.get('name', f'{role}_{index}'), role, config))
 
         return output_configs
 
@@ -238,6 +255,161 @@ class Board:
                 return {'type': 'pwm', 'pin': fan_pwm}
 
         return None
+
+    def __resolve_temperature_pin_name(self, role: str, output_cfg: dict) -> str | None:
+        if role != 'heater':
+            return None
+
+        temp_pin = output_cfg.get('temp')
+        if isinstance(temp_pin, dict):
+            if str(temp_pin.get('type', 'thermistor')).lower() != 'thermistor':
+                return None
+            pin_name = temp_pin.get('pin')
+            if pin_name not in (None, ''):
+                return str(pin_name)
+            return None
+
+        if temp_pin not in (None, ''):
+            return str(temp_pin)
+
+        thermistor_pin = output_cfg.get('thermistor_pin')
+        if thermistor_pin in (None, '', -1):
+            return None
+        return str(thermistor_pin)
+
+    def __resolve_thermistor_model(self, output_cfg: dict) -> dict:
+        defaults = {
+            'beta': 3950.0,
+            'r0': 10000.0,
+            't0_c': 25.0,
+            'series_resistor': 10000.0,
+            'vcc': 3.3,
+            'wiring': 'ntc_to_gnd',
+        }
+
+        global_model = self.pinout_config.get('thermistor')
+        if isinstance(global_model, dict):
+            defaults.update(global_model)
+
+        pinout_section = self.pinout_config.get('pinout', {})
+        if isinstance(pinout_section, dict):
+            nested_global_model = pinout_section.get('thermistor')
+            if isinstance(nested_global_model, dict):
+                defaults.update(nested_global_model)
+
+        temp_pin = output_cfg.get('temp')
+        if isinstance(temp_pin, dict):
+            defaults.update(temp_pin)
+
+        local_model = output_cfg.get('thermistor')
+        if isinstance(local_model, dict):
+            defaults.update(local_model)
+
+        model = {}
+        for key in ['beta', 'r0', 't0_c', 'series_resistor', 'vcc']:
+            try:
+                model[key] = float(defaults[key])
+            except Exception:
+                model[key] = float({
+                    'beta': 3950.0,
+                    'r0': 10000.0,
+                    't0_c': 25.0,
+                    'series_resistor': 10000.0,
+                    'vcc': 3.3,
+                }[key])
+
+        model['wiring'] = str(defaults.get('wiring', 'ntc_to_gnd')).lower()
+        model['type'] = str(defaults.get('type', 'thermistor')).lower()
+        return model
+
+    def __voltage_to_temperature_c(self, voltage: float, model: dict) -> float | None:
+        vcc = model['vcc']
+        if voltage <= 0.0 or voltage >= vcc:
+            return None
+
+        series_resistor = model['series_resistor']
+        if model.get('wiring') == 'ntc_to_vcc':
+            resistance = series_resistor * (vcc - voltage) / voltage
+        else:
+            resistance = series_resistor * voltage / (vcc - voltage)
+
+        if resistance <= 0.0:
+            return None
+
+        t0_k = model['t0_c'] + 273.15
+        beta = model['beta']
+        r0 = model['r0']
+
+        try:
+            inv_t = (1.0 / t0_k) + (1.0 / beta) * math.log(resistance / r0)
+            temperature_k = 1.0 / inv_t
+            return temperature_k - 273.15
+        except Exception:
+            return None
+
+    def __load_heater_temperature_pins(self) -> None:
+        self.heater_temperature_pins = {}
+        for pin_id, pin_name in self.heater_temperature_pin_names.items():
+            try:
+                self.heater_temperature_pins[pin_id] = gpio.AnalogInputPin(pin_name)
+            except Exception as error:
+                logger.warning(
+                    "Failed to initialize heater temperature sensor for '%s' configured as '%s': %s",
+                    pin_id,
+                    pin_name,
+                    error,
+                )
+
+    def __refresh_heater_temperatures(self) -> bool:
+        changed = False
+        for pin_id, sensor in self.heater_temperature_pins.items():
+            pin_state = self.pin_states.get(pin_id)
+            if not isinstance(pin_state, dict):
+                continue
+
+            previous_value = pin_state.get('temperature')
+            try:
+                voltage = float(sensor.value)
+                model = self.heater_temperature_models.get(pin_id, self.__resolve_thermistor_model({}))
+                temperature_c = self.__voltage_to_temperature_c(voltage, model)
+                pin_state['temperature'] = round(float(temperature_c), 2) if temperature_c is not None else None
+                logger.debug(
+                    "Heater '%s' raw voltage=%.4fV mapped temperature=%sC",
+                    pin_id,
+                    voltage,
+                    'None' if pin_state['temperature'] is None else f"{pin_state['temperature']:.2f}",
+                )
+            except Exception as error:
+                pin_state['temperature'] = None
+                logger.warning("Failed reading heater temperature for '%s': %s", pin_id, error)
+
+            if pin_state.get('temperature') != previous_value:
+                changed = True
+
+        return changed
+
+    def __build_pin_event_snapshot(self) -> dict:
+        event = {}
+        for pin_id, state in self.pin_states.items():
+            if pin_id == 'status_led':
+                continue
+
+            pin_data = {'on': bool(state.get('on', False))}
+            if 'duty' in state:
+                pin_data['duty'] = state.get('duty', 0.0)
+            if 'temperature' in state:
+                pin_data['temperature'] = state.get('temperature')
+            event[pin_id] = pin_data
+
+        return event
+
+    async def __temperature_stream_loop(self):
+        while True:
+            if self.__refresh_heater_temperatures() and len(self._pin_update_listeners) > 0:
+                event = self.__build_pin_event_snapshot()
+                for callback in self._pin_update_listeners:
+                    callback(event)
+            await asyncio.sleep(self.temperature_stream_interval_s)
 
     def __collect_button_configs(self) -> list[tuple[str, str]]:
         button_configs: list[tuple[str, str]] = []

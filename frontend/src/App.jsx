@@ -23,6 +23,7 @@ const registerEventSource = dispatch => {
           duty,
           active: !!pin.on,
           type: id.startsWith('heater_') ? 'heater' : 'output',
+          temperature: typeof pin.temperature === 'number' ? pin.temperature : undefined,
         };
       });
     if (pwmOutputs.length > 0) {

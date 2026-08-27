@@ -15,12 +15,30 @@
         {
             "type": "pwm",
             "pin": "PWM1",
-            "temp": "ANALOG_IN0"
+            "temp": {
+                "type": "thermistor",
+                "pin": "ANALOG_IN0",
+                "beta": 3950,
+                "r0": 10000,
+                "t0_c": 25,
+                "series_resistor": 10000,
+                "vcc": 3.3,
+                "wiring": "ntc_to_vcc"
+            }
         },
         {
             "type": "pwm",
             "pin": "PWM2",
-            "temp": "ANALOG_IN1"
+            "temp": {
+                "type": "thermistor",
+                "pin": "ANALOG_IN1",
+                "beta": 3950,
+                "r0": 10000,
+                "t0_c": 25,
+                "series_resistor": 10000,
+                "vcc": 3.3,
+                "wiring": "ntc_to_vcc"
+            }
         }
     ],
     "outputs": [

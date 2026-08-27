@@ -47,10 +47,9 @@ def test_simulator_board_publishes_pin_events_for_output_and_button(simulator_bo
     heater.duty = 0.4
 
     assert (tmp_path / heater.pin_name).read_text() == '0.4'
-    assert events[-1]['heater_0'] == {
-        'duty': 0.4,
-        'on': True,
-    }
+    assert events[-1]['heater_0']['duty'] == 0.4
+    assert events[-1]['heater_0']['on'] is True
+    assert 0.0 < events[-1]['heater_0']['temperature'] < 80.0
 
     board_instance.button_pins['button_0']._trigger_callback(True)
     snapshot = board_instance.pin_status_snapshot()
@@ -78,3 +77,19 @@ def test_simulator_board_persists_configuration_and_reloads_it(simulator_board):
     assert saved['pinoutFile'] == 'pinout.json'
     assert reloaded.config.status_led_duty == 0.25
     assert reloaded.get_pinout_selection()['selectedFile'] == 'pinout.json'
+
+
+def test_simulator_board_reports_heater_temperature_inputs(simulator_board):
+    board_instance, _, _ = simulator_board
+
+    assert board_instance.has_temperature_sensor('heater_0') is True
+    assert board_instance.has_temperature_sensor('heater_1') is True
+
+    snapshot = board_instance.pin_status_snapshot()
+    heater_0 = next(pin for pin in snapshot['pins'] if pin['id'] == 'heater_0')
+    heater_1 = next(pin for pin in snapshot['pins'] if pin['id'] == 'heater_1')
+
+    assert isinstance(heater_0['temperature'], float)
+    assert isinstance(heater_1['temperature'], float)
+    assert 0.0 < heater_0['temperature'] < 80.0
+    assert 0.0 < heater_1['temperature'] < 80.0
