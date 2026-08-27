@@ -1,4 +1,23 @@
+def _skip(message):
+    try:
+        import pytest
+
+        pytest.skip(message)
+    except Exception:
+        from tests_mpy.run_tests import SkipTest
+
+        raise SkipTest(message)
+
+
+def _require_micropython():
+    import sys
+
+    if getattr(sys.implementation, 'name', '') != 'micropython':
+        _skip('MicroPython runtime required')
+
+
 def test_esp32_runtime_is_available():
+    _require_micropython()
     from machine import unique_id
 
     if not unique_id():
@@ -6,14 +25,18 @@ def test_esp32_runtime_is_available():
 
 
 def test_status_led_pwm_output_on_device():
+    _require_micropython()
     import json
     import time
 
+    board_name = None
     try:
         from board_vars import board_name
     except ImportError:
-        from tests_mpy.run_tests import SkipTest
-        raise SkipTest('board_vars is not deployed')
+        _skip('board_vars is not deployed')
+
+    if board_name is None:
+        _skip('board_vars did not expose board_name')
 
     from boards.esp32.gpio import PWMOutputPin
 
@@ -40,12 +63,6 @@ def test_status_led_pwm_output_on_device():
         raise AssertionError('Status LED duty callbacks did not report both changes')
 
 
-def _skip(message):
-    from tests_mpy.run_tests import SkipTest
-
-    raise SkipTest(message)
-
-
 class _MemoryStorage:
     def __init__(self):
         self.data = {}
@@ -54,6 +71,14 @@ class _MemoryStorage:
         return self.data.get(key, default)
 
     def load_float(self, key, default=0.0):
+        return self.data.get(key, default)
+
+    def load_int(self, key, default=0):
+        return self.data.get(key, default)
+
+    def load_json(self, key, maximum_size=1024, default=None):
+        if default is None:
+            default = {}
         return self.data.get(key, default)
 
     def load_wifi(self):
@@ -67,6 +92,12 @@ class _MemoryStorage:
         self.data[key] = value
 
     def save_float(self, key, value):
+        self.data[key] = value
+
+    def save_int(self, key, value):
+        self.data[key] = value
+
+    def save_json(self, key, value):
         self.data[key] = value
 
     def save_wifi(self, stations, ap):
@@ -88,6 +119,7 @@ def _new_config(stations):
 
 
 def test_wifi_connects_to_configured_station_from_env():
+    _require_micropython()
     import uasyncio as asyncio
     from boards.esp32.wifi_manager import ESPWiFiManager
     from wifi import WiFi
@@ -125,6 +157,7 @@ def test_wifi_connects_to_configured_station_from_env():
 
 
 def test_wifi_falls_back_to_ap_mode_when_station_is_unavailable():
+    _require_micropython()
     import uasyncio as asyncio
     from boards.esp32.wifi_manager import ESPWiFiManager
     from wifi import WiFi

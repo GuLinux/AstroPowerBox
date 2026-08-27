@@ -22,7 +22,7 @@ class StatusLed:
                 await asyncio.sleep(time)
 
     def _set_led(self, state):
-        self.gpio_output.duty = self.config.status_led_duty if state else 0.0 
+        self.gpio_output.duty = self.config.status_led_duty if state else False
 
     def wifi_connecting(self):
         logger.debug('Status led: wifi connecting')
