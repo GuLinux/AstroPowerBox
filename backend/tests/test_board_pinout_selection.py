@@ -1,9 +1,26 @@
 import os
 import asyncio
+import importlib
 from types import SimpleNamespace
 from typing import Any, cast
+import pytest
 
+import board_compat as board_compat_module
 import board as board_module
+
+
+@pytest.fixture(autouse=True)
+def _force_simulator_gpio_backend(monkeypatch):
+    # Keep this module independent from host hardware (I2C/GPIO availability).
+    with monkeypatch.context() as context:
+        context.setenv('SIMULATOR_GPIO', '1')
+        importlib.reload(board_compat_module)
+        importlib.reload(board_module)
+        yield
+
+    # Restore module state for tests outside this file.
+    importlib.reload(board_compat_module)
+    importlib.reload(board_module)
 
 
 def _new_board():
