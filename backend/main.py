@@ -57,6 +57,42 @@ def _clamp_duty(value) -> float:
     return max(0.0, min(1.0, duty))
 
 
+def _optional_float(value):
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _clamp_range(value, minimum: float, maximum: float, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+def _build_startup_profile(payload: dict, duty: float, current_state: dict) -> dict:
+    mode = str(payload.get('mode') or ('fixed' if bool(current_state.get('on', False)) else 'off'))
+    if mode == 'off':
+        duty = 0.0
+
+    max_duty = _clamp_duty(payload.get('max_duty', duty))
+    min_duty = _clamp_duty(payload.get('min_duty', 0.0))
+
+    return {
+        'mode': mode,
+        'duty': duty,
+        'max_duty': max_duty,
+        'min_duty': min_duty,
+        'target_temperature': _optional_float(payload.get('target_temperature')),
+        'dewpoint_offset': _optional_float(payload.get('dewpoint_offset')),
+        'ramp_offset': _clamp_range(payload.get('ramp_offset', 0.0), 0.0, 5.0, 0.0),
+    }
+
+
 def _pwm_control_pin_ids() -> list[str]:
     pin_ids = []
     for pin in board.pin_status_snapshot().get('pins', []):
@@ -75,16 +111,37 @@ def _pwm_outputs_payload() -> dict:
     pwm_outputs = []
     for pin_id in _pwm_control_pin_ids():
         state = snapshot_by_id.get(pin_id, {})
+        startup_profiles = getattr(board.config, 'pwm_output_startup', {})
+        startup_profile = startup_profiles.get(pin_id) if isinstance(startup_profiles, dict) else None
+        apply_at_startup = isinstance(startup_profile, dict)
+
+        mode = 'fixed' if state.get('on', False) else 'off'
+        max_duty = _clamp_duty(state.get('duty', 0.0))
+        min_duty = 0.0
+        target_temperature = None
+        dewpoint_offset = None
+        ramp_offset = 0.0
+
+        if isinstance(startup_profile, dict):
+            mode = str(startup_profile.get('mode', mode))
+            max_duty = _clamp_duty(startup_profile.get('max_duty', max_duty))
+            min_duty = _clamp_duty(startup_profile.get('min_duty', min_duty))
+            target_temperature = _optional_float(startup_profile.get('target_temperature'))
+            dewpoint_offset = _optional_float(startup_profile.get('dewpoint_offset'))
+            ramp_offset = _optional_float(startup_profile.get('ramp_offset'))
+            ramp_offset = 0.0 if ramp_offset is None else max(0.0, ramp_offset)
+
         pwm_outputs.append({
             'type': 'heater' if state.get('role') == 'heater' else 'output',
             'active': bool(state.get('on', False)),
             'duty': _clamp_duty(state.get('duty', 0.0)),
-            'mode': 'fixed' if state.get('on', False) else 'off',
-            'max_duty': _clamp_duty(state.get('duty', 0.0)),
-            'min_duty': 0.0,
-            'apply_at_startup': False,
-            'target_temperature': None,
-            'dewpoint_offset': None,
+            'mode': mode,
+            'max_duty': max_duty,
+            'min_duty': min_duty,
+            'apply_at_startup': apply_at_startup,
+            'target_temperature': target_temperature,
+            'dewpoint_offset': dewpoint_offset,
+            'ramp_offset': ramp_offset,
             'temperature': state.get('temperature'),
             'has_temperature': board.has_temperature_sensor(pin_id),
         })
@@ -215,6 +272,7 @@ async def set_pwm_output(request):
 
     pin_id = pin_ids[index]
     output_pin = board.output_pins[pin_id]
+    current_state = next((pin for pin in board.pin_status_snapshot().get('pins', []) if pin.get('id') == pin_id), {})
     logger.debug(f'Setting PWM output for pin {pin_id}-{output_pin} with payload: {payload}')
 
     mode = payload.get('mode')
@@ -233,6 +291,10 @@ async def set_pwm_output(request):
     else:
         logger.debug(f'Setting digital output pin {pin_id} to {"on" if duty > 0 else "off"}')
         output_pin.on = duty > 0
+
+    if 'apply_at_startup' in payload:
+        startup_profile = _build_startup_profile(payload, duty, current_state)
+        board.set_pwm_output_startup(pin_id, startup_profile, bool(payload.get('apply_at_startup')))
 
     return _pwm_outputs_payload()
 

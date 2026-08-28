@@ -122,6 +122,7 @@ class _FakeConfig:
     def __init__(self):
         self._status_led_duty = 1.0
         self._fan_duty = 1.0
+        self._pwm_output_startup = {}
         self._save_calls = 0
 
     @property
@@ -141,10 +142,19 @@ class _FakeConfig:
         self._fan_duty = duty
 
     @property
+    def pwm_output_startup(self):
+        return self._pwm_output_startup
+
+    @pwm_output_startup.setter
+    def pwm_output_startup(self, value):
+        self._pwm_output_startup = value
+
+    @property
     def json(self):
         return {
             'statusLedDuty': self._status_led_duty,
             'fanDuty': self._fan_duty,
+            'pwmOutputStartup': self._pwm_output_startup,
             'pinoutFile': 'pinout_esp32_c3.json',
             'ap': {'ssid': 'AstroPowerBox', 'psk': 'astropowerbox'},
             'stations': [],
@@ -193,6 +203,12 @@ class _FakeBoard:
         self.last_set_fan_duty = duty
         self.config.fan_duty = duty
 
+    def set_pwm_output_startup(self, pin_id, profile, apply_at_startup):
+        if apply_at_startup:
+            self.config.pwm_output_startup[pin_id] = profile
+        else:
+            self.config.pwm_output_startup.pop(pin_id, None)
+
 
 class _FakePWMOutputPin:
     def __init__(self, board_state, pin_id):
@@ -213,6 +229,7 @@ class _FakePWMOutputPin:
 
 class _FakePWMBoard:
     def __init__(self):
+        self.config = _FakeConfig()
         self.pin_states = {
             'output_0': {
                 'id': 'output_0',
@@ -231,6 +248,12 @@ class _FakePWMBoard:
 
     def has_temperature_sensor(self, _pin_id):
         return False
+
+    def set_pwm_output_startup(self, pin_id, profile, apply_at_startup):
+        if apply_at_startup:
+            self.config.pwm_output_startup[pin_id] = profile
+        else:
+            self.config.pwm_output_startup.pop(pin_id, None)
 
 
 def test_get_pinout_files_returns_files_and_current(monkeypatch):
@@ -287,6 +310,56 @@ def test_set_fan_duty_returns_full_config_payload(monkeypatch):
     assert fake_board.last_set_fan_duty == 0.21
     assert payload['fanDuty'] == 0.21
     assert payload['pinoutFile'] == 'pinout_esp32_c3.json'
+
+
+def test_set_pwm_output_can_persist_apply_at_startup(monkeypatch):
+    main = _import_main(monkeypatch)
+    main.board = _FakePWMBoard()
+    main.board.config = _FakeConfig()
+
+    payload = asyncio.run(main.set_pwm_output(_Request({
+        'index': 0,
+        'mode': 'target_temperature',
+        'duty': 0.6,
+        'max_duty': 0.6,
+        'min_duty': 0.2,
+        'target_temperature': 22,
+        'dewpoint_offset': 4,
+        'ramp_offset': 1.5,
+        'apply_at_startup': True,
+    })))
+
+    startup = main.board.config.pwm_output_startup['output_0']
+    assert startup['mode'] == 'target_temperature'
+    assert startup['max_duty'] == 0.6
+    assert startup['min_duty'] == 0.2
+    assert startup['target_temperature'] == 22.0
+    assert startup['dewpoint_offset'] == 4.0
+    assert startup['ramp_offset'] == 1.5
+    assert payload['pwmOutputs'][0]['apply_at_startup'] is True
+    assert payload['pwmOutputs'][0]['mode'] == 'target_temperature'
+
+
+def test_set_pwm_output_can_clear_apply_at_startup(monkeypatch):
+    main = _import_main(monkeypatch)
+    main.board = _FakePWMBoard()
+    main.board.config = _FakeConfig()
+    main.board.config.pwm_output_startup = {
+        'output_0': {
+            'mode': 'fixed',
+            'max_duty': 0.6,
+            'min_duty': 0.0,
+            'target_temperature': None,
+            'dewpoint_offset': None,
+            'ramp_offset': 0.0,
+            'duty': 0.6,
+        }
+    }
+
+    payload = asyncio.run(main.set_pwm_output(_Request({'index': 0, 'mode': 'fixed', 'duty': 0.4, 'apply_at_startup': False})))
+
+    assert main.board.config.pwm_output_startup == {}
+    assert payload['pwmOutputs'][0]['apply_at_startup'] is False
 
 
 def test_write_config_triggers_save(monkeypatch):

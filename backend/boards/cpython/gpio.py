@@ -197,15 +197,15 @@ class AnalogInputPin:
         """
         raw = self.ads.readADC(self.adc_channel)
         voltage = raw * self._voltage_scale * self._adc_calibration
-        logger.debug(
-            'AnalogInputPin %s read channel=%s raw=%s scale=%.8fV/count calibration=%.4f voltage=%.4fV',
-            self.pin_name,
-            self.adc_channel,
-            raw,
-            self._voltage_scale,
-            self._adc_calibration,
-            voltage,
-        )
+        # logger.debug(
+        #     'AnalogInputPin %s read channel=%s raw=%s scale=%.8fV/count calibration=%.4f voltage=%.4fV',
+        #     self.pin_name,
+        #     self.adc_channel,
+        #     raw,
+        #     self._voltage_scale,
+        #     self._adc_calibration,
+        #     voltage,
+        # )
         return voltage
 
     def __str__(self):

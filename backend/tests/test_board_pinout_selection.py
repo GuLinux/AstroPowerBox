@@ -259,11 +259,60 @@ def test_collect_output_configs_accepts_legacy_nested_fan_pwm_output():
     assert board.fan_pin_id == 'fan'
 
 
+def test_restore_pwm_outputs_at_startup_applies_saved_profile():
+    board = _new_board()
+
+    class _Pin:
+        def __init__(self):
+            self.is_pwm = True
+            self._duty = 0.0
+
+        @property
+        def duty(self):
+            return self._duty
+
+        @duty.setter
+        def duty(self, value):
+            self._duty = value
+
+    board.output_pins = {'heater_0': _Pin(), 'output_0': _Pin()}
+    board.config = SimpleNamespace(pwm_output_startup={
+        'heater_0': {
+            'mode': 'target_temperature',
+            'max_duty': 0.55,
+            'min_duty': 0.2,
+            'target_temperature': 21.0,
+            'dewpoint_offset': None,
+            'ramp_offset': 1.5,
+            'duty': 0.55,
+        },
+        'output_0': {
+            'mode': 'off',
+            'max_duty': 0.8,
+            'min_duty': 0.0,
+            'target_temperature': None,
+            'dewpoint_offset': None,
+            'ramp_offset': 0.0,
+            'duty': 0.8,
+        },
+        'missing': {
+            'mode': 'fixed',
+            'max_duty': 0.9,
+        },
+    })
+
+    board.restore_pwm_outputs_at_startup()
+
+    assert board.output_pins['heater_0'].duty == 0.55
+    assert board.output_pins['output_0'].duty == 0.0
+
+
 def test_start_applies_fan_duty_before_starting_status_led():
     board = _new_board()
     call_order = []
 
     board.apply_fan_duty = lambda: call_order.append('fan')
+    board.config = SimpleNamespace(pwm_output_startup={})
 
     class _StatusLed:
         async def start(self):

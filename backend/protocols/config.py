@@ -46,6 +46,14 @@ class Config(Protocol):
     def pinout_file(self, pinout_file: str) -> None:
         raise NotImplementedError()
 
+    @property
+    def pwm_output_startup(self) -> dict[str, dict]:
+        raise NotImplementedError()
+
+    @pwm_output_startup.setter
+    def pwm_output_startup(self, pwm_output_startup: dict[str, dict]) -> None:
+        raise NotImplementedError()
+
     def load(self) -> None:
         raise NotImplementedError()
 

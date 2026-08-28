@@ -59,6 +59,7 @@ def test_config_loads_defaults_when_storage_is_empty():
     assert cfg.status_led_duty == 1.0
     assert cfg.fan_duty == 1.0
     assert cfg.pinout_file == ''
+    assert cfg.pwm_output_startup == {}
 
 
 def test_config_save_persists_pinout_and_status_led():
@@ -68,18 +69,50 @@ def test_config_save_persists_pinout_and_status_led():
     cfg.status_led_duty = 0.42
     cfg.fan_duty = 0.35
     cfg.pinout_file = 'pinout_esp32_c3.json'
+    cfg.pwm_output_startup = {
+        'heater_0': {
+            'mode': 'target_temperature',
+            'max_duty': 0.6,
+            'min_duty': 0.2,
+            'target_temperature': 20.0,
+            'dewpoint_offset': None,
+            'ramp_offset': 1.5,
+            'duty': 0.6,
+        }
+    }
     cfg.save()
 
     assert storage.data['stLedDuty'] == 0.42
     assert storage.data['fanDuty'] == 0.35
     assert storage.data['pinoutFile'] == 'pinout_esp32_c3.json'
+    assert storage.data['pwmOutputStartup']['heater_0']['mode'] == 'target_temperature'
+    assert storage.data['pwmOutputStartup']['heater_0']['max_duty'] == 0.6
 
 
 def test_config_json_includes_pinout_file():
     cfg = Config(MemoryStorage())
     cfg.pinout_file = 'pinout_esp32_wroom_v1.json'
     cfg.fan_duty = 0.5
+    cfg.pwm_output_startup = {
+        'output_0': {
+            'mode': 'fixed',
+            'max_duty': 0.4,
+            'min_duty': 0.0,
+            'target_temperature': None,
+            'dewpoint_offset': None,
+            'ramp_offset': 0.0,
+            'duty': 0.4,
+        }
+    }
 
     payload = cfg.json
     assert payload['pinoutFile'] == 'pinout_esp32_wroom_v1.json'
     assert payload['fanDuty'] == 0.5
+    assert payload['pwmOutputStartup']['output_0']['max_duty'] == 0.4
+
+
+def test_config_load_upgrades_legacy_pwm_startup_duty_values():
+    cfg = Config(MemoryStorage({'pwmOutputStartup': {'output_0': 0.5}}))
+
+    assert cfg.pwm_output_startup['output_0']['mode'] == 'fixed'
+    assert cfg.pwm_output_startup['output_0']['max_duty'] == 0.5

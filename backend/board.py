@@ -87,6 +87,7 @@ class Board:
 
     async def start(self):
         self.apply_fan_duty()
+        self.restore_pwm_outputs_at_startup()
         if len(getattr(self, 'heater_temperature_pins', {})) > 0:
             asyncio.create_task(self.__temperature_stream_loop())
         await self.status_led.start()
@@ -155,6 +156,35 @@ class Board:
     def set_fan_duty(self, duty: float) -> None:
         self.config.fan_duty = duty
         self.apply_fan_duty()
+
+    def restore_pwm_outputs_at_startup(self) -> None:
+        config = getattr(self, 'config', None)
+        pwm_output_startup = getattr(config, 'pwm_output_startup', {}) if config is not None else {}
+        for pin_id, profile in pwm_output_startup.items():
+            output_pin = self.output_pins.get(pin_id)
+            if output_pin is None or not output_pin.is_pwm:
+                continue
+            mode = str(profile.get('mode', 'fixed')) if isinstance(profile, dict) else 'fixed'
+            if mode == 'off':
+                output_pin.duty = 0.0
+                continue
+
+            duty_value = 0.0
+            if isinstance(profile, dict):
+                if 'max_duty' in profile:
+                    duty_value = float(profile.get('max_duty', 0.0))
+                elif 'duty' in profile:
+                    duty_value = float(profile.get('duty', 0.0))
+            output_pin.duty = max(0.0, min(1.0, duty_value))
+
+    def set_pwm_output_startup(self, pin_id: str, profile: dict | None, apply_at_startup: bool) -> None:
+        startup = dict(self.config.pwm_output_startup)
+        if apply_at_startup:
+            startup[pin_id] = dict(profile or {})
+        else:
+            startup.pop(pin_id, None)
+        self.config.pwm_output_startup = startup
+        self.config.save()
 
     def has_temperature_sensor(self, pin_id: str) -> bool:
         return pin_id in self.heater_temperature_pins
@@ -373,12 +403,12 @@ class Board:
                 model = self.heater_temperature_models.get(pin_id, self.__resolve_thermistor_model({}))
                 temperature_c = self.__voltage_to_temperature_c(voltage, model)
                 pin_state['temperature'] = round(float(temperature_c), 2) if temperature_c is not None else None
-                logger.debug(
-                    "Heater '%s' raw voltage=%.4fV mapped temperature=%sC",
-                    pin_id,
-                    voltage,
-                    'None' if pin_state['temperature'] is None else f"{pin_state['temperature']:.2f}",
-                )
+                # logger.debug(
+                #     "Heater '%s' raw voltage=%.4fV mapped temperature=%sC",
+                #     pin_id,
+                #     voltage,
+                #     'None' if pin_state['temperature'] is None else f"{pin_state['temperature']:.2f}",
+                # )
             except Exception as error:
                 pin_state['temperature'] = None
                 logger.warning("Failed reading heater temperature for '%s': %s", pin_id, error)
