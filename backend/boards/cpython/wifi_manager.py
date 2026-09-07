@@ -11,7 +11,7 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
         self._prefix = 'apb-'
 
     async def connect_stations(self, connect_ap_on_failure: bool = True):
-        device = await self.network_manager.get_wifi_device()
+        device = await self.network_manager.get_wifi_device(self.config.wlan_interface)
         if not device:
             print('No WiFi device found, skipping station connection')
             if connect_ap_on_failure:
@@ -50,7 +50,7 @@ class WiFiManager(protocols.wifi_manager.WiFiManager):
             await self.start_ap()
 
     async def start_ap(self):
-        device = await self.network_manager.get_wifi_device()
+        device = await self.network_manager.get_wifi_device(self.config.wlan_interface)
         if not device:
             raise RuntimeError('No WiFi device found, cannot start AP mode')
 

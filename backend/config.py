@@ -9,6 +9,7 @@ class Config(protocols.config.Config):
     _ap: WiFi
     _stations: list[WiFi]
     _pinout_file: str
+    _wlan_interface: str
     _pwm_output_startup: dict[str, dict]
 
     def __init__(self, storage: ConfigStorage):
@@ -56,6 +57,14 @@ class Config(protocols.config.Config):
         self._pinout_file = pinout_file
 
     @property
+    def wlan_interface(self) -> str:
+        return self._wlan_interface
+
+    @wlan_interface.setter
+    def wlan_interface(self, wlan_interface: str) -> None:
+        self._wlan_interface = wlan_interface
+
+    @property
     def pwm_output_startup(self) -> dict[str, dict]:
         return self._pwm_output_startup
 
@@ -71,6 +80,7 @@ class Config(protocols.config.Config):
             'statusLedDuty': self._status_led_duty,
             'fanDuty': self._fan_duty,
             'pinoutFile': self._pinout_file,
+            'wlanInterface': self._wlan_interface,
             'pwmOutputStartup': self._pwm_output_startup,
         }
 
@@ -79,6 +89,7 @@ class Config(protocols.config.Config):
         self._status_led_duty = self.storage.load_float('stLedDuty', default=1) or 1.0
         self._fan_duty = self.storage.load_float('fanDuty', default=1) or 1.0
         self._pinout_file = self.storage.load_str('pinoutFile', default='') or ''
+        self._wlan_interface = self.storage.load_str('wlanInterface', default='') or ''
         startup_raw = self.storage.load_json('pwmOutputStartup', default={}) or {}
         self._pwm_output_startup = {}
         if isinstance(startup_raw, dict):
@@ -105,6 +116,7 @@ class Config(protocols.config.Config):
         self.storage.save_float('stLedDuty', self._status_led_duty)
         self.storage.save_float('fanDuty', self._fan_duty)
         self.storage.save_str('pinoutFile', self._pinout_file)
+        self.storage.save_str('wlanInterface', self._wlan_interface)
         self.storage.save_json('pwmOutputStartup', self._pwm_output_startup)
 
     def __str__(self):

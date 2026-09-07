@@ -21,8 +21,8 @@ class _NetworkManager:
         self.active_connections = active_connections or []
         self.calls = []
 
-    async def get_wifi_device(self):
-        self.calls.append(('get_wifi_device',))
+    async def get_wifi_device(self, preferred_device=None):
+        self.calls.append(('get_wifi_device', preferred_device))
         return self.device
 
     async def get_active_connection_name(self, device):
@@ -52,6 +52,7 @@ def _new_manager(stations=None):
     config = SimpleNamespace(
         ap=WiFi('AstroPowerBox', 'secret'),
         stations=stations if stations is not None else [WiFi('Home', 'station-secret')],
+        wlan_interface='',
     )
     manager = WiFiManager(config)
     return manager, config

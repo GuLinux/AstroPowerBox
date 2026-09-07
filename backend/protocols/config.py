@@ -47,6 +47,14 @@ class Config(Protocol):
         raise NotImplementedError()
 
     @property
+    def wlan_interface(self) -> str:
+        raise NotImplementedError()
+
+    @wlan_interface.setter
+    def wlan_interface(self, wlan_interface: str) -> None:
+        raise NotImplementedError()
+
+    @property
     def pwm_output_startup(self) -> dict[str, dict]:
         raise NotImplementedError()
 

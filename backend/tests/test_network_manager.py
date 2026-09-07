@@ -20,6 +20,39 @@ def test_nmcli_fields_parses_machine_readable_output(monkeypatch):
     ]
 
 
+def test_get_wifi_device_prefers_wlan0_over_unsorted_devices(monkeypatch):
+    manager = NetworkManager()
+
+    async def run_nmcli(*_args):
+        return 'wlx a0d76830336f:wifi\nwlan0:wifi\neth0:ethernet\n'.replace(' ', '')
+
+    monkeypatch.setattr(manager, '_run_nmcli', run_nmcli)
+
+    assert asyncio.run(manager.get_wifi_device()) == 'wlan0'
+
+
+def test_get_wifi_device_uses_configured_interface_when_present(monkeypatch):
+    manager = NetworkManager()
+
+    async def run_nmcli(*_args):
+        return 'wlan0:wifi\nwlxa0d76830336f:wifi\n'
+
+    monkeypatch.setattr(manager, '_run_nmcli', run_nmcli)
+
+    assert asyncio.run(manager.get_wifi_device('wlxa0d76830336f')) == 'wlxa0d76830336f'
+
+
+def test_get_wifi_device_falls_back_when_configured_interface_missing(monkeypatch):
+    manager = NetworkManager()
+
+    async def run_nmcli(*_args):
+        return 'wlan0:wifi\n'
+
+    monkeypatch.setattr(manager, '_run_nmcli', run_nmcli)
+
+    assert asyncio.run(manager.get_wifi_device('wlan1')) == 'wlan0'
+
+
 def test_wait_for_device_state_stops_on_expected_or_terminal_state(monkeypatch):
     manager = NetworkManager()
 

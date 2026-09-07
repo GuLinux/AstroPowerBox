@@ -59,6 +59,7 @@ def test_config_loads_defaults_when_storage_is_empty():
     assert cfg.status_led_duty == 1.0
     assert cfg.fan_duty == 1.0
     assert cfg.pinout_file == ''
+    assert cfg.wlan_interface == ''
     assert cfg.pwm_output_startup == {}
 
 
@@ -69,6 +70,7 @@ def test_config_save_persists_pinout_and_status_led():
     cfg.status_led_duty = 0.42
     cfg.fan_duty = 0.35
     cfg.pinout_file = 'pinout_esp32_c3.json'
+    cfg.wlan_interface = 'wlan1'
     cfg.pwm_output_startup = {
         'heater_0': {
             'mode': 'target_temperature',
@@ -85,6 +87,7 @@ def test_config_save_persists_pinout_and_status_led():
     assert storage.data['stLedDuty'] == 0.42
     assert storage.data['fanDuty'] == 0.35
     assert storage.data['pinoutFile'] == 'pinout_esp32_c3.json'
+    assert storage.data['wlanInterface'] == 'wlan1'
     assert storage.data['pwmOutputStartup']['heater_0']['mode'] == 'target_temperature'
     assert storage.data['pwmOutputStartup']['heater_0']['max_duty'] == 0.6
 

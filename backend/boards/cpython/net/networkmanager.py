@@ -24,10 +24,15 @@ class NetworkManager:
         def description(self) -> str:
             return self.value[1]
 
-    async def get_wifi_device(self) -> str | None:
+    async def get_wifi_device(self, preferred_device: str | None = None) -> str | None:
         devices = await self._run_nmcli_fields(('DEVICE', 'TYPE'), 'device')
-        wifi_device = next((device for device in devices if device['TYPE'] == 'wifi'), None)
-        return wifi_device['DEVICE'] if wifi_device else None
+        if preferred_device:
+            if any(device['DEVICE'] == preferred_device for device in devices):
+                return preferred_device
+            print(f'Configured WLAN interface {preferred_device!r} not found, falling back to auto-detection')
+        # nmcli does not guarantee a stable device order, so sort to consistently prefer wlan0-style names.
+        wifi_devices = sorted(device['DEVICE'] for device in devices if device['TYPE'] == 'wifi')
+        return wifi_devices[0] if wifi_devices else None
 
     async def connect_station(self, connection_name: str, device: str | None = None) -> bool:
         arguments = ['connection', 'up', connection_name]
